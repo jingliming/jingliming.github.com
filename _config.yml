@@ -1,0 +1,6 @@
+gems: [jekyll-paginate]
+paginate: 8
+permalink: /post/:title.html
+404: 404.html
+mardown: kramdown
+highlighter: pygments
