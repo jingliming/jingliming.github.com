@@ -3,7 +3,7 @@ title: VirtualBox 的一些高级特性
 layout: post
 comments: true
 language: chinese
-category: [tools]
+category: [misc]
 keywords: virtualbox,高级,特性
 description: 本文不会介绍如何安装 VirtualBox，也不会讲解如何安装操作系统，只是介绍一些比较好玩的特性，一些很有意思，但是经常会被忽略的特性。
 ---

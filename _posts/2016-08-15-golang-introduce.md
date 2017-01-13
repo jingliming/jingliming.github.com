@@ -406,6 +406,8 @@ $ gvm use go1.4 --default       ← 设置当前使用版本
 
 官方网站 golang.org 被墙，常见的工具可以从 [Gopm Registry](https://gopm.io/) 上下载，而文档资料等可以从 [Golang 中国](http://golangtc.com/) 上查看。
 
+另外，[Github - Golang](https://github.com/golang) 提供了很多 golang.org/x/ 的镜像包，只需要下载并保存到 $GOPATH/src 目录下。
+
 ### 文档
 
 * [Network programming with Go](https://jan.newmarch.name/go/)，关于网络编程相关。
