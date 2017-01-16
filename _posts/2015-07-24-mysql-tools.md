@@ -19,7 +19,7 @@ description: 工欲善其事，必先利其器；在本文章中介绍了与 MyS
 
 ## percona-tools
 
-![Percona Tools Logo]({{ site.url }}/images/mysql/percona-tools-logo.png "Percona Tools Logo"){: .pull-right width="300px"}
+![Percona Tools Logo]({{ site.url }}/images/databases/mysql/percona-tools-logo.png "Percona Tools Logo"){: .pull-right width="300px"}
 
 该工具集基本上是 perl 脚本，可以直接从官方网站 [percona-toolkit](https://www.percona.com/downloads/percona-toolkit/) 上下载源码，文档也可以直接从上述的网站下载，只需要填写个表格即可。
 
@@ -57,7 +57,7 @@ http://www.oschina.net/translate/scalearc-benchmarking-sysbench
 
 sysbench 用于基准测试，包括了：CPU 性能、磁盘 IO 性能、调度程序性能、内存分配及传输速度、POSIX 线程性能、数据库性能(OLTP基准测试，支持 MySQL、PostgreSQL、Oracle)等。
 
-![Sysbench Logo]({{ site.url }}/images/mysql/sysbench-logo.jpg "Sysbench Logo"){: .pull-center }
+![Sysbench Logo]({{ site.url }}/images/databases/mysql/sysbench-logo.jpg "Sysbench Logo"){: .pull-center }
 
 其命令格式如下：
 

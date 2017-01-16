@@ -12,7 +12,7 @@ description: 为了排查问题，对数据库的监控是必不可少的，在�
 
 <!-- more -->
 
-![Monitor Logo]({{ site.url }}/images/mysql/monitor-logo.png "Monitor Logo"){: .pull-center }
+![Monitor Logo]({{ site.url }}/images/databases/mysql/monitor-logo.png "Monitor Logo"){: .pull-center }
 
 ## 简介
 
