@@ -3,7 +3,7 @@ title: MySQL 写在开头
 layout: post
 comments: true
 language: chinese
-category: [mysql]
+category: [mysql,database]
 keywords: mysql
 description: 保存一下经常使用的经典 MySQL 资源。
 ---
@@ -13,7 +13,7 @@ description: 保存一下经常使用的经典 MySQL 资源。
 <!-- more -->
 
 
-# 官方网站
+## 官方网站
 
 * [MySQL Documentation](http://dev.mysql.com/doc/)，MySQL 官方网站的参考文档，经常使用的包括了 [MySQL Reference Manual](http://dev.mysql.com/doc/refman/en/)、[MySQL Internals Manual](http://dev.mysql.com/doc/internals/en/)，还包括了一些 API 接口。
 
@@ -22,11 +22,11 @@ description: 保存一下经常使用的经典 MySQL 资源。
 * [MySQL Server Blog](http://mysqlserverteam.com/)、[MySQL High Availability](http://mysqlhighavailability.com/) 。
 
 
-# Blogs
+## Blogs
 
 一些比较常见、经典的 Blogs 。
 
-## Jeremy Cole
+### Jeremy Cole
 
 目前在 Google 任职的大牛，分别在 MySQL AB、Yahoo、Twitter、Google 待过，看他的 blog 竟然还玩过 AVR 的 ^_^
 
@@ -37,21 +37,14 @@ description: 保存一下经常使用的经典 MySQL 资源。
 innodb_ruby 工具的源码可以参考 [Github](https://github.com/jeremycole/innodb_ruby/)，其安装、使用方法可以参考 [Github WiKi](https://github.com/jeremycole/innodb_ruby/wiki) 。
 
 
-
-
-
-# 经典文章
+## 经典文章
 
 * [How does a relational database work](http://coding-geek.com/how-databases-work/)，一篇很好的文章，对关系型数据库的初步介绍。
 
 * [An Outline for a Book on InnoDB](http://www.xaprb.com/blog/2015/08/08/innodb-book-outline/)，关于 InnoDB 的一些关键技术点。
 
 
-
-
-
-
-# 经典课程
+## 经典课程
 
 * [Stanford 数据库课程](http://web.stanford.edu/class/cs245/)，介绍了一些常用的数据库工具，如 [Innodb diagrams](https://github.com/jeremycole/innodb_diagrams)、[Innodb Ruby](https://github.com/jeremycole/innodb_ruby/) 。
 

@@ -16,11 +16,13 @@ title: Categories
 
 Linux 相关，包括了常用的方法，以及相应的内核介绍。
 
-<!--
-
 #### Network
 
 对与内核中网络部分的介绍。
+
+* [Linux 网络设置](/post/network-setting.html)，Linux 中一些常见的网络设置。
+
+<!--
 
 * [Linux 网络协议栈简介](/post/network-introduce.html)，简单介绍一下 Linux 中网络协议栈的相关内容。
 * [网络监控 netstat VS. ss](/post/network-nettools-vs-iproute2.html)，netstat 和 ss 命令是比较典型的网络监控工具，在此介绍对比下。
@@ -43,30 +45,32 @@ Linux 相关，包括了常用的方法，以及相应的内核介绍。
 * [LXC 网络设置相关](/post/linux-lxc-network.html)，关于 Container 中网络的介绍，主要介绍 veth、vlan、macvlan 等概念。
 * [LXC sshd 单进程启动](/post/linux-lxc-sshd.html)，介绍如何启动一个单进程，对于资源隔离有很大的参考意义。
 
-#### Monitor
-
-记录与监控相关的内容。
-
-* [Linux 监控](/post/linux-monitor.html)，简单记录一下在 Linux 监控中一些比较常见的工具、网站、资料等信息。
-* [Linux 内存监控](/post/linux-monitor-memory.html)，记录下在 Linux 中，与内存相关的监控项以及工具。
-* [Dstat 使用及其原理](/post/details-about-dstat.html)，一个使用 Python 编写的跨平台监控工具。
-* [Systemtap](/post/linux-systemtap.html)，介绍内核神器 Systemtap 的使用方式，包括了如何使用最新的安全特性。
-
-#### SSH
-
-* [SSH 简介](/post/ssh-introduce.html)，简单介绍 OpenSSH 相关的内容。
-* [SSH Simplify Your Life](/post/ssh-simplify-your-life.html)，用来配置一些常见的设置，简化登陆方式。
-* [SSH 代理设置](/post/ssh-proxy.html)，关于一些常见代理设置，如本地转发、远程转发、动态转发等。
-* [SSH 杂项](/post/ssh-tips.html)，记录一些常见的示例。
-
-
 #### WebServer
 
 Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通过 C 语言编写；另外，还包括了前端相关的内容。
 
 * [Bootstrap](/post/bootstrap-etc.html)，一个来自 Twitter 的前端框架，同时包括了一些 css、javascript 相关的内容介绍。
 * [Nginx 入门](/post/nginx-introduce.html)，介绍一些常见的操作，例如安装、启动、设置等。
+* [Linux 内存监控](/post/linux-monitor-memory.html)，记录下在 Linux 中，与内存相关的监控项以及工具。
 -->
+
+#### Monitor
+
+记录与监控相关的内容。
+
+* [Linux 监控](/post/linux-monitor.html)，简单记录一下在 Linux 监控中一些比较常见的工具、网站、资料等信息。
+* [Dstat 使用及其原理](/post/details-about-dstat.html)，一个使用 Python 编写的跨平台监控工具。
+* [Systemtap](/post/linux-systemtap.html)，介绍内核神器 Systemtap 的使用方式，包括了如何使用最新的安全特性。
+
+#### SSH
+
+主要介绍 SSH 一些常见的操作。
+
+<!-- * [SSH 简介](/post/ssh-introduce.html)，简单介绍 OpenSSH 相关的内容。-->
+* [SSH 代理设置](/post/ssh-proxy.html)，关于一些常见代理设置，如本地转发、远程转发、动态转发等。
+* [SSH Simplify Your Life](/post/ssh-simplify-your-life.html)，用来配置一些常见的设置，简化登陆方式。
+* [SSH 杂项](/post/ssh-tips.html)，记录一些常见的示例。
+
 
 
 #### Miscellaneous
@@ -77,6 +81,8 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Linux 常用技巧](/post/linux-tips.html)，简单记录了一些在 Linux 中常用的技巧。
 * [TMUX](/post/tmux.html)，一个终端复用工具，类似 screen 但是更加方便使用，更加高端。
 * [Linux 绘图工具](/post/linux-gnuplot.html)，这是一个命令行驱动的绘图工具，支持多个平台。
+* [你所不知道的定时任务](/post/details-about-cronie.html)，也就是 Linux 中如何使用 crontab，以及常见错误。
+* [Git 分支管理](/post/git-branch-model.html)，主要介绍 git 的分支处理常用操作，以及比较经典的版本分支管理方式。
 
 <!--
 * [Linux System Daemon](/post/linux-systemd.html)，一般新发行版本采用的是 systemd，在此简单介绍下。
@@ -100,6 +106,7 @@ Percona 是最接近官方 MySQL Enterprise 发行版的版本，也就是说它
 * [MySQL 常用工具](/post/mysql-tools.html)，一些运维过程中常见的工具，包括压测工具。
 * [MySQL 监控指标](/post/mysql-monitor.html)，包括了一些 MySQL 常见的监控指标及其含义等。
 * [MySQL 用户管理](/post/mysql-users.html)，一些用户相关的操作，包括了用户管理、授权、密码恢复等。
+* [MySQL 线上部署](/post/mysql-deploy-online.html)，简单记录一些线上部署时常见的配置内容。
 
 
 <!--
@@ -147,10 +154,10 @@ Just More Pythonic ~~~
 记录 C 语言实现的 Python 的简介。
 
 * [Python 模块简介](/post/python-modules.html)，简单介绍一下 Python 中的模块，以及一些常用的模块。
-* [Python 杂项](blog/python-tips.html)，记录了 Python 中常见技巧，一些乱七八糟的东西。
+* [Python 杂项](/post/python-tips.html)，记录了 Python 中常见技巧，一些乱七八糟的东西。
 
 <!--
-* [Python 的垃圾回收机制](blog/python-garbage-collection.html)，详细介绍 Python 特有的垃圾回收机制。
+* [Python 的垃圾回收机制](/post/python-garbage-collection.html)，详细介绍 Python 特有的垃圾回收机制。
 * [Python 异常处理](/post/python-exception.html)，介绍如何处理 Python 的异常。
 * [Python Greenlet](/post/python-greenlet.html)，
 * [Python Gevent](/post/python-gevent.html)，

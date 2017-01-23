@@ -3,7 +3,7 @@ title: MySQL 监控指标
 layout: post
 comments: true
 language: chinese
-category: [mysql]
+category: [mysql,database]
 keywords: mysql,monitor,监控
 description: 为了排查问题，对数据库的监控是必不可少的，在此介绍下 MySQL 中的常用监控指标。
 ---
@@ -193,9 +193,9 @@ Query OK, 0 rows affected (0.00 sec)
 {% highlight text %}
 Threads_connected                   已经建立的连接
 Threads_running                     正在运行的连接
-Connections_errors_internal         由于服务器内部本身导致的错误
+Connection_errors_internal          由于服务器内部本身导致的错误
 Aborted_connects                    尝试与服务器建立连接但是失败的次数
-Connections_errors_max_connections  由于到达最大连接数导致的错误
+Connection_errors_max_connections   由于到达最大连接数导致的错误
 {% endhighlight %}
 
 

@@ -120,10 +120,34 @@ $ tar -xf mysql-boost-x.x.xx.tar.bz2
 $ cd mysql-boost-x.x.xx && mkdir build && cd build       ← 新建编译的目录
 $ cmake ..                                     \
     -DCMAKE_INSTALL_PREFIX=/opt/mysql-5.7      \         ← 安装根目录
-    -DCMAKE_BUILD_TYPE=Debug                   \         ← 打开调试选项
-    -DWITH_EMBEDDED_SERVER=OFF                 \         ← 取消embedded模式
+    -DMYSQL_DATADIR=/opt/data                  \         ← 数据文件的默认路径
+    -DSYSCONFDIR=/etc                          \         ← 配置文件目录，默认/etc/my.cnf
+                                               \
+    -DWITH_INNOBASE_STORAGE_ENGINE=ON          \         ← 使用InnoDB存储引擎
+    -DWITH_BLACKHOLE_STORAGE_ENGINE=ON         \         ← 黑洞存储引擎
     -DWITH_EXAMPLE_STORAGE_ENGINE=ON           \         ← 使用存储示例
-    -DWITH_SAFEMALLOC=OFF                      \         ← 关闭safemalloc，经常会报错误
+                                               \
+    -DWITHOUT_FEDERATED_STORAGE_ENGINE=ON      \         ← 取消一些不常用的存储引擎
+    -DWITHOUT_PARTITION_STORAGE_ENGINE=ON      \
+    -DWITHOUT_ARCHIVE_STORAGE_ENGINE=ON        \         ← 日志记录和聚合分析，不支持索引
+                                               \
+    -DMYSQL_TCP_PORT=3306                      \         ← 默认使用的端口号
+    -DMYSQL_UNIX_ADDR=/tmp/mysql.sock          \         ← 默认套接字文件路径
+    -DMYSQL_USER=mysql                         \         ← 默认使用的用户
+                                               \
+    -DEXTRA_CHARSETS=all                       \         ← 是否支持额外的字符集
+    -DDEFAULT_CHARSET=utf8                     \         ← 默认编码机制
+    -DDEFAULT_COLLATION=utf8_general_ci        \         ← 设定默认语言的排序规则
+                                               \
+    -DWITH_READLINE=ON                         \         ← 使用readline库，支持类shell的快捷键以及历史命令
+    -DENABLED_LOCAL_INFILE=ON                  \         ← 支持批量导入
+    -DWITH_LIBWRAP=OFF                         \         ← 是否可以基于WRAP实现访问控制
+    -DWITH_SSL=system                          \         ← 支持ssl会话，实现基于ssl的数据复制
+    -DWITH_ZLIB=system                         \         ← 压缩库
+    -DWITH_EMBEDDED_SERVER=OFF                 \         ← 取消embedded模式
+    -DENABLE_PROFILING=ON                      \         ← 启用性能分析功能
+    -DCMAKE_BUILD_TYPE=Debug                   \         ← 打开调试选项
+    -DWITH_SAFEMALLOC=OFF                      \         ← 关闭safemalloc，经常会报错误，5.7不需要
     -DWITH_BOOST=../boost                                ← 5.7需要该boost库，直接下载含该库的包
 
 ----- 编译源码并安装

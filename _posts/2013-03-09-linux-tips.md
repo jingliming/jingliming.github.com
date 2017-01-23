@@ -67,6 +67,85 @@ $ su root                             ← 需要root用户密码
 
 注意，之所以使用 sudo su root 这种方式，可能是 btmp 等类似的文件，只有 root 可以写入，否则会报 Permission Denied，此时可以通过 strace 查看报错的文件。
 
+## 文本替换
+
+命令行批量替换多文件中的字符串，常用有三种方法：Mahuinan 法、Sumly 法和 30T 法。
+
+{% highlight text %}
+----- Mahuinan法，用sed命令批量替换多个文件中的字符串
+$ sed -i "s/orig/sub/g" "`grep orig -rl directory`"
+解读：
+    sed -i 选项表示原地替换，若只显示结果则用-e替换；
+    g 表示全局，否则只替换第一个匹配字符串；
+    grep -r 表示对目录递归调用；-l(L小写)列出匹配的文件。
+
+----- Sumly法
+$ perl -pi -e "s/China/Sumly/g" /www/*.htm /www/*.txt
+解读：
+    将www文件夹下所有的htm和txt文件中的"China"都替换为"Sumly"
+
+----- 30T法
+$ perl -pi -e 's/baidu/30T/g' `find /www -type f`
+解读：
+　　将www文件夹下所有文件，不分扩展名，所有的"baidu"都替换为"30T"
+{% endhighlight %}
+
+注意，在 Mahuinan 中，为了防止文件名中存在空格，所以使用引号包裹。
+
+<!--
+splint替换，首先通过 $ sed -n "/\/\*@[a-z]\{4,20\}@\*\//p" null1.c进行测试，然后对grep进行测试
+$ grep "\/\*@[a-z]\{1,\}@\*\/" -lr .  为防止文件名之间由空格，将其由双引号包裹。 最后的实际命令为：
+$ sed -i "s/\/\*@[a-z]\{1,\}@\*\/ //g"  "`grep "\/\*@[a-z]\{1,\}@\*\/" -lr .` "
+-->
+
+
+## install 和 cp 命令
+
+两者都可以将文件/目录拷贝到指定的目录，不过 install 允许你控制目标文件的属性，常用于程序的 Makefile 文件。
+
+{% highlight text %}
+install [OPTION]... SOURCE DIRECTORY
+常用参数：
+    -m, --mode=0700
+        设定权限；
+    -v, --verbose
+        打印处理的每个文件/目录名称；
+    -d, --directory
+        所有参数都作为目录处理，而且会创建指定目录；
+    -g, --group=mysql
+        设定所属组，而不是进程目前的所属组；
+    -o, --owner=mysql
+        设定所有者，只适用于超级用户；
+    -s, --strip
+        使用strip命令删除文件中的符号表 (symbol table)；
+    -S, --suffix=exe
+        指定安装文件的后缀；
+    -p, --preserve-timestamps
+        以源文件的访问/修改时间作为相应的目的地文件的时间属性；
+    -t, --target-directory
+        如果最后一个文件是一个目录并且没有使用-T,--no-target-directory选项，
+        则将每个源文件拷贝到指定的目录，源和目标文件名相同；
+{% endhighlight %}
+
+<!--
+--backup[=CONTROL]：为每个已存在的目的地文件进行备份。 -b：类似 --backup，但不接受任何参数。
+-->
+
+使用 -d 选项时，如果指定安装位置为 /usr/local/foo/bar，一般 /usr/loacal 已存在，install 会直接创建 foo/bar 目录，并把程序安装到指定位置。
+
+如果指定了两个文件名，则将第一个文件拷贝到第二个,
+
+{% highlight text %}
+----- 安装目录，等价于mkdir /tmp/bin
+$ install --verbose -d -m 0755 /tmp/bin
+
+----- 安装文件，等价于cp a/e c
+$ install -v -m 0755 a/e c
+
+----- 安装文件，等价于mkdir -p a/b && cp x a/b/c
+$ install -v -m 0755 -D x a/b/c
+{% endhighlight %}
+
 
 {% highlight text %}
 {% endhighlight %}

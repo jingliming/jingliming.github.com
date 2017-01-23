@@ -4,7 +4,7 @@ title: MySQL 常用工具
 layout: post
 comments: true
 language: chinese
-category: [mysql]
+category: [mysql,database]
 keywords: mysql,monitor,监控,percona tools,sysbench,tcprstat,压测,响应时间,工具
 description: 工欲善其事，必先利其器；在本文章中介绍了与 MySQL 相关的一些常见的工具，列入 percona 工具集，常见的压测工具 sysbench，服务器响应时间 tcprstat。包括了它们使用方法，详细的执行过程等。
 ---
