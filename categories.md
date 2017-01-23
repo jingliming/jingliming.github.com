@@ -85,7 +85,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 ----------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------
 
-![MySQL Logo]({{ site.url }}/images/mysql/mysql-mariadb-percona-logo.png "MySQL Logo"){: .pull-center}
+![MySQL Logo]({{ site.url }}/images/databases/mysql/mysql-mariadb-percona-logo.png "MySQL Logo"){: .pull-center}
 
 MySQL 是一款最流行的开源关系型数据库，最初由瑞典的 MySQL AB 公司开发，目前已被 Oracle 收购，现在比较流行的开源分支包括了 MariaDB 和 Percona。
 
@@ -96,16 +96,16 @@ Percona 是最接近官方 MySQL Enterprise 发行版的版本，也就是说它
 文章列表：
 
 * [MySQL 写在开头](/post/mysql-begin.html)，主要保存一些经常使用的 MySQL 资源。
+* [MySQL 简单介绍](/post/mysql-introduce.html)，简单介绍 MySQL 常见的使用方法，包括安装启动、客户端使用、调试等。
 * [MySQL 常用工具](/post/mysql-tools.html)，一些运维过程中常见的工具，包括压测工具。
 * [MySQL 监控指标](/post/mysql-monitor.html)，包括了一些 MySQL 常见的监控指标及其含义等。
+* [MySQL 用户管理](/post/mysql-users.html)，一些用户相关的操作，包括了用户管理、授权、密码恢复等。
 
 
 <!--
 
-* [MySQL 简介](/post/mysql-introduce.html)，简单介绍 MySQL 常见的使用方法，包括安装启动、客户端使用、调试等。
 * [MySQL 基本概念](/post/mysql-basic.html)，介绍 MySQL 中一些基本的概念，包括了 SQL、JOIN、常见测试库等。
 * [MySQL 配置文件](/post/mysql-config.html)，关于配置相关的内容。
-* [MySQL 用户管理](/post/mysql-users.html)，一些用户相关的操作，包括了用户管理、授权、密码恢复等。
 * [MySQL 链接方式](/post/mysql-connection.html)，实际上就是线程与链接的处理方式，主要包括了三种。
 * [MySQL Handler 监控](/post/mysql-handler.html)，实际上时监控中的 handler 相关的内容。
 * [MySQL MyISAM](/post/mysql-myisam.html)，关于 MySQL 中经典的 MyISAM 的介绍。

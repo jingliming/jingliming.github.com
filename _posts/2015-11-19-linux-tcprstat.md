@@ -2,7 +2,7 @@
 title: 通过 tcprstat 工具统计应答时间
 layout: post
 comments: true
-category: [linux]
+category: [linux, database, mysql]
 language: chinese
 keywords: tcprstat,mysql,linux,响应时间
 description: 一个不错的工具，由 Percona 开发，可以用来统计服务端的数据处理时间，包括了最大最小值等统计信息。只要是使用 TCP 协议，采用服务器-客户端的模式，都可以支持，如 MySQL 。
@@ -14,7 +14,7 @@ description: 一个不错的工具，由 Percona 开发，可以用来统计服�
 
 <!-- more -->
 
-![tcprstat logo]({{ site.url }}/images/mysql/tcprstat-logo.jpg "tcprstat logo"){: .pull-center width="600px" }
+![tcprstat logo]({{ site.url }}/images/databases/mysql/tcprstat-logo.jpg "tcprstat logo"){: .pull-center width="600px" }
 
 ## 简介
 
