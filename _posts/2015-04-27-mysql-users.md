@@ -38,6 +38,7 @@ mysql> DROP USER 'user'@'host';                                      ← 删除�
 mysql> RENAME USER 'user'@'host' TO 'fool'@'host';                   ← 修改用户名
 
 ----- 修改密码
+mysql> ALTER USER 'root'@'localhost' IDENTIFIED BY 'new-password';   ← 修改密码(recommand)
 mysql> SET PASSWORD FOR 'root'@'localhost'=PASSWORD('new-password'); ← 修改密码
 mysql> UPDATE mysql.user SET password=PASSWORD('new-password')
        WHERE USER='root' AND Host='127.0.0.1';

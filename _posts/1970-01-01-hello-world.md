@@ -3,6 +3,7 @@ title: Hello World !!!
 layout: post
 comments: true
 language: chinese
+usemath: true
 category: [misc]
 keywords: hello world,示例,sample,markdown
 description: 简单记录一下一些与 Markdown 相关的内容，包括了一些使用模版。
@@ -258,7 +259,45 @@ Suspendisse id sem consectetuer libero luctus adipiscing.
 only required to indent the first line. Lorem ipsum dolor
 sit amet, consectetuer adipiscing elit.
 
+### Tables, 表格
 
+kramdown 默认支持表格，只需要设置好 ```table thead tbody th tr td``` 对应的属性即可。
+
+|head1 head1 head1|head2 head2 head2|head3 head3 head3|head4 head4 head4|
+|---|:---|:---:|---:|
+|row1text1|row1text3|row1text3|row1text4|
+|row2text1|row2text3|row2text3|row2text4|
+
+<!--
+dog | bird | cat
+----|------|----
+foo | foo  | foo
+bar | bar  | bar
+baz | baz  | baz
+-->
+
+### MathJax, 数学表达式
+
+如下是一个数学表达式。
+
+$$
+\begin{align*}
+  & \phi(x,y) = \phi \left(\sum_{i=1}^n x_ie_i, \sum_{j=1}^n y_je_j \right)
+  = \sum_{i=1}^n \sum_{j=1}^n x_i y_j \phi(e_i, e_j) = \\
+  & (x_1, \ldots, x_n) \left( \begin{array}{ccc}
+      \phi(e_1, e_1) & \cdots & \phi(e_1, e_n) \\
+      \vdots & \ddots & \vdots \\
+      \phi(e_n, e_1) & \cdots & \phi(e_n, e_n)
+    \end{array} \right)
+  \left( \begin{array}{c}
+      y_1 \\
+      \vdots \\
+      y_n
+    \end{array} \right)
+\end{align*}
+$$
+
+段内插入LaTeX代码是这样的：$\exp(-\frac{x^2}{2})$，试试看看吧
 
 ### Pictures，图片显示
 
@@ -271,7 +310,6 @@ sit amet, consectetuer adipiscing elit.
 <div class="clearfix"></div>
 
 [aaaaa]:    /images/linux-liberty.png    "MSN Search"
-
 
 
 ### Reference，引用
@@ -333,6 +371,7 @@ sit amet, consectetuer adipiscing elit.
 
 ←
 -->
+
 
 {% highlight text %}
 {% endhighlight %}

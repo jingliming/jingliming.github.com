@@ -213,6 +213,7 @@ $ tcprstat -l 127.1 -p 3306 -t 1 -n 0
 
 实时监控可以直接参考 [orzdba](http://code.taobao.org/p/orzdba/src/trunk/)，可直接下载安装使用；另外相关的还有 [Percona Monitoring Plugins](https://www.percona.com/downloads/percona-monitoring-plugins/LATEST/)，也就是 zabbix、nagios、cacti 插件。
 
+[mycli](http://mycli.net/) 是一个使用 Python 编写的命令行终端，可以支持自动补全，以及高亮显示。
 
 <!--
 Galera replication for MySQL

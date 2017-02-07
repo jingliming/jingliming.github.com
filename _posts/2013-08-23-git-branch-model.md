@@ -276,7 +276,7 @@ $ git branch -d hotfix-1.2.1
 
 ### 安装
 
-可以直接从 [github gitflow/contrib/gitflow-installer.sh](https://raw.githubusercontent.com/nvie/gitflow/blob/develop/contrib/gitflow-installer.sh) 下载文件，然后执行如下命令即可。
+可以直接从 [github gitflow/contrib/gitflow-installer.sh](https://raw.githubusercontent.com/nvie/gitflow/develop/contrib/gitflow-installer.sh 下载文件，然后执行如下命令即可。
 
 {% highlight text %}
 ----- 安装
@@ -288,7 +288,10 @@ $ rm gitflow-installer.sh
 # bash gitflow-installer.sh uninstall
 {% endhighlight %}
 
-实际上很简单，只是将代码 clone 到本地，然后通过 install 命令安装。
+实际上很简单，只是将代码 clone 到本地，然后通过 install 命令安装；当然，也可以离线安装，该模块会依赖于 [github - nvie/shFlags](https://github.com/nvie/shFlags)，直接将该代码下载并放置到源码的 shFlags 目录下即可。
+
+最后，通过 ```make install``` 安装即可。
+
 
 ### 初始化
 
@@ -309,6 +312,10 @@ Version tag prefix? []
 {% endhighlight %}
 
 主要是回答几个关于分支的命名约定，建议使用默认值。
+
+对于最后的 tag 选项，可以设置为软件的名称，例如 ```foobar-```，然后 Release Branches 的名称使用类似 ```v1.1.0``` 名称，那么最终的 tag 名即为 ```foobar-v1.1.0``` 。
+
+关于该 tag 的信息可以通过 ```git show foobar-v1.1.0``` 命令查看。
 
 ### 新特性
 

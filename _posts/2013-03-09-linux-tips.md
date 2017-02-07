@@ -146,6 +146,24 @@ $ install -v -m 0755 a/e c
 $ install -v -m 0755 -D x a/b/c
 {% endhighlight %}
 
+## 杂项
+
+记录些简单的技巧。
+
+### 写入多行
+
+可以使用 echo 添加到文件，不过这样会比较麻烦，可以使用如下方式；不过 $ 需要做转义。
+
+{% highlight text %}
+$ cat << EOF >> /tmp/foobar.conf
+net.core.rmem_default = 262144
+net.core.rmem_max = 262144
+net.core.wmem_default = 262144
+net.core.wmem_max = 262144
+export PATH=\$PATH:\$HOME/bin
+EOF
+{% endhighlight %}
+
 
 {% highlight text %}
 {% endhighlight %}

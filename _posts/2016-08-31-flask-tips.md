@@ -24,10 +24,38 @@ def hello_world():
     return 'Hello World!'
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    app.run(host='0.0.0.0', port=8080, debug=True, processes=10)
 {% endhighlight %}
 
 指定监听地址，端口号，并使用调试模式，当然只用于调试。
+
+## 获取参数
+
+{% highlight python %}
+from flask import Flask,request
+app = Flask(__name__)
+
+@app.route('/')
+def hello_world():
+    return {"param":request.args.get('foobar')}  #111
+    #return request.args.items().__str__()       #222
+
+@app.route('/page/<int:page>/')
+def index(page=1):
+    pass
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080, debug=True)
+
+#111
+# curl 'http://127.1:8080/?foobar=hello'
+# {"param": "hello"}
+#222
+# curl 'http://127.1:8080/?foobar=hello&foo=world&bar=hi'
+[('foobar', u'hello'), ('foo', u'world'), ('bar', u'hi')]
+{% endhighlight %}
+
+
 
 ## POST 请求处理
 

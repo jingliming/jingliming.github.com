@@ -444,5 +444,10 @@ Icon=/usr/share/icons/hicolor/128x128/apps/haroopad.png
 另外，两个在 Mac 上很经典的软件 Mou 以及 [MacDown](http://macdown.uranusjr.com/features/)，对于 MacDown 源码可以参考 [Github](https://github.com/MacDownApp/macdown) 。
 
 
+## 参考
+
+官方的镜像列表，可以参考 [List of CentOS Mirrors](https://www.centos.org/download/mirrors/) 。
+
+
 {% highlight text %}
 {% endhighlight %}

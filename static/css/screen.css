@@ -33,8 +33,14 @@ a:focus{outline:none;}
   margin-left: auto;
   margin-right: auto;
 }
+pre code {
+//  white-space: nowrap;
+  white-space: pre;
+}
+code {
+  font-size: 0.8em;
+}
 .highlight pre {
-  white-space: nowrap;
   font-size: 0.65em;
   line-height: 1.2em;
   word-spacing:0px;
@@ -510,3 +516,43 @@ blockquote {
   background-color: #DCF7A1;
   border-radius: 10px;
 }
+
+table, th, td {
+    //border: 1px solid black;
+    padding: 3px 9px 3px 9px;
+}
+caption {
+    font-size: larger;
+    margin: 1em auto;
+}
+table {
+    margin: 0 auto;
+    border-collapse:collapse;
+}
+th {
+    background-color:#8192D6;
+}
+th, td {
+    border-bottom: 1px solid #ddd;
+    border-top: 1px solid #ddd;
+    text-align: center;
+}
+tbody tr:nth-child(even) {
+    background: #ccc;
+}
+//tbody tr:hover {
+//    background: linear-gradient(#fff,#aaa);
+//}
+//even || odd
+//th:first-child {
+//    border-radius: 9px 0 0 0;
+//}
+//th:last-child {
+//    border-radius: 0 9px 0 0;
+//}
+//tr:last-child td:first-child {
+//    border-radius: 0 0 0 9px;
+//}
+//tr:last-child td:last-child {
+//    border-radius: 0 0 9px 0;
+//}

@@ -199,7 +199,7 @@ $ ssh -i id_rsa user-name@remote-server-ip
 也可以通过如下命令简单地进行设置。
 
 {% highlight text %}
-$ ssh-keygen -t dsa -f ~/.ssh/id_dsa -N ""
+$ ssh-keygen -t dsa -f ~/.ssh/id_dsa -C "foobar@kidding.com" -N ""
 $ ssh-copy-id -i /home/foobar/.ssh/id_dsa.pub foobar@remote-host-ip
 $ ssh remote-host-ip
 {% endhighlight %}
