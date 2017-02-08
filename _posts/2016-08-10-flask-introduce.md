@@ -3,7 +3,7 @@ title: Flask 简介
 layout: post
 comments: true
 language: chinese
-category: [python, webserver]
+category: [python,program,webserver]
 keywords: python,flask
 description: Flask 是一个使用 Python 编写的轻量级 Web 应用框架，依赖于两个外部库：WSGI 工具箱采用 Werkzeug；模板引擎则使用 Jinja2 。接下来简单介绍一下相关内容，一步步看看如何使用。
 ---

@@ -68,8 +68,6 @@ innodb_ruby 工具的源码可以参考 [Github](https://github.com/jeremycole/i
 <!--
 <a href="http://www.innomysql.net/">Inside MySQL</a> 网易姜承尧的 blog 。<br><br>
 <a href="https://github.com/percona/tokudb-engine">tokudb-engine github</a>，据说一个很牛掰的存储引擎，与 InnoDB 类似，percona 实现的。<br><br>
-<a href="http://mysqllover.com/">Simple Life Blog</a>，阿里云的一个大牛。<br><br>
-<a href="http://blog.jcole.us/">Jeremy Cole</a> google 的 MySQL 高级研究员。<br><br>
 <a href="http://www.gpfeng.com/">Learn AND live</a> <br><br>
 <a href="http://mysql.taobao.org/index.php?title=%E9%A6%96%E9%A1%B5">淘宝MySQL</a>，官方 blog 。<br><br>
 http://cn.planet.mysql.com/
@@ -79,7 +77,12 @@ hotpu-meeting.b0.upaiyun.com/2014dtcc/post_pdf/hedengcheng.pdf
 
 
 http://www.ywnds.com/?cat=31
+http://mysqllover.com/?p=594
+http://siddontang.com/?p=594
+http://keithlan.github.io/      binlog
+http://hatemysql.com/           binlog
 -->
+
 
 {% highlight text %}
 {% endhighlight %}

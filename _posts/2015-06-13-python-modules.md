@@ -2,7 +2,7 @@
 title: Python 模块简介
 layout: post
 comments: true
-category: [python]
+category: [python,program]
 language: chinese
 keywords: python,模块
 description: 简单记录一下 Python 模块相关的内容，包括了内置模块、标准模块以及需要单独安装的三方包。而且还有一些经常使用的三方模块，例如 functools、collections、json 等。

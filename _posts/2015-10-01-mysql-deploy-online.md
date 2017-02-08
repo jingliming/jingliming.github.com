@@ -14,6 +14,8 @@ description: 主要介绍下 MySQL 如何在线上进行部署。
 
 ![mysql deploy online logo]({{ site.url }}/images/databases/mysql/deploy-online-logo.png "mysql deploy online logo"){: .pull-center width="50%" }
 
+可以通过如下步骤部署 MySQL 服务。
+
 ### 创建用户
 
 首先创建 MySQL 用户和组。

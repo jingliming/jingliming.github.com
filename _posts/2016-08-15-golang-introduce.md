@@ -3,7 +3,7 @@ title: Go 语言简介
 layout: post
 comments: true
 language: chinese
-category: [go]
+category: [go,program]
 keywords: golang,go,简介
 description: golang 目前越来越火，包括了 Docker、InfluxDB、etcd 等等，越来越多的工程都在使用 golang 。虽然它的语法都比较 "奇葩"，一些高级语言支持的特性却都不支持，但其高并发、高效率等等，也使其热度不减。这篇文章主要简单介绍下 golang 环境的搭建。
 ---

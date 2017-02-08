@@ -3,7 +3,7 @@ title: Flask 常见示例
 layout: post
 comments: true
 language: chinese
-category: [python, webserver]
+category: [python,program,webserver]
 keywords: flask,示例
 description: 记录 Flask 常见的示例，可以用来作为参考使用。
 ---
