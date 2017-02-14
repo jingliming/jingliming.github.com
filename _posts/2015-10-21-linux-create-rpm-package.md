@@ -78,147 +78,27 @@ $ tree ~/rpm-maker
 接下来，看看如何生成 rpm 包，也就是使用 rpmbuild 命令，过程可以分为多个阶段。
 
 {% highlight text %}
-$ rpmbuild --bb mysql.spec    
+$ rpmbuild --bb mysql.spec   
 
 使用参数：
+   -bb 制作成二进制RPM包
+   -bs 制作源码的RPM包
+   -ba 源码和二进制两种形式的RPM包
+   -bl 检测BUILDROOT没有包含到rpm包中的文件
+
    -bp 执行到pre
    -bc 执行到build段
    -bi 执行install段
+   -bl 执行install段
 
    --quiet 默认会输出每次执行的shell命令，此时忽略
-   --test 只生成构建的脚本
 {% endhighlight %}
-
-其中，```--test``` 参数可以用来测试脚本是否正确，默认会保存在 /var/tmp 目录下，该路径可以通过 rpmrc 文件中的 tmppath 参数设置，或者直接设置 %_tmppath /tmp 。
-
-<!--
--bb    制作成二进制                               // # sudo rpmbuild –bb mysql.spec
--bs    源码形式
--ba    源码和二进制两种形式
-
--bl    制作后检测buildroot生成但没有包含到rpm包中的文件，注意如果生成未包含进去会出错
-
--ba 既生成src.rpm又生成二进制rpm
--bs 只生成src的rpm
--bb 只生二进制的rpm
-
--bl 检测有文件没包含
--->
 
 一般来说，执行的顺序为 rpmbuild -bp，再 -bc 再 -bi，如果没问题，rpmbuild -ba 生成 src 包与二进制包，使用时通过 ```rpm -ivh xxx.rpm;``` 以及 ```rpm -e xxx.rpm``` 进行安装卸载。
 
 ## SPEC 文件
 
-接下来准备 spec 文件，也是核心的内容，该文件包括三部分：介绍部分，编译部分，files 部分。接下来，我们以 MySQL 为例，看看到底是如何制作 RPM 包的。
-
-<!--
-introduction section部分，包括一些变量定义：
-
-###################################################
-# File   : mysql-company-x.x.x-release.x86_64.spec
-# Author : wyett
-# Date   : Oct 15,2013
-###################################################
-
-
-#--- 定义变量，方便后面使用；其中_topdir指定工作根目录
-%define _topdir /home/wyett/mysql
-%define name mysql
-%define version x.x.x
-%define release dba.4
-%define serial 1
-%define userpath /usr/local/mysql
-%define myusr mysql
-%define mygrp mysql
-%define buildroot %{_topdir}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-
-BuildRoot:%{buildroot}
-Summary:Mysql.rmp package of the company
-License:GPL
-Name:%{name}
-Version:%{version}
-Release:%{release}
-Vendor:Mysql package of the company
-Url:http://www.company.com/
-SOURCE0:%{name}-%{version}.tar.gz
-#SOURCE1:my3306.cnf
-BuildRequires:ncurses-devel
-Group:Application/Databases
-
-
-Buildroot 定义了rpm包安装后的根目录，相当于咱们编译安装的 /目录，rpm打包就打包这部分；
-下面部分需要注意：
-BuildRoot:%{buildroot}　　　　　　　　　　　　　　//编译安装的根目录
-SOURCE0:%{name}-%{version}.tar.gz　　　　　　//tar包
-SOURCE1:my3306.cnf　　　　　　　　　　　　　　　//配置文件
-BuildRequires:ncurses-devel　　                            //mysql编译安装时需要的环境包
-
-
-
-
-
-　　%prep                      包括解压命令和其他一些shell脚本
-　　%setup –q                解压tar包到BUILD目录
-　　./configure
-      Make
-　　%setup                     安装，安装到BuildRoot（即${RPM_BUILD_ROOT}）目录下
-　　%clean                      清理一些编译过程的目录
-　　%file                         需要打包的文件目录
-复制代码
-
-#--- 该包的文字性描述
-%description
-The rpm package for the company
-
-
-23 %install
-24 if
-25     getent group %mygrp >/dev/null
-26 then
-27     : OK group %mygrp already present
-28 else
-29     /usr/sbin/groupadd -r %mygrp 2>/dev/null || :
-30 fi
-31 if
-32     id %myusr > /dev/null 2>&1
-33 then
-34     : OK user %myusr already present
-35 else
-36     /usr/sbin/useradd  -g %mygrp -s /sbin/nologin -c "User for Mysql" -d /var/tmp %myusr 2> /dev/null || :
-37 fi
-38 if ! [ -d %{buildroot}/mysqldata ]
-39 then
-40 %{__mkdir} -p %{buildroot}/mysqldata
-41 fi
-42
-43 make install  DESTDIR=%{buildroot} INSTALLDIRS=vendor
-44 install -m 755 %{SOURCE1} %{buildroot}/mysqldata/mysql/data/mysql3306/my3306_master.cnf
-45 #install
-46 %{__rm} -rf %{buildroot}/usr/local/mysql/sql-bench
-47 %{__rm} -rf %{buildroot}/usr/local/mysql/mysql-test
-48
-49
-50 %clean
-51 %post
-52
-53 if
-54     getent group %mygrp >/dev/null
-55 then
-56     : OK group %mygrp already present
-57 else
-58     /usr/sbin/groupadd -r %mygrp 2>/dev/null || :
-59 fi
-60 if
-61     id %myusr > /dev/null 2>&1
-62 then
-63     : OK user %myusr already present
-64 else
-65     /usr/sbin/useradd  -g %mygrp -s /sbin/nologin -c "User for Mysql" -d /var/tmp %myusr 2> /dev/null || :
-66 fi
-67 /usr/local/mysql/bin/mysql_install_db --user=mysql --datadir=/mysqldata/mysql/data/mysql3306
-68 chown mysql:mysql /mysqldata -R
--->
-
+接下来准备 spec 文件，也是核心的内容，该文件包括三部分：介绍部分，编译部分，files 部分。接下来，是一个简单的示例，可以看看到底是如何制作 RPM 包的。
 
 {% highlight text %}
 ### 0.define section                ← ###自定义宏段(可选)，方便后续引用
@@ -237,7 +117,8 @@ URL:            http://kidding.com                  
 Source0:        %{name}-boost-%{version}.tar.gz     ← 使用的源码包名称，可以用SourceN指定多个，如配置文件
 #Patch0:         some-bugs.patch                    ← 如果需要打补丁，则依次填写
 BuildRequires:  gcc,make                            ← 制作过程中用到的软件包
-Requires:       pcre,pcre-devel,openssl,chkconfig   ← 软件运行所需软件包，可指定最低版本，如bash>=1.1.1
+Requires:       pcre,pcre-devel,openssl,chkconfig   ← 安装时所需软件包，可使用bash >= 1.1.1
+Requires(pre):  test                                ← 指定不同阶段的依赖
 
 BuildRoot:      %_topdir/BUILDROOT                  ← 会打包该目录下文件，可查看安装后文件路径
 Packager:       FooBar <foobar@kidding.com>
@@ -254,14 +135,37 @@ It is a MySQL from FooBar.
 #--- 3.The Build Section            ← ###编译制作阶段，主要目的就是编译
 %build
 
-make %{?_smp_mflags}                                 ← 多核则并行编译
+make %{?_smp_mflags}                                ← 多核则并行编译
 
 #--- 4.Install section              ← ###安装阶段
  %install
 if [-d %{buildroot}]; then
-   rm -rf %{buildroot}                               ← 清空下安装目录，实际会自动清除
+   rm -rf %{buildroot}                              ← 清空下安装目录，实际会自动清除
 fi
-make install DESTDIR=%{buildroot}                    ← 安装到buildroot目录下
+make install DESTDIR=%{buildroot}                   ← 安装到buildroot目录下
+
+#--- 4.1 scripts section            ← ###没必要可以不填
+%pre                                                ← 安装前执行的脚本
+%post                                               ← 安装后执行的脚本
+%preun                                              ← 卸载前执行的脚本
+%postun                                             ← 卸载后执行的脚本
+
+#--- 5. Clean section               ← ###清理段，可以通过--clean删除BUILD
+%clean
+rm -rf %{buildroot}
+
+#--- 6. File section                ← ###打包时要包含的文件
+%files
+%defattr (-,root,root,0755)                         ← 设定默认权限
+%config(noreplace) /etc/my.cnf                      ← 表明是配置文件，noplace表示替换文件
+%doc %{src_dir}/Docs/ChangeLog                      ← 表明这个是文档
+%attr(644, root, root) %{_mandir}/man8/mysqld.8*    ← 分别是权限，属主，属组
+%attr(755, root, root) %{_sbindir}/mysqld
+
+#--- 7. Chagelog section            ← ###记录SPEC的修改日志段
+%changelog
+* Fri Dec 29 2012 foobar <foobar@kidding.com> - 1.0.0-1
+- Initial version
 {% endhighlight %}
 
 <!--
@@ -316,9 +220,9 @@ It is a MySQL from FooBar.
 -->
 
 
+### %prep
 
-<!--
-%prep
+{% highlight text %}
 %setup -q -T -a 0 -a 7 -a 10 -c -n %{src_dir}
 参数列表：
     -T 禁止自动解压源码文件
@@ -326,11 +230,14 @@ It is a MySQL from FooBar.
     -a 切换目录前，解压指定Source文件，例如-a 0表示解压Source0
     -b 切换目录后，解压指定Source文件，例如-a 0表示解压Source0
     -n 解压后目录名称与RPM名称不同，则通过该参数指定切换目录
--q
--c
+    -c 解压缩之前先生成目录
+{% endhighlight %}
 
-
-http://laoguang.blog.51cto.com/6013350/1103628
+<!--
+%patch 最简单的补丁方式，自动指定patch level。
+%patch 0 使用第0个补丁文件，相当于%patch ?p 0。
+%patch -s 不显示打补丁时的信息。
+%patch -T 将所有打补丁时产生的输出文件删除。
 -->
 
 
@@ -346,7 +253,7 @@ http://laoguang.blog.51cto.com/6013350/1103628
 __os_install_post
     安装完之后的操作，例如去除二进制文件中的注释等；
 __spec_install_pre
-    在安装前的操作；
+    在安装前的操作，设置一些环境变量，然后删除BUILDROOT中的文件(如果文件多时耗时增加)；
 {% endhighlight %}
 
 如果想取消某些操作，可以将这些操作设置为 ```%{nil}``` 即可。
@@ -440,6 +347,9 @@ BuildRequires:  sysv
 %endif
 {% endhighlight %}
 
+可以使用 Requires(pre)、Requires(post) 等都是针对不同阶段的依赖设置。
+
+另外，可以通过 ```%package PACKAGE-NAME``` 设置生成不同的 RPM 分支包。
 
 ## 参考
 
@@ -447,6 +357,9 @@ BuildRequires:  sysv
 
 <!--
 http://fedoraproject.org/wiki/How_to_create_an_RPM_package
+
+包含生成GPG签名
+http://laoguang.blog.51cto.com/6013350/1103628
 -->
 
 {% highlight text %}

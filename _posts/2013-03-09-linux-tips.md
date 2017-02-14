@@ -146,13 +146,9 @@ $ install -v -m 0755 a/e c
 $ install -v -m 0755 -D x a/b/c
 {% endhighlight %}
 
-## 杂项
+## Here Document
 
-记录些简单的技巧。
-
-### 写入多行
-
-可以使用 echo 添加到文件，不过这样会比较麻烦，可以使用如下方式；不过 $ 需要做转义。
+可以使用 echo 添加到文件，不过这样会比较麻烦，可以使用如下方式；不过 $ 需要做转义，或者使用 ```"EOF"``` 也可以。
 
 {% highlight text %}
 $ cat << EOF >> /tmp/foobar.conf
@@ -163,6 +159,58 @@ net.core.wmem_max = 262144
 export PATH=\$PATH:\$HOME/bin
 EOF
 {% endhighlight %}
+
+在此使用的就是 Here Document，这是一种在 Linux Shell 中的一种特殊的重定向方式，它的基本的形式如下，通常 delimiter 使用 EOF ：
+
+{% highlight text %}
+cmd << delimiter
+  Here Document Content
+delimiter
+{% endhighlight %}
+
+也可以在终端中输入 ```cat << EOF``` ，然后输入多行信息，最终以 EOF 结束，其中间输入的信息将会回显在屏幕上。
+
+另外，可以通过 ```<<-``` 删除 Here Document 的内容部分每行前面的 tab (制表符) ， 这种用法是为了编写 Here Document 的时候可以将内容部分进行缩进，方便阅读代码。
+
+
+## 避免误删目录
+
+
+今天就来聊聊 linux 下一个常见的问题：如何避免误删目录。下文会详细的讲述不同的场景下误删目录，以及相应的解决方案。
+
+{% highlight bash %}
+#--- 1. 变量为空导致误删文件，如果file为空或命令返回空
+rm -rf /usr/sbin/$file
+#--- 使用变量扩展功能，变量为空使用默认值或抛出异常退出
+rm -rf /usr/sbin/${file:?var is empty}
+#--- 人肉判断变量是否为空
+[[ ${file} == "" ]] && echo 1
+[[ -z ${file} ]] && echo 1
+
+#--- 2. 路径含有空格导致误删文件
+path="/usr/local /sbin"
+rm -rf $path
+#--- 变量加引号防止扩展
+rm -rf "$path"
+
+#--- 3. 目录或文件含有特殊字符导致误删文件，例如 "~"
+#--- 变量加引号防止扩展
+rm -rf "~"
+
+#--- 4. cd切换目录失败，导致文件被误删
+#--- 使用逻辑短路操作
+cd path && rm -rf *.exe
+#--- 检测path是否存在
+[[ -d path ]] && echo 1
+{% endhighlight %}
+
+
+## 杂项
+
+记录些简单的技巧。
+
+
+
 
 
 {% highlight text %}
