@@ -26,6 +26,8 @@ description: 保存一下经常使用的经典 MySQL 资源。
 
 * [Contributing Code to MySQL](https://community.oracle.com/docs/DOC-914911)，介绍如何向 MySQL 社区贡献代码。
 
+* [Worklog Tasks](https://dev.mysql.com/worklog/)，也就是 MySQL 的任务列表，很多需求均可以在此查看。
+
 ### 数据库排名
 
 关于当前数据库的排名比较有权威的是 [DB-Engines](http://db-engines.com/)，包括了关系型数据库、时序型数据库等等，其排名的数据计算是依据几个不同的因素，其中包括了：

@@ -135,6 +135,8 @@ mysql> GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
 
 Plan C 是免密码登陆。
 
+
+
 ## 其它
 
 在此，主要列举一些常见的用户相关操作。
@@ -165,6 +167,41 @@ Rows matched: 2  Changed: 2  Warnings: 0
 {% endhighlight %}
 
 然后正常重启即可，空密码登陆，再设置好密码。
+
+### 密码存储
+
+MySQL 把所有用户的用户名和密码的密文存放在 mysql.user 表中，而 5.7 将原有的 password 字段替换为了 authentication_string 字段，如果使用 mysql_native_password 插件，则结果相同。
+
+{% highlight text %}
+mysql> SELECT user,plugin,authentication_string FROM mysql.user;
++-----------+-----------------------+-------------------------------------------+
+| user      | plugin                | authentication_string                     |
++-----------+-----------------------+-------------------------------------------+
+| root      | mysql_native_password | *4A82FDF1D80BA7470BA2E17FEEFD5A53D5D3B762 |
+| mysql.sys | mysql_native_password | *THISISNOTAVALIDPASSWORDTHATCANBEUSEDHERE |
+| mysync    | mysql_native_password | *09A25204677367FC91363E3AE2F5BEFE4602EA70 |
++-----------+-----------------------+-------------------------------------------+
+3 rows in set (0.00 sec)
+{% endhighlight %}
+
+一般来说密文是通过不可逆加密算法得到的，这样即使敏感信息泄漏，除了暴力破解是无法快速从密文直接得到明文的。
+
+MySQL 使用了两次 SHA1，以及夹杂一次 unhex 的方式对用户密码进行了加密；算法的具体公式可以通过如下方式表示：```password_str = concat('*', sha1(unhex(sha1(password))))``` 。
+
+{% highlight text %}
+mysql> SELECT PASSWORD('password'),UPPER(CONCAT('*',SHA1(UNHEX(SHA1('password')))));
++-------------------------------------------+--------------------------------------------------+
+| PASSWORD('password')                      | UPPER(CONCAT('*',SHA1(UNHEX(SHA1('password'))))) |
++-------------------------------------------+--------------------------------------------------+
+| *2470C0C06DEE42FD1618BB99005ADCA2EC9D1E19 | *2470C0C06DEE42FD1618BB99005ADCA2EC9D1E19        |
++-------------------------------------------+--------------------------------------------------+
+1 row in set, 1 warning (0.00 sec)
+{% endhighlight %}
+
+其实 MySQL 在 5.6 以前，对安全性的重视度非常低，甚至可以从 binlog 中直接通过 mysqlbinlog 将密码解密出来；5.7 之后在 binlog 中对密码进行了加密处理。
+
+不过 ```CHANGE MASTER TO``` 命令仍会将密码明文保存在 master.info 文件中。
+
 
 ## 参考
 

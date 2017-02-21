@@ -29,11 +29,11 @@ $ cat /dev/urandom | sed 's/[^a-zA-Z0-9]//g' | strings -n C | head -n L
 
 ## 特殊字符文件处理
 
-在 Linux 中，文件名的长度最大可以达到 256 个字符，可以使用字符有：字母、数字、'.'(点)、'\_'(下划线)、'-'(连字符)、' '(空格)，其中开始字符不建议使用 '\_'、'-'、' ' 字符。'/'(反斜线) 用于标示目录，不能用作文件或者文件夹名称。
+在 Linux 中，文件名的长度最大可以达到 256 个字符，可以使用字符有：字母、数字、```'.'```(点)、```'_'```(下划线)、```'-'```(连字符)、```' '```(空格)，其中开始字符不建议使用 ```'_'```、```'-'```、```' '``` 字符。```'/'```(反斜线) 用于标示目录，不能用作文件或者文件夹名称。
 
-另外，在 shell 中，'?'(问号)、'*'(星号)、'&' 字符有特殊含义，同样不建议使用。
+另外，在 shell 中，```'?'```(问号)、```'*'```(星号)、```'&'``` 字符有特殊含义，同样不建议使用。
 
-在 shell 中，将 \-\- 之后的内容当作文件。
+在 shell 中，将 ```--``` 之后的内容当作文件。
 
 {% highlight text %}
 $ cd .>-a                             ← 创建一个文件，或者 >-a
@@ -65,7 +65,7 @@ $ sudo su root                        ← 需要用户的密码+sudoers配置
 $ su root                             ← 需要root用户密码
 {% endhighlight %}
 
-注意，之所以使用 sudo su root 这种方式，可能是 btmp 等类似的文件，只有 root 可以写入，否则会报 Permission Denied，此时可以通过 strace 查看报错的文件。
+注意，之所以使用 ```sudo su root``` 这种方式，可能是 btmp 等类似的文件，只有 root 可以写入，否则会报 Permission Denied，此时可以通过 strace 查看报错的文件。
 
 ## 文本替换
 
@@ -148,7 +148,7 @@ $ install -v -m 0755 -D x a/b/c
 
 ## Here Document
 
-可以使用 echo 添加到文件，不过这样会比较麻烦，可以使用如下方式；不过 $ 需要做转义，或者使用 ```"EOF"``` 也可以。
+可以使用 echo 添加到文件，不过这样会比较麻烦，可以使用如下方式；不过 ```$``` 需要做转义，或者使用 ```"EOF"``` 也可以。
 
 {% highlight text %}
 $ cat << EOF >> /tmp/foobar.conf
@@ -205,13 +205,82 @@ cd path && rm -rf *.exe
 {% endhighlight %}
 
 
+## 备份脚本
+
+如下是一个备份用的脚本，不过 email 没有调试使用过，暂时记录下。
+
+* ~/.backuprc 配置文件，列举出那些文件需要备份，使用 # 做注释；
+* 使用 ~/tmp 作为临时目录；
+
+另外，在使用 tar 备份打包+解压时，默认为相对路径，为了使用绝对路径可以在压缩+解压时都使用 ```-P``` 参数，这样直接解压即可覆盖原有文件。
+
+{% highlight bash %}
+#!/bin/bash
+# mybackup - Backup selected files & directories and email them as .tar.gz file to
+# your email account.
+# List of BACKUP files/dirs stored in file ~/.mybackup
+
+FILE=~/.backuprc
+NOW=`date +"%d-%m-%Y"`
+OUT="`echo $USER.$HOSTNAME`.$NOW.tar.gz"
+TAR=/usr/bin/tar
+
+## mail setup
+#MTO="nixbackup@somedom.com"
+#MSUB="Backup (`echo $USER @ $HOSTNAME`) as on `date`"
+#MES=~/tmp/mybackup.txt
+#MATT=~/tmp/$OUT
+
+# make sure we put backup in our own tmp and not in /tmp
+[ ! -d ~/tmp ] && mkdir ~/tmp || :
+if [ -f $FILE ]; then
+    IN="`cat $FILE | grep -E -v "^#"`"
+else
+    echo "File $FILE does not exists"
+    exit 3
+fi
+
+if [ "$IN" == "" ]; then
+    echo "$FILE is empty, please add list of files/directories to backup"
+    exit 2
+fi
+
+$TAR -zcPf ~/tmp/$OUT $IN >/dev/null
+## create message for mail
+#echo "Backup successfully done. Please see attached file." > $MES
+#echo "" >> $MES
+#echo "Backup file: $OUT" >> $MES
+#echo "" >> $MES
+#
+## bug fix, we can't send email with attachment if mutt is not installed
+#which mutt > /dev/null
+#if [ $? -eq 0 ]; then
+#    # now mail backup file with this attachment
+#    mutt -s "$MSUB" -a "$MATT" $MTO < $MES
+#else
+#    echo "Command mutt not found, cannot send an email with attachment"
+#fi
+#
+## clean up
+#/bin/rm -f $MATT
+#/bin/rm -f $MES
+{% endhighlight %}
+
+如下，是一个配置文件。
+
+{% highlight text %}
+/home/foobar/.vimrc
+/home/foobar/.tmux
+/home/foobar/.tmux.conf
+{% endhighlight %}
+
+
 ## 杂项
 
-记录些简单的技巧。
-
-
-
-
+{% highlight text %}
+----- 生成随机文件
+$ head -c 10M < /dev/random > /tmp/foobar.txt
+{% endhighlight %}
 
 {% highlight text %}
 {% endhighlight %}

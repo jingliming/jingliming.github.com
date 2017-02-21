@@ -14,7 +14,11 @@ title: Categories
 
 ![Linux Logo]({{ site.url }}/images/linux/linux-logo.jpg "Linux Logo"){: .pull-center}
 
-Linux 相关，包括了常用的方法，以及相应的内核介绍。
+从 1994.3 Linux1.0 发布到现在，几乎可以说 Linux 已经成为最流行的操作系统，涉及到了服务器、桌面、嵌入式等多种场景，而且支持绝大多数平台。
+
+鄙人从大三开始用 Linux，开始就是看着 Ubuntu 的 3D 桌面比较酷，然后开始零零散散地使用，一直到现在，几乎所有的日常操作都在使用 Linux 的桌面发行版；目前使用的是 CentOS 版本。
+
+在此，仅介绍 Linux 相关内容，包括了常用的方法，以及相应的内核介绍。
 
 #### Network
 
@@ -45,14 +49,16 @@ Linux 相关，包括了常用的方法，以及相应的内核介绍。
 * [LXC 网络设置相关](/post/linux-lxc-network.html)，关于 Container 中网络的介绍，主要介绍 veth、vlan、macvlan 等概念。
 * [LXC sshd 单进程启动](/post/linux-lxc-sshd.html)，介绍如何启动一个单进程，对于资源隔离有很大的参考意义。
 
+
+* [Bootstrap](/post/bootstrap-etc.html)，一个来自 Twitter 的前端框架，同时包括了一些 css、javascript 相关的内容介绍。
+* [Linux 内存监控](/post/linux-monitor-memory.html)，记录下在 Linux 中，与内存相关的监控项以及工具。
+-->
+
 #### WebServer
 
 Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通过 C 语言编写；另外，还包括了前端相关的内容。
 
-* [Bootstrap](/post/bootstrap-etc.html)，一个来自 Twitter 的前端框架，同时包括了一些 css、javascript 相关的内容介绍。
 * [Nginx 入门](/post/nginx-introduce.html)，介绍一些常见的操作，例如安装、启动、设置等。
-* [Linux 内存监控](/post/linux-monitor-memory.html)，记录下在 Linux 中，与内存相关的监控项以及工具。
--->
 
 #### Monitor
 
@@ -78,6 +84,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 简单记录一些乱七八糟的东西。
 
 * [CentOS 安装与配置](/post/centos-config-from-scratch.html)，简单介绍 CentOS 在安装时需要作的一些常用配置。
+* [RPM 包制作](/post/linux-create-rpm-package.html)，如何在 CentOS 中创建 RPM 包。
 * [Linux 常用技巧](/post/linux-tips.html)，简单记录了一些在 Linux 中常用的技巧。
 * [TMUX](/post/tmux.html)，一个终端复用工具，类似 screen 但是更加方便使用，更加高端。
 * [Linux 绘图工具](/post/linux-gnuplot.html)，这是一个命令行驱动的绘图工具，支持多个平台。
@@ -112,6 +119,8 @@ Percona 是最接近官方 MySQL Enterprise 发行版的版本，也就是说它
 * [MySQL 存储引擎](/post/mysql-storage-engine-plugin.html)，介绍下与存储引擎相关的内容，包括了提供的接口，实现方法等。
 * [MySQL 线上部署](/post/mysql-deploy-online.html)，简单记录一些线上部署时常见的配置内容。
 * [MySQL 执行简介](/post/mysql-executor.html)，简单介绍 MySQL 中的查询最终是如何执行的。
+* [MySQL 复制方式](/post/mysql-replication.html)，数据复制方法，也是一些高可用解决方案的基础，介绍概念、配置方式。
+* [MySQL 杂项](/post/mysql-tips.html)，简单记录下 MySQL 常见的一些操作。
 
 InnoDB:
 
@@ -128,7 +137,6 @@ InnoDB:
 * [MySQL 存储引擎](/post/mysql-storage-engine-plugin.html)，实际是插件的一个特例，不过使用比较复杂，所以就单独作为一篇。
 * [MySQL 备份](/post/mysql-backup.html)，介绍 MySQL 一些常见的备份方法。
 * [MySQL 日志](/post/mysql-log.html)，一些常见的日志，包括了 binlog 。
-* [MySQL 复制](/post/mysql-replication.html)，MySQL 的数据复制同步方法，这通常也是一些高可用解决方案的基础。
 * [MySQL 高可用](/post/mysql-high-availability.html)，介绍 MySQL 中的常用高可用解决方案。
 * [MySQL 安全设置](/post/mysql-security.html)，也就是一些对 MySQL 进行加固的方法。
 

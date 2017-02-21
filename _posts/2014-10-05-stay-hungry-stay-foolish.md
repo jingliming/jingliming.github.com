@@ -14,11 +14,11 @@ description: 2005 年，Steven Jobs 在 Stanford 的毕业典礼演讲中，最�
 
 <!-- more -->
 
-# 正解
+## 正解
 
 ![Steven Jobs speech]({{ site.url }}/images/lifes/jobs_stay_hungry_stay_foolish.jpg "Steven Jobs speech"){: .pull-center}
 
-## Hungry ?
+### Hungry ?
 
 什么叫 Hungry？
 
@@ -30,7 +30,7 @@ description: 2005 年，Steven Jobs 在 Stanford 的毕业典礼演讲中，最�
 
 回头看 Steve Jobs，过去 14 年来，他像一头饥饿的猛兽，永远不会满足，Mac、iPod、iPhone、iPad 一招接一招，不停直捣对手的心脏，如果不是因为健康状况，他大概永远没有停歇的一天，这，就是 hungry，这，就是 Fox 写的 "[稀有的猪](http://www.inside.com.tw/2011/09/15/pig-or-chicken)" 。
 
-## Foolish ?
+### Foolish ?
 
 什么叫 Foolish？
 
@@ -43,7 +43,7 @@ description: 2005 年，Steven Jobs 在 Stanford 的毕业典礼演讲中，最�
 Stay Hungry, Stay Foolish, People!
 
 
-# 斯坦福大学毕业典礼演讲
+## 斯坦福大学毕业典礼演讲
 
 这是乔布斯在斯坦福大学毕业典礼上的演讲内容，整理如下，可以看下 [Stay hungry, Stay foolish - YouKu](http://v.youku.com/v_show/id_XMTM3OTM5OTA0.html) 。
 

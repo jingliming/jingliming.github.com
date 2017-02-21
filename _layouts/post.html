@@ -12,19 +12,38 @@ layout: default
     </div>
   </div>
   <hr>
-  {{ content }}<hr>
+  {{ content }}
+  <hr>
   <nav>
     <ul class="pager">
         {% if page.previous %} <li class="previous"><a href="{{ page.previous.url }}" title="{{ page.previous.title }}">&larr; Older</a></li> {% endif %}
         {% if page.next %} <li class="next"><a href="{{ page.next.url }}" title="{{ page.next.title }}">Newer &rarr;</a></li> {% endif %}
     </ul>
-  </nav>
+  </nav><br>
+
+
+  <hr><div id="section-donate"><span>赏</span></div><br>
+  <p style="text-indent:0px;text-align:center;">如果喜欢这里的文章，而且又不差钱的话，欢迎打赏个早餐 ^_^</p><br>
+  <div class="row" style="text-align:center;" >
+    <div class="col-md-6"><img src="/images/system/barcode-pay-alipay.jpg" style="width:200px;height:200px;" title="支付宝捐赠" /><br>支付宝打赏</div>
+    <div class="col-md-6"><img src="/images/system/barcode-pay-wechat.jpg" style="width:200px;height:200px;" title="微信捐赠" /><br>微信打赏</div>
+  </div><br><hr>
+
+  <!-- 多说评论框 start -->
+  <!--<div class="ds-thread" data-thread-key="请将此处替换成文章在你的站点中的ID" data-title="请替换成文章的标题" data-url="请替换成文章的网址"></div>-->
+  <div class="ds-thread" data-thread-key="{{ site.url }}{{ page.id }}.html" data-title="{{ page.title }}" data-url="{{ site.url }}{{ page.id }}.html"></div>
+  <!-- 多说评论框 end -->
+  <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+  <script type="text/javascript">
+      var duoshuoQuery = {short_name:"jinyangposts"};
+      (function() {
+          var ds = document.createElement('script');
+          ds.type = 'text/javascript';ds.async = true;
+          ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+          ds.charset = 'UTF-8';
+          (document.getElementsByTagName('head')[0]
+           || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+  </script>
+  <!-- 多说公共JS代码 end -->
 </div>
-<!--
-  {% if page.comments %}
-  <div id="disqus_container">
-     <a href="#" class="comment" onclick="return false;">Comments, Click here</a>
-     <div id="disqus_thread"></div>
-  </div>
-  {% endif %}
--->

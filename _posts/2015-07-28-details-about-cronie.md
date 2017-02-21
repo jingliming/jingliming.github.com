@@ -82,11 +82,13 @@ OK，接下来进入正题。
 
 另外，需要注意的是，cron 采用的是分钟级的调度，如果要更高精度的，只能用其它方法。
 
+而且，**每次执行时都是并发执行**，而非串行。
+
 ### 安装、启动
 
 在很多的发行版本中，cron 是默认安装的，包括了 crond+crontab 两个主要命令。前者是后台任务，用于调度执行；后者用来编译、查看、管理定时任务。
 
-在 CentOS 7 中，默认是安装的，如果没有，则可以安装 cronie 包，然后通过如下命令启动 crond 服务。
+在 CentOS 7 中，该服务是默认安装的，如果没有，则可以安装 cronie 包，然后通过如下命令启动 crond 服务。
 
 {% highlight text %}
 # systemctl start crond
@@ -156,13 +158,18 @@ OK，接下来进入正题。
 
 ## Anacron
 
-其实在官方的源码中，还包括了一个 anacron 指令，而 CentOS7 中是包含在 anaconda-core 包中的。
+其实在官方的源码中，还包括了一个 anacron 指令，而 CentOS 7 中是包含在 anaconda-core 包中的；所以，如果使用 anacron 命令，必须安装该包。
 
-对于像服务器来说，Linux 主机通常是 24 全天全年的处于开机状态，此时只需要 atd 与 crond 这两个服务即可；而对于像我们自己的电脑，那么我们就需要 anacron 的帮助了。
+### 简介
 
-anacron 并不能取代 cron，而是以天为单位或者是在启动后立刻进行 anacron 的动作。它会去侦测停机期间应该进行但是并没有进行的 crontab 任务，并将该任务运行一遍后，anacron 就会自动停止。
+像服务器来说，Linux 主机通常是 24 全天全年的处于开机状态，此时只需要 atd 与 crond 这两个服务即可；而对于像我们自己的电脑，经常关机，那么我们就需要 anacron 的帮助了。
+
+anacron 并不能取代 cron，而是以天为单位或者是在启动后立刻进行 anacron 的动作。它会去侦测停机期间该执行但未执行的 crontab 任务，并将该任务运行一遍后，anacron 就会自动停止。
 
 通过 anacron 命令，我们可以选择串行执行（默认）、强制执行（不判断时间戳）、立即执行未执行任务（不延迟等待）等操作。其配置文件是 /etc/anacrontab，每次执行完成会在 /var/spool/anacron/ 目录下保存运行的时间点。
+
+### 任务配置
+
 {% highlight text %}
 SHELL=/bin/sh
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
@@ -173,10 +180,11 @@ RANDOM_DELAY=45
 START_HOURS_RANGE=3-22
 
 #period in days   delay in minutes   job-identifier   command
-1       5       cron.daily              nice run-parts /etc/cron.daily
-7       25      cron.weekly             nice run-parts /etc/cron.weekly
-@monthly 45     cron.monthly            nice run-parts /etc/cron.monthly
+1                 5                  cron.daily       nice run-parts /etc/cron.daily
+7                 25                 cron.weekly      nice run-parts /etc/cron.weekly
+@monthly          45                 cron.monthly     nice run-parts /etc/cron.monthly
 {% endhighlight %}
+
 其中开头定义了一些环境变量等信息，而配置项的含义如下：
 
 1. period in days：指定指令执行的周期，即指定任务在多少天内执行一次，也可以使用宏定义，如 @day、@weekly、@monthly。
@@ -186,6 +194,8 @@ START_HOURS_RANGE=3-22
 3. job-identifier：每次启动时都会在 /var/spool/anacron 里面建立一个以 job-identifier 为文件名的文件，记录着任务完成的时间。
 
 4. command：要运行的命令，其中 run-parts 用来运行整个目录的可执行程序。
+
+### 命令详解
 
 实际上，anacron 也是一个 cron 任务，可以通过 ls /etc/cron*/*anacron 查看。通常是通过 anacron -s 执行，以 anacron -s cron.daily 为例，会有如下的步骤：
 
@@ -207,7 +217,7 @@ START_HOURS_RANGE=3-22
 
 ## 示例
 
-在配置 crontab 任务时，有几个特殊的符号：A) "*" 所有的取值范围内的数字；B) "/" 每的意思，如 "*/5" 表示每 5 个单位；C) "-" 从某个数字到某个数字；D) "," 用来分开几个离散的数字。
+在配置 crontab 任务时，有几个特殊的符号：A) ```"*"``` 所有的取值范围内的数字；B) ```"/"``` 每的意思，如 ```"*/5"``` 表示每 5 个单位；C) ```"-"``` 从某个数字到某个数字；D) ```","``` 用来分开几个离散的数字。
 
 以下举几个例子说明问题：
 {% highlight text %}
@@ -231,7 +241,7 @@ at -f test-cron.sh -v 10:25    // -f指定脚本文件，-v指定运行时间
 
 另外，需要注意的几点：
 
-1. 可以在 crontab 的命令中使用环境变量，如：*/1 * * * * echo $HOME 。
+1. 可以在 crontab 的命令中使用环境变量，如：```*/1 * * * * echo $HOME``` 。
 
 2. 第三个域和第五个域是 "或" 操作。
 
@@ -312,8 +322,6 @@ echo $1 >> /tmp/foobar.log
 {% endhighlight %}
 
 
-
-
 ## 输出字符引发的血案
 
 现象是，登陆一台公用的跳板机时，当尝试从个人帐号切换到公用帐号时发现报错，是由于进程数超过了最大限制 (ulimit -u)，然后通过 ps aux 发现有很多进程，其中比较多的是如下的两条命令：
@@ -358,7 +366,7 @@ main()                       # C入口函数
 0 * * * * /path/to/command arg1 > /dev/null 2>&1 || true
 {% endhighlight %}
 
-或者直接在 crontab 文件的顶部设置 MAILTO 变量为空，也就是 MAILTO="" 。
+或者直接在 crontab 文件的顶部设置 MAILTO 变量为空，也就是 ```MAILTO=""``` 。
 
 
 当然，如果有必要，可以将输出发送到指定邮箱，但是需要首先确保邮件服务是正常的，然后添加如下配置项：

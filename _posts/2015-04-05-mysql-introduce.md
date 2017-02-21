@@ -79,6 +79,9 @@ $ mysql -h 127.1                                                             ←
 
 当然也可以从 [MySQL 官网](http://dev.mysql.com/downloads/)、[MariaDB 官网](https://downloads.mariadb.org/) 或者 [Percona 官网](https://www.percona.com/) 下载相应的安装包，或者源码。
 
+对于 CentOS 7 来说，可以从 [MySQL Community Downloads](https://dev.mysql.com/downloads/) 下载 server、client、common、libs 对应的 RPM 包，然后安装即可。
+
+
 ### 简单配置
 
 MySQL 的配置文件保存在 /etc/my.cnf，包括了 datadir、pid-file 等的设置。另外，安装完之后 root 的密码为空，然后可以通过 mysql_secure_installation 来进行一些安全的配置，尤其是线上服务器，包括删除 test 数据库和默认创建的匿名用户。
@@ -103,7 +106,7 @@ $ mysqld --verbose --help
 
 ### 编译安装
 
-还是直接从官网下载源码即可，假设直接解压到 /home/foobar/Workspace/mariadb 目录下，并将安装目录设置为 /opt/mariadb 。
+还是直接从官网下载源码即可，假设直接解压到 /home/foobar/Workspace/mysql 目录下，并将安装目录设置为 /opt/mysql-5.7 。
 
 下面介绍如何通过源码进行安装，最简单的是通过 BUILD/compile-ARCH 脚本进行编译，当然，可以选择使用 autotools 或者 CMake 指定相应的参数进行安装，在此通过 CMake 安装。
 

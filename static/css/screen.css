@@ -33,6 +33,7 @@ a:focus{outline:none;}
   margin-left: auto;
   margin-right: auto;
 }
+
 pre code {
 //  white-space: nowrap;
   white-space: pre;
@@ -40,6 +41,7 @@ pre code {
 code {
   font-size: 0.8em;
 }
+
 .highlight pre {
   font-size: 0.65em;
   line-height: 1.2em;
@@ -441,7 +443,7 @@ li {
   border-top-left-radius: 50%;
   border-bottom-right-radius: 50%;
   border-bottom-left-radius: 50%;
-  z-index: 99999;
+//  z-index: 99999;
 }
 
 
@@ -517,6 +519,7 @@ blockquote {
   border-radius: 10px;
 }
 
+
 table, th, td {
     //border: 1px solid black;
     padding: 3px 9px 3px 9px;
@@ -556,3 +559,19 @@ tbody tr:nth-child(even) {
 //tr:last-child td:last-child {
 //    border-radius: 0 0 9px 0;
 //}
+
+#section-donate {
+  color:         #fff;
+  border:        3px solid #DCF7A1;
+  height:        60px;
+  width:         60px;
+  margin-left:   -40px;
+  border-radius: 100%;
+  background:    #fec22c none repeat scroll 0 0;
+  left:          50%;
+  position:      relative;
+  text-align:    center;
+  line-height:   50px;
+  font-size:     25px;
+  margin-top:    -50px;
+}
