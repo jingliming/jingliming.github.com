@@ -857,25 +857,13 @@ none         Do not find slaves
 
 MySQL 中与复制相关的内容，可以参考官方文档 [MySQL Reference Manual - Replication](http://dev.mysql.com/doc/refman/en/replication.html)。
 
+一个基于 PyMySQL，纯 Python 编写的 MySQL 复制协议的实现 [python-mysql-replication](https://github.com/noplay/python-mysql-replication) 。
+
 <!--
-Database Daily Ops Series: GTID Replication
-https://www.percona.com/blog/2016/11/10/database-daily-ops-series-gtid-replication/
-
-用pt-table-checksum校验数据一致性
-http://www.nettedfish.com/blog/2013/06/04/check-replication-consistency-by-pt-table-checksum/
-
-History 命令用法 15 例
-shell 历史命令记录功能
-
-Choosing MySQL High Availability Solutions
-
-
-www.kikikoo.com/uid-20722087-id-4985193.html
-www.cnblogs.com/cchust/p/4424576.html
-
 mysql 复制相关源代码代码分布
-
 http://www.onlamp.com/2006/04/20/advanced-mysql-replication.html
+
+http://siddontang.com/2015/02/02/mysql-replication-protocol/
 -->
 
 {% highlight text %}

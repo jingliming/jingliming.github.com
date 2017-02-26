@@ -119,8 +119,16 @@ Percona 是最接近官方 MySQL Enterprise 发行版的版本，也就是说它
 * [MySQL 存储引擎](/post/mysql-storage-engine-plugin.html)，介绍下与存储引擎相关的内容，包括了提供的接口，实现方法等。
 * [MySQL 线上部署](/post/mysql-deploy-online.html)，简单记录一些线上部署时常见的配置内容。
 * [MySQL 执行简介](/post/mysql-executor.html)，简单介绍 MySQL 中的查询最终是如何执行的。
-* [MySQL 复制方式](/post/mysql-replication.html)，数据复制方法，也是一些高可用解决方案的基础，介绍概念、配置方式。
 * [MySQL 杂项](/post/mysql-tips.html)，简单记录下 MySQL 常见的一些操作。
+
+高可用:
+
+* [MySQL 日志相关](/post/mysql-log.html)，一些常见的日志介绍，同时也包括了 binlog 的详细介绍。
+* [MySQL 组提交](/post/mysql-group-commit.html)，主要是关于 binlog 的组提交实现，介绍各个阶段的实现原理。
+* [MySQL 复制方式](/post/mysql-replication.html)，数据复制方法，也是一些高可用解决方案的基础，介绍概念、配置方式。
+* [MySQL 复制源码解析](/post/mysql-replication-sourcecode.html)，从源码的角度看看复制是如何执行的。
+* [MySQL 半同步复制](/post/mysql-semisync.html)，关于半同步复制的详细解析，包括了源码的实现方式。
+* [MySQL Crash-Safe 复制](/post/mysql-crash-safe-replication.html)，在主备复制时，如何保证数据的一致性，当然主要是备库。
 
 InnoDB:
 
@@ -136,7 +144,6 @@ InnoDB:
 * [MySQL 事务处理](/post/mysql-transaction.html)，也就是 MySQL 中的事务处理方法。
 * [MySQL 存储引擎](/post/mysql-storage-engine-plugin.html)，实际是插件的一个特例，不过使用比较复杂，所以就单独作为一篇。
 * [MySQL 备份](/post/mysql-backup.html)，介绍 MySQL 一些常见的备份方法。
-* [MySQL 日志](/post/mysql-log.html)，一些常见的日志，包括了 binlog 。
 * [MySQL 高可用](/post/mysql-high-availability.html)，介绍 MySQL 中的常用高可用解决方案。
 * [MySQL 安全设置](/post/mysql-security.html)，也就是一些对 MySQL 进行加固的方法。
 

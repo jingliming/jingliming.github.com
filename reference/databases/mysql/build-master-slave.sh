@@ -73,11 +73,11 @@ EOF
 
     echo -n "3. Start MySQL Server"
     $MYSQL_BASE/bin/mysqld --defaults-file=/tmp/mysql-master/my.cnf  \
-        --basedir=/opt/mysql-5.7 --datadir=/tmp/mysql-master            \
+        --basedir=$MYSQL_BASE --datadir=/tmp/mysql-master            \
          --skip-grant-tables > /dev/null 2>&1 &
     echo_message "Master Done"
     $MYSQL_BASE/bin/mysqld --defaults-file=/tmp/mysql-slave/my.cnf  \
-        --basedir=/opt/mysql-5.7 --datadir=/tmp/mysql-slave \
+        --basedir=$MYSQL_BASE --datadir=/tmp/mysql-slave \
          --skip-grant-tables > /dev/null 2>&1 &
     echo_message "Slave Done"
 
@@ -95,7 +95,7 @@ EOF
     echo_message "Shutdown Master Done"
     sleep 1
     $MYSQL_BASE/bin/mysqld --defaults-file=/tmp/mysql-master/my.cnf  \
-        --basedir=/opt/mysql-5.7 --datadir=/tmp/mysql-master > /dev/null 2>&1 &
+        --basedir=$MYSQL_BASE --datadir=/tmp/mysql-master > /dev/null 2>&1 &
     echo_message "Start Master Done"
     $MYSQL_BASE/bin/mysqladmin -p'new-password' -uroot -S /tmp/mysql-master.sock ping \
         >/dev/null 2>&1 && echo_message "ERROR" || echo_message "Check OK"
@@ -104,15 +104,16 @@ EOF
     echo_message "Shutdown Slave Done"
     sleep 1
     $MYSQL_BASE/bin/mysqld --defaults-file=/tmp/mysql-slave/my.cnf  \
-        --basedir=/opt/mysql-5.7 --datadir=/tmp/mysql-slave  > /dev/null 2>&1 &
+        --basedir=$MYSQL_BASE --datadir=/tmp/mysql-slave  > /dev/null 2>&1 &
     echo_message "Start Slave Done"
     $MYSQL_BASE/bin/mysqladmin -p'new-password' -uroot -S /tmp/mysql-slave.sock ping \
         >/dev/null 2>&1 && echo_message "ERROR" || echo_message "Check OK"
+    sleep 2
 
     echo -n "6. Start replication"
     $MYSQL_BASE/bin/mysql -P3307 -uroot -S/tmp/mysql-master.sock -p"new-password" 2>/dev/null \
             -e "GRANT REPLICATION SLAVE ON *.* to 'mysync'@'localhost' IDENTIFIED BY 'kidding'"
-    sleep 0.5
+    sleep 1
     file=`$MYSQL_BASE/bin/mysql -P3307 -uroot -S/tmp/mysql-master.sock -p"new-password" 2>/dev/null     \
             -e "SHOW MASTER STATUS\G" | grep "File" | awk '{print $NF}'`
     position=`$MYSQL_BASE/bin/mysql -P3307 -uroot -S/tmp/mysql-master.sock -p"new-password" 2>/dev/null \
@@ -140,10 +141,10 @@ case "$1" in
     start)
         echo -n "Start MySQL server"
         $MYSQL_BASE/bin/mysqld --defaults-file=/tmp/mysql-master/my.cnf  \
-            --basedir=/opt/mysql-5.7 --datadir=/tmp/mysql-master > /dev/null 2>&1 &
+            --basedir=$MYSQL_BASE --datadir=/tmp/mysql-master > /dev/null 2>&1 &
         echo_message "Start Master Done"
         $MYSQL_BASE/bin/mysqld --defaults-file=/tmp/mysql-slave/my.cnf  \
-            --basedir=/opt/mysql-5.7 --datadir=/tmp/mysql-slave  > /dev/null 2>&1 &
+            --basedir=$MYSQL_BASE --datadir=/tmp/mysql-slave  > /dev/null 2>&1 &
         echo_message "Start Slave Done"
         pidof mysqld > /dev/null && echo "Check OK" || echo "Something error"
         ;;
@@ -152,8 +153,8 @@ case "$1" in
         ;;
    *)
        echo "Usage: $1 {build|start|stop|clean}"
-       echo "mysql -p'new-password' -P3307 -uroot -S/tmp/mysql-master.sock"
-       echo "mysql -p'new-password' -P3308 -uroot -S/tmp/mysql-slave.sock"
+       echo "$MYSQL_BASE/bin/mysql -p'new-password' -P3307 -uroot -S/tmp/mysql-master.sock"
+       echo "$MYSQL_BASE/bin/mysql -p'new-password' -P3308 -uroot -S/tmp/mysql-slave.sock"
        exit 1
        ;;
 esac

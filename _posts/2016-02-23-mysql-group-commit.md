@@ -202,6 +202,7 @@ MYSQL_BIN_LOG::ordered_commit()           ← 执行事务顺序提交，binlog 
  | |-my_b_tell()                          ← 判断是否超过了max_bin_log_size，如果是则切换binlog文件
  |
  |-flush_cache_to_file()                  ← (follower)将I/O Cache中的内容写到文件中
+ |-RUN_HOOK()                             ← 调用HOOK函数，也就是binlog_storage->after_flush()
  |
  |-#########>>>>>>>>>                     ← 进入Stage_manager::SYNC_STAGE阶段
  |-change_stage()

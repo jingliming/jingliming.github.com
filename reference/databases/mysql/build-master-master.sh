@@ -75,11 +75,11 @@ EOF
 
     echo -n "3. Start MySQL Server"
     $MYSQL_BASE/bin/mysqld --defaults-file=/tmp/mysql-master1/my.cnf  \
-        --basedir=/opt/mysql-5.7 --datadir=/tmp/mysql-master1         \
+        --basedir=$MYSQL_BASE --datadir=/tmp/mysql-master1         \
          --skip-grant-tables > /dev/null 2>&1 &
     echo_message "Master1 Done"
     $MYSQL_BASE/bin/mysqld --defaults-file=/tmp/mysql-master2/my.cnf  \
-        --basedir=/opt/mysql-5.7 --datadir=/tmp/mysql-master2         \
+        --basedir=$MYSQL_BASE --datadir=/tmp/mysql-master2         \
          --skip-grant-tables > /dev/null 2>&1 &
     echo_message "Master2 Done"
 
@@ -97,7 +97,7 @@ EOF
     echo_message "Shutdown Master1 Done"
     sleep 1
     $MYSQL_BASE/bin/mysqld --defaults-file=/tmp/mysql-master1/my.cnf  \
-        --basedir=/opt/mysql-5.7 --datadir=/tmp/mysql-master1 > /dev/null 2>&1 &
+        --basedir=$MYSQL_BASE --datadir=/tmp/mysql-master1 > /dev/null 2>&1 &
     echo_message "Start Master1 Done"
     $MYSQL_BASE/bin/mysqladmin -p'new-password' -uroot -S /tmp/mysql-master1.sock ping \
         >/dev/null 2>&1 && echo_message "ERROR" || echo_message "Check OK"
@@ -106,7 +106,7 @@ EOF
     echo_message "Shutdown Master2 Done"
     sleep 1
     $MYSQL_BASE/bin/mysqld --defaults-file=/tmp/mysql-master2/my.cnf  \
-        --basedir=/opt/mysql-5.7 --datadir=/tmp/mysql-master2  > /dev/null 2>&1 &
+        --basedir=$MYSQL_BASE --datadir=/tmp/mysql-master2  > /dev/null 2>&1 &
     echo_message "Start Master2 Done"
     $MYSQL_BASE/bin/mysqladmin -p'new-password' -uroot -S /tmp/mysql-master2.sock ping \
         >/dev/null 2>&1 && echo_message "ERROR" || echo_message "Check OK"
@@ -158,10 +158,10 @@ case "$1" in
     start)
         echo -n "Start MySQL server"
         $MYSQL_BASE/bin/mysqld --defaults-file=/tmp/mysql-master1/my.cnf  \
-            --basedir=/opt/mysql-5.7 --datadir=/tmp/mysql-master1 > /dev/null 2>&1 &
+            --basedir=$MYSQL_BASE --datadir=/tmp/mysql-master1 > /dev/null 2>&1 &
         echo_message "Start Master1 Done"
         $MYSQL_BASE/bin/mysqld --defaults-file=/tmp/mysql-master2/my.cnf  \
-            --basedir=/opt/mysql-5.7 --datadir=/tmp/mysql-master2  > /dev/null 2>&1 &
+            --basedir=$MYSQL_BASE --datadir=/tmp/mysql-master2  > /dev/null 2>&1 &
         echo_message "Start Master2 Done"
         pidof mysqld > /dev/null && echo "Check OK" || echo "Something error"
         ;;

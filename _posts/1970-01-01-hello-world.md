@@ -391,6 +391,29 @@ $$
 ➒
 ➓
 
+
+用pt-table-checksum校验数据一致性
+http://www.nettedfish.com/blog/2013/06/04/check-replication-consistency-by-pt-table-checksum/
+
+Choosing MySQL High Availability Solutions
+
+Database Daily Ops Series: GTID Replication
+https://www.percona.com/blog/2016/11/10/database-daily-ops-series-gtid-replication/
+
+http://hatemysql.com/?p=526
+http://mysqllover.com/?p=594
+http://in355hz.iteye.com/blog/1770401
+
+binlog文件格式
+http://www.jianshu.com/p/c16686b35807
+http://slideplayer.com/slide/6146721/
+http://miguelangelnieto.net/index.php/how-to-createrestore-a-slave-using-gtid-replication-in-mysql-5-6/
+
+???支持基于所有数据库、指定数据库、指定表的复制。
+
+默认使用基于GTID的异步复制，同时支持半同步复制 (semi-synchronous)，基于 NDB 的同步复制以及延迟复制 (Delayed Replication)
+
+
 ←
 -->
 
