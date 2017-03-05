@@ -350,6 +350,16 @@ BuildRequires:  sysv
 
 另外，可以生成 GPG 签名，在此不再赘述。
 
+#### RPM包查看
+
+对于生成的 RPM 包，只能查看头部信息和脚本内容，指令分别如下。
+
+{% highlight text %}
+$ rpm --info -qp XXX.rpm
+$ rpm --scripts -qp XXX.rpm
+{% endhighlight %}
+
+
 ### 测试脚本
 
 如下是一个测试用的脚本，可以用来生成简单的测试 SPEC 脚本，并执行。
@@ -453,7 +463,7 @@ rpmbuild --clean --define '_topdir /tmp/foobar' -ba SPECS/foobar-1.0.0.spec~
 
 ## 参考
 
-很多关于 RPM 的介绍可以参考 [Maximum RPM](http://rpm.org/max-rpm-snapshot/index.html)，可以参考下 MySQL 的示例 [mysql.spec](/reference/databases/mysql/mysql.spec) 。
+很多关于 RPM 的介绍可以参考文档 [Maximum RPM](http://rpm.org/max-rpm-snapshot/index.html)；另外，还可以参考下 MySQL 源码包中的相关示例 [mysql.spec](/reference/databases/mysql/mysql.spec) 。
 
 <!--
 http://fedoraproject.org/wiki/How_to_create_an_RPM_package

@@ -37,6 +37,30 @@ BIOS设置  sudo ./idracadm7  -r 10.212.199.160 -u root -p calvin get bios.memse
 https://linux.cn/article-6924-1.html   Linux 性能分析的前 60 秒
 -->
 
+常用工具介绍。
+
+| 工具     | 简单介绍                                                    |
+| :----:   | :--------                                                   |
+| top      | 查看进程活动状态以及一些系统状况。                          |
+| mpstat   | 查看多处理器状况                                            |
+| vmstat   | 查看系统状态、硬件和系统信息等。                            |
+| iostat   | 查看CPU 负载，硬盘状况                                      |
+| netstat  | 查看网络状况                                                |
+| iptraf   | 实时网络状况监测                                            |
+| tcpdump  | 抓取网络数据包，详细分析                                    |
+| mpstat   | 查看多处理器状况                                            |
+| tcptrace | 数据包分析工具                                              |
+| netperf  | 网络带宽工具                                                |
+| sar      | 综合工具，查看系统状况，可以记录历史状态                             |
+| dstat    | 综合工具，综合了 vmstat, iostat, ifstat, netstat 等多个信息 |
+
+
+
+
+
+
+
+
 
 
 ## 经典

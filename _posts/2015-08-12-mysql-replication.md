@@ -220,19 +220,51 @@ master_SSL_Key            #私钥文件;
 如果不指定 master_log_file 和 master_log_pos 参数，则会从头开始复制；但是如果已经有很多数据了，可以通过 mysqldump 导出，并记录二进制文件以及位置。
 
 
+<!--
+#### 重置复制
+
+在如下的测试中，可以通过下面的方式重置复制。
+
+{% highlight text %}
+----- 备库上执行，停止复制，等待SQL线程执行完成之后都停止
+mysql> STOP SLAVE IO_THREAD;
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+mysql> STOP SLAVE;
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+
+----- 备库上执行，重置备库
+mysql> RESET SLAVE;              # 删除master.info和relay-log.info，但会保留同步信息
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+mysql> RESET SLAVE ALL;          # 会彻底清除备库所有信息，包括同步信息
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+
+----- 主库上执行，重置主库
+mysql> RESET MASTER ALL;
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+{% endhighlight %}
+
+然后，根据不同的复制方式重新建立链接。
+
+{% highlight text %}
+----- 对于常规的异步方式或者半同步方式
+mysql> SHOW MASTER STATUS;
+
+mysql> CHANGE MASTER TO master_host='localhost',master_port=3307,
+       master_user='mysync',master_password='kidding',
+       master_log_file='mysql-bin.000003',master_log_pos=496;
+
+----- 对于GTID模式
+mysql> CHANGE MASTER TO master_host='localhost',master_port=3307,
+       master_user='mysync',master_password='kidding',
+       master_auto_position = 1;
+{% endhighlight %}
+-->
+
+
+
+
 
 <!--
-# 重置slave（会删除master.info和relay-log.info,但是同步信息会保留）;
-Mysql> reset slave;
-
-# 重置slave（会彻底清除所有信息）;
-Mysql> reset slave all;
-
-# 重置master（会删除master.info和relay-log.info,但是同步信息会保留）;
-Mysql> reset master;
-
-# 重置master（会彻底清除所有信息）;
-Mysql> reset master all;
 
 RESET MASTER
 
@@ -355,8 +387,7 @@ $ mysqladmin -uroot -S /tmp/mysql-slave.sock shutdown
 
 另外，在主从上分别执行 show processlist 就可以看到，主多一个线程处理 Binlog Dump；而在从上有两个线程，分别在等待主发送 event，另外一个线程则进行回放。
 
-可以参考 [build-master-slave.sh](/reference/databases/mysql/build-master-slave.sh) 脚本在 /tmp 目录下创建主备复制。
-
+可以参考 [build-master-slave.sh](/reference/databases/mysql/build-master-slave.sh) 脚本在 /tmp 目录下创建主备复制；对于一主多备可以参考 [build-master-multislave.sh](/reference/databases/mysql/build-master-multislave.sh) 。
 
 ### 主主复制
 
@@ -539,7 +570,8 @@ mysql> CHANGE MASTER TO master_host='localhost',master_port=3307,
        master_auto_position = 1;
 {% endhighlight %}
 
-可以参考 [build-gtid-replication.sh](/reference/databases/mysql/build-gtid-replication.sh) 脚本在 /tmp 目录下创建 gtid 的主主复制。
+可以参考 [build-gtid-replication-mm.sh](/reference/databases/mysql/build-gtid-replication-mm.sh) 脚本，会在 /tmp 目录下创建 gtid 的主主复制；或者主从复制 [build-gtid-replication-ms.sh](/reference/databases/mysql/build-gtid-replication-ms.sh) 。
+
 
 <!--
 需要注意开启 GTID 复制模式的约束：

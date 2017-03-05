@@ -91,10 +91,10 @@ EOF
 
     echo -n "4. Reset password"
     sleep 3
-    $MYSQL_BASE/bin/mysql -P3307 -uroot -S/tmp/mysql-master1.sock \
+    $MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-master1.sock \
         -e "UPDATE mysql.user SET authentication_string=PASSWORD('new-password') WHERE user='root'"
     echo_message "Master1 Done"
-    $MYSQL_BASE/bin/mysql -P3308 -uroot -S/tmp/mysql-master2.sock  \
+    $MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-master2.sock  \
         -e "UPDATE mysql.user SET authentication_string=PASSWORD('new-password') WHERE user='root'"
     echo_message "Master2 Done"
 
@@ -119,25 +119,26 @@ EOF
 
 
     echo -n "6. Start replication"
-    $MYSQL_BASE/bin/mysql -P3307 -uroot -S/tmp/mysql-master1.sock -p"new-password" 2>/dev/null \
+    sleep 3
+    $MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-master1.sock -p"new-password" 2>/dev/null \
             -e "GRANT REPLICATION SLAVE ON *.* to 'mysync'@'localhost' IDENTIFIED BY 'kidding'"
     sleep 0.5
     sql="CHANGE MASTER TO master_host='localhost',master_port=3307,master_user='mysync',
          master_password='kidding',MASTER_AUTO_POSITION=1"
-    $MYSQL_BASE/bin/mysql -P3308 -uroot -S/tmp/mysql-master2.sock -p"new-password" 2>/dev/null \
+    $MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-master2.sock -p"new-password" 2>/dev/null \
             -e "$sql"
-    $MYSQL_BASE/bin/mysql -P3308 -uroot -S/tmp/mysql-master2.sock -p"new-password" 2>/dev/null \
+    $MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-master2.sock -p"new-password" 2>/dev/null \
             -e "START SLAVE"
     echo_message "Start Master1=>Master2 Done"
 
-    $MYSQL_BASE/bin/mysql -P3308 -uroot -S/tmp/mysql-master2.sock -p"new-password" 2>/dev/null \
+    $MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-master2.sock -p"new-password" 2>/dev/null \
             -e "GRANT REPLICATION SLAVE ON *.* to 'mysync'@'localhost' IDENTIFIED BY 'kidding'"
     sleep 0.5
     sql="CHANGE MASTER TO master_host='localhost',master_port=3308,master_user='mysync',
          master_password='kidding',MASTER_AUTO_POSITION=1"
-    $MYSQL_BASE/bin/mysql -P3307 -uroot -S/tmp/mysql-master1.sock -p"new-password" 2>/dev/null \
+    $MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-master1.sock -p"new-password" 2>/dev/null \
             -e "$sql"
-    $MYSQL_BASE/bin/mysql -P3307 -uroot -S/tmp/mysql-master1.sock -p"new-password" 2>/dev/null \
+    $MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-master1.sock -p"new-password" 2>/dev/null \
             -e "START SLAVE"
     echo_message "Start Master2=>Master1 Done"
 }
@@ -168,8 +169,8 @@ case "$1" in
         ;;
    *)
        echo "Usage: $1 {build|start|stop|clean}"
-       echo "$MYSQL_BASE/bin/mysql -p'new-password' -P3307 -uroot -S/tmp/mysql-master1.sock"
-       echo "$MYSQL_BASE/bin/mysql -p'new-password' -P3308 -uroot -S/tmp/mysql-master2.sock"
+       echo "$MYSQL_BASE/bin/mysql -p'new-password' -uroot -S/tmp/mysql-master1.sock"
+       echo "$MYSQL_BASE/bin/mysql -p'new-password' -uroot -S/tmp/mysql-master2.sock"
        exit 1
        ;;
 esac

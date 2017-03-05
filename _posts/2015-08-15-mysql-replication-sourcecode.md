@@ -14,6 +14,8 @@ MySQL 的主从复制是通过 binlog 完成的，从库通过 dump 协议来交
 
 <!-- more -->
 
+![gtid source code]({{ site.url }}/images/databases/mysql/replicatioin-sourcecode-logo.jpg "gtid source code"){: .pull-center }
+
 <!--
 ## 简介
 

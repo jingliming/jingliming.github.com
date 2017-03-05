@@ -299,7 +299,7 @@ mysql> explain select emp_no from salaries where salary = 90930;
 
 其执行流程基本如下。
 
-![sequential](/images/databases/mysql/innodb-rr-sequential-1.svg){: .pull-center}
+![sequential](/images/databases/mysql/innodb-rr-sequential-1.png){: .pull-center}
 
 通过 gdb 查看的结果如下：
 
@@ -348,7 +348,7 @@ mysql> explain select * from salaries s join employees e on (s.emp_no=e.emp_no) 
 
 接下来 s 执行 sub_select，其 type 是 ref，就是通过索引来获得记录而非全表扫描，也即拿 e.emp_no 的值来检索 s 的 PRIMARY KEY 来获得记录；最后再通过 s 的 evaluate_join_record() 判断是否满足 salary=90930 这个条件，如果满足是直接发送给客户端，否则获得记录进行判断。
 
-![sequential](/images/databases/mysql/innodb-rr-sequential-2.svg){: .pull-center}
+![sequential](/images/databases/mysql/innodb-rr-sequential-2.png){: .pull-center}
 
 接下来仍然通过 gdb 查看上面两个表的三个函数指针来验证上面的过程：
 

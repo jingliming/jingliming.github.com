@@ -41,8 +41,7 @@ pre code {
 code {
   font-size: 0.8em;
 }
-
-.highlight pre {
+pre {
   font-size: 0.65em;
   line-height: 1.2em;
   word-spacing:0px;

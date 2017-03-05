@@ -87,6 +87,52 @@ mysql> SHOW STATUS LIKE '%semi%';
 15 rows in set (0.00 sec)
 {% endhighlight %}
 
+### 5.7 增强
+
+MySQL 5.7 版本修复了 semi sync 的一些 bug 并且增强了功能，主要包括了入下两个。
+
+* 支持发送binlog和接受ack的异步化;
+* 支持在事务commit前等待ACK;
+
+<!--
+* 在server层判断备库是否要求半同步以减少Plugin锁冲突;
+* 解除binlog dump线程和lock_log的冲突等等。
+-->
+
+新的异步模式可以提高半同步模式下的系统事务处理能力。
+
+#### binlog发送和接收ack异步
+
+旧版本的 semi sync 受限于主库的 dump thread ，原因是该线程承担了两份不同且又十分频繁的任务：A) 发送 binlog 给备库；B) 等待备库反馈信息；而且这两个任务是串行的，dump thread 必须等待备库返回之后才会传送下一个 events 事务。
+
+大体的实现思路是主库分为了两个线程，也就是原来的 dump 线程，以及 ack reciver 线程。
+
+
+#### 事务commit前等待ACK
+
+新版本的 semi sync 增加了 ```rpl_semi_sync_master_wait_point``` 参数控制半同步模式下，主库在返回给客户端事务成功的时间点。该参数有两个值：AFTER_SYNC(默认值)、AFTER_COMMIT 。
+
+##### after commit
+
+这也是最初版本的同步方式，主库将每事务写入 binlog，发送给备库并刷新到磁盘 (relaylog)，然后在主库提交事务，并等待备库的响应；一旦接到备库的反馈，主库将结果反馈给客户端。
+
+<!--
+   在AFTER_COMMIT模式下,如果slave 没有应用日志,此时master crash，系统failover到slave，app将发现数据出现不一致，在master提交而slave 没有应用。
+-->
+
+由于主库是在三段提交的最后 commit 阶段完成后才等待，所以主库的其它会话是可以看到这个事务的，所以这时候可能会导致主备库数据不一致。
+
+##### after sync
+
+主库将事务写入 binlog，发送给备库并刷新到磁盘，主库等待备库的响应；一旦接到备库的反馈，主库会提交事务并且返回结果给客户端。
+
+在该模式下，所有的客户端在同一时刻查看已经提交的数据。假如发生主库 crash，所有在主库上已经提交的事务已经同步到备库并记录到 relay log，切到从库可以减小数据损失。
+
+
+
+
+
+
 
 ## 源码实现简介
 
@@ -841,8 +887,13 @@ e.停止IO线程时，调用函数repl_semi_slave_io_end，将rpl_semi_sync_slav
 
 ## 参考
 
-关于半同步参数的介绍可以参考 [Semisynchronous Replication Administrative Interface](https://dev.mysql.com/doc/refman/en/replication-semisync-interface.html) 。
+关于半同步参数的介绍可以参考 [Semisynchronous Replication Administrative Interface](https://dev.mysql.com/doc/refman/en/replication-semisync-interface.html)；以及 [Reference Manual - Semisync](https://dev.mysql.com/doc/refman/5.7/en/replication-semisync.html) 。
 
+
+<!--
+http://blog.itpub.net/15480802/viewspace-1430221
+http://www.tuicool.com/articles/ERVNrmy
+-->
 
 
 {% highlight text %}

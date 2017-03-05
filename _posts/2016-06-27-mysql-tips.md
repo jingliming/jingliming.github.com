@@ -36,6 +36,8 @@ mysql> ALTER USER 'root'@'localhost' IDENTIFIED BY 'new-password';
 
 <!--
 set global validate_password_policy=0; set global validate_password_mixed_case_count=2;
+
+information_schema   tables   所有表的元数据信息 select table_name from information_schema.tables where table_schema='database-name'参考：http://dev.mysql.com/doc/refman/en/server-system-variables.html
 -->
 
 {% highlight text %}

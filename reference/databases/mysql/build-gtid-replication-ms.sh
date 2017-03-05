@@ -30,10 +30,10 @@ mysql_build() {
     echo -n "1. Init MySQL"
     $MYSQL_BASE/bin/mysqld --initialize-insecure --basedir=$MYSQL_BASE  \
             --datadir=/tmp/mysql-master --user=mysql 1>/dev/null 2>&1
-    echo_message "Master Done"
+    echo_message "Master1 Done"
     $MYSQL_BASE/bin/mysqld --initialize-insecure --basedir=$MYSQL_BASE \
-            --datadir=/tmp/mysql-slave  --user=mysql 1>/dev/null 2>&1
-    echo_message "Slave Done"
+            --datadir=/tmp/mysql-slave --user=mysql 1>/dev/null 2>&1
+    echo_message "Master2 Done"
 
     echo -n "2. Prepare configuration"
     cat <<- EOF > /tmp/mysql-master/my.cnf
@@ -48,8 +48,11 @@ pid-file        = /tmp/mysql-master.pid
 datadir         = /tmp/mysql-master
 port            = 3307
 server-id       = 1
+
+gtid-mode       = ON
+enforce-gtid-consistency = ON
 EOF
-    echo_message "Master Done"
+    echo_message "Master1 Done"
     cat << EOF > /tmp/mysql-slave/my.cnf
 [mysqld]
 binlog_format   = mixed
@@ -66,65 +69,63 @@ relay_log_index = relay-bin.index
 relay_log       = relay-bin
 report_host     = 127.1
 report_port     = 3308
-master-info-repository = table
-relay-log-info-repository = table
+
+gtid-mode       = ON
+enforce-gtid-consistency = ON
 EOF
-    echo_message "Slave Done"
+    echo_message "Master2 Done"
 
     echo -n "3. Start MySQL Server"
     $MYSQL_BASE/bin/mysqld --defaults-file=/tmp/mysql-master/my.cnf  \
-        --basedir=$MYSQL_BASE --datadir=/tmp/mysql-master            \
+        --basedir=$MYSQL_BASE --datadir=/tmp/mysql-master         \
          --skip-grant-tables > /dev/null 2>&1 &
-    echo_message "Master Done"
+    echo_message "Master1 Done"
     $MYSQL_BASE/bin/mysqld --defaults-file=/tmp/mysql-slave/my.cnf  \
-        --basedir=$MYSQL_BASE --datadir=/tmp/mysql-slave \
+        --basedir=$MYSQL_BASE --datadir=/tmp/mysql-slave         \
          --skip-grant-tables > /dev/null 2>&1 &
-    echo_message "Slave Done"
+    echo_message "Master2 Done"
 
     echo -n "4. Reset password"
-    sleep 2
+    sleep 3
     $MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-master.sock \
         -e "UPDATE mysql.user SET authentication_string=PASSWORD('new-password') WHERE user='root'"
-    echo_message "Master Done"
+    echo_message "Master1 Done"
     $MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-slave.sock  \
         -e "UPDATE mysql.user SET authentication_string=PASSWORD('new-password') WHERE user='root'"
-    echo_message "Slave Done"
+    echo_message "Master2 Done"
 
     echo -n "5. Restart MySQL server"
     $MYSQL_BASE/bin/mysqladmin -uroot -S /tmp/mysql-master.sock shutdown
-    echo_message "Shutdown Master Done"
+    echo_message "Shutdown Master1 Done"
     sleep 1
     $MYSQL_BASE/bin/mysqld --defaults-file=/tmp/mysql-master/my.cnf  \
         --basedir=$MYSQL_BASE --datadir=/tmp/mysql-master > /dev/null 2>&1 &
-    echo_message "Start Master Done"
+    echo_message "Start Master1 Done"
     $MYSQL_BASE/bin/mysqladmin -p'new-password' -uroot -S /tmp/mysql-master.sock ping \
         >/dev/null 2>&1 && echo_message "ERROR" || echo_message "Check OK"
 
     $MYSQL_BASE/bin/mysqladmin -uroot -S /tmp/mysql-slave.sock shutdown
-    echo_message "Shutdown Slave Done"
+    echo_message "Shutdown Master2 Done"
     sleep 1
     $MYSQL_BASE/bin/mysqld --defaults-file=/tmp/mysql-slave/my.cnf  \
         --basedir=$MYSQL_BASE --datadir=/tmp/mysql-slave  > /dev/null 2>&1 &
-    echo_message "Start Slave Done"
+    echo_message "Start Master2 Done"
     $MYSQL_BASE/bin/mysqladmin -p'new-password' -uroot -S /tmp/mysql-slave.sock ping \
         >/dev/null 2>&1 && echo_message "ERROR" || echo_message "Check OK"
+
 
     echo -n "6. Start replication"
     sleep 3
     $MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-master.sock -p"new-password" 2>/dev/null \
             -e "GRANT REPLICATION SLAVE ON *.* to 'mysync'@'localhost' IDENTIFIED BY 'kidding'"
-    sleep 1
-    file=`$MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-master.sock -p"new-password" 2>/dev/null     \
-            -e "SHOW MASTER STATUS\G" | grep "File" | awk '{print $NF}'`
-    position=`$MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-master.sock -p"new-password" 2>/dev/null \
-            -e "SHOW MASTER STATUS\G" | grep "Position" | awk '{print $NF}'`
-    sql="CHANGE MASTER TO master_host='localhost',master_port=3307, master_user='mysync',
-         master_password='kidding', master_log_file='$file',master_log_pos=$position"
+    sleep 0.5
+    sql="CHANGE MASTER TO master_host='localhost',master_port=3307,master_user='mysync',
+         master_password='kidding',MASTER_AUTO_POSITION=1"
     $MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-slave.sock -p"new-password" 2>/dev/null \
             -e "$sql"
     $MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-slave.sock -p"new-password" 2>/dev/null \
             -e "START SLAVE"
-    echo_message "Done"
+    echo_message "Start Master=>Slave Done"
 }
 
 case "$1" in
@@ -133,19 +134,19 @@ case "$1" in
         ;;
     stop)
         echo -n "Shutdown MySQL server"
-        $MYSQL_BASE/bin/mysqladmin -uroot -S /tmp/mysql-slave.sock shutdown
-        echo_message "Shutdown Slave Done"
         $MYSQL_BASE/bin/mysqladmin -uroot -S /tmp/mysql-master.sock shutdown
-        echo_message "Shutdown Master Done"
+        echo_message "Shutdown Master1 Done"
+        $MYSQL_BASE/bin/mysqladmin -uroot -S /tmp/mysql-slave.sock shutdown
+        echo_message "Shutdown Master2 Done"
         pidof mysqld > /dev/null && echo "Something error" || echo "Check OK" ;;
     start)
         echo -n "Start MySQL server"
         $MYSQL_BASE/bin/mysqld --defaults-file=/tmp/mysql-master/my.cnf  \
             --basedir=$MYSQL_BASE --datadir=/tmp/mysql-master > /dev/null 2>&1 &
-        echo_message "Start Master Done"
+        echo_message "Start Master1 Done"
         $MYSQL_BASE/bin/mysqld --defaults-file=/tmp/mysql-slave/my.cnf  \
             --basedir=$MYSQL_BASE --datadir=/tmp/mysql-slave  > /dev/null 2>&1 &
-        echo_message "Start Slave Done"
+        echo_message "Start Master2 Done"
         pidof mysqld > /dev/null && echo "Check OK" || echo "Something error"
         ;;
     clean)

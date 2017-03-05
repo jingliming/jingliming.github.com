@@ -253,7 +253,7 @@ EOF
         >/dev/null 2>&1 && echo_message "ERROR" || echo_message "Check OK"
 
     echo -n "6. Start replication"
-    sleep 2
+    sleep 3
     $MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql1.sock -p"new-password" 2>/dev/null \
         -e "SET SQL_LOG_BIN=0;
             GRANT REPLICATION SLAVE ON *.* to 'mysync'@'localhost' IDENTIFIED BY 'kidding';
