@@ -46,11 +46,11 @@ mysqlbinlog
     用于处理二进制日志文件(binlog)，可以用于打印数据；
 mysqldumpslow
     用于处理慢查询日志文件；
+mysqladmin
+    用于管理MySQL服务器；
 {% endhighlight %}
 
 <!--
-mysqladmin
-    用于管理MySQL服务器；
 mysqlcheck：一个表检查维护工具
 mysqlshow：显示数据库，表，列信息
 
@@ -686,22 +686,11 @@ Count: 2  Time=2.31s (5s)  Lock=0.00s (0s)  Rows=1000.0 (2000), root[root]@[loca
 
 ## mysqlcheck
 
+数据库经常可能遇到错误，譬如数据写入磁盘时发生错误、索引没有同步更新、数据库宕机等；从而可能会导致数据库异常。
+
 mysqlcheck 的功能类似 myisamchk，但其工作不同，前者需要在服务器运行的时候执行，而后者需要停服务。
 
-<!--
-Mysqlcheck为用户提供了一种方便的使用SQL语句CHECK TABLE、REPAIR TABLE、ANALYZE TABLE和OPTIMIZE TABLE的方式。它确定在要执行的操作中使用使用哪个语句，然后将语句发送到要执行的服务器上。
-
-mysqlcheck -a -c -o -r -m --all-databases　-uroot -p
-
-即可最佳化所有db
-参数含意：
--a = Analyse given tables.
--c = Check table for errors
--o = Optimise table
--r = Can fix almost anything except unique keys that aren't unique
--m = --medium-check
--->
-
+实际上，mysqlcheck 只是提供了一种方便的使用 SQL 语句的方式，会根据不同类型拼接 SQL 语句，真正调用的还是 ```CHECK TABLE```、```REPAIR TABLE```、```ANALYZE TABLE``` 和 ```OPTIMIZE TABLE``` 命令。
 
 可以通过 3 种方式来调用 mysqlcheck 。
 
@@ -842,7 +831,170 @@ mysqlanalyze
 mysqloptimize
 默认选项为--optimize
 
+-->
 
+源码在 client/check 目录下，处理过程简单介绍如下。
+
+
+{% highlight text %}
+main()
+ |-get_options()                    ← 加载配置文件默认配置
+ | |-load_defaults()                ← 通过load_default_groups指定配置文件加载的groups
+ |
+ |-mysql_check()
+   |-disable_binlog()               ← 根据参数设置SET SQL_LOG_BIN=0
+   |-process_all_databases()        ← 处理所有数据库
+   | |-process_one_db()
+   |   |-process_all_tables_in_db()
+   |     |-process_selected_tables()
+   |
+   |-process_selected_tables()
+   | |-handle_request_for_tables()  ← 真正的拼接命令处
+   |
+   |-process_databases()
+{% endhighlight %}
+
+其中 handle_request_for_tables() 函数的处理流程如下。
+
+{% highlight cpp %}
+static int handle_request_for_tables(string tables)
+{
+  string operation, options;
+
+  switch (what_to_do) {
+  case DO_CHECK:
+    operation = "CHECK";
+    if (opt_quick)              options+= " QUICK";
+    if (opt_fast)               options+= " FAST";
+    if (opt_medium_check)       options+= " MEDIUM"; /* Default */
+    if (opt_extended)           options+= " EXTENDED";
+    if (opt_check_only_changed) options+= " CHANGED";
+    if (opt_upgrade)            options+= " FOR UPGRADE";
+    break;
+  case DO_REPAIR:
+    operation= (opt_write_binlog) ? "REPAIR" : "REPAIR NO_WRITE_TO_BINLOG";
+    if (opt_quick)              options+= " QUICK";
+    if (opt_extended)           options+= " EXTENDED";
+    if (opt_frm)                options+= " USE_FRM";
+    break;
+  case DO_ANALYZE:
+    operation= (opt_write_binlog) ? "ANALYZE" : "ANALYZE NO_WRITE_TO_BINLOG";
+    break;
+  case DO_OPTIMIZE:
+    operation= (opt_write_binlog) ? "OPTIMIZE" : "OPTIMIZE NO_WRITE_TO_BINLOG";
+    break;
+  case DO_UPGRADE:
+    return fix_table_storage_name(tables);
+  }
+
+  string query= operation + " TABLE " + tables + " " + options;
+
+  if (mysql_real_query(sock, query.c_str(), (ulong)query.length()))
+  {
+    DBError(sock,
+      "when executing '" + operation + " TABLE ... " + options + "'");
+    return 1;
+  }
+  print_result();
+  return 0;
+}
+{% endhighlight %}
+
+也即是实际上会生成如下的命令。
+
+{% highlight text %}
+   CHECK TABLE table_name {QUICK|FAST|MEDIUM|EXTENDED|CHANGED|FOR UPGRADE}
+  REPAIR NO_WRITE_TO_BINLOG TABLE table_name {QUICK|EXTENDED|USE_FRM}
+ ANALYZE NO_WRITE_TO_BINLOG TABLE table_name
+OPTIMIZE NO_WRITE_TO_BINLOG TABLE table_name
+{% endhighlight %}
+
+每个表会记录最近的一次检查时间，可以通过如下命令查看。
+
+{% highlight text %}
+mysql> SELECT table_name, check_time FROM information_schema.tables
+          WHERE table_name = 'tbl-name' AND table_schema = 'db-name';
+{% endhighlight %}
+
+<!--
+create databasename             创建一个新数据库
+drop databasename               删除一个数据库及其所有表
+flush-hosts                     洗掉所有缓存的主机
+flush-logs                      洗掉所有日志
+flush-tables                    洗掉所有表
+flush-privileges                再次装载授权表(同reload)
+kill id,id,...                  杀死mysql线程
+reload                          重载授权表
+refresh                         洗掉所有表并关闭和打开日志文件
+-->
+
+## mysqladmin
+
+该工具最常见的是用来关闭数据库，还可以查看 MySQL 运行状态、进程信息、关闭进程等，如下是常用的子命令；所有命令可以通过 ```--help``` 查看帮助文档。
+
+{% highlight text %}
+mysqladmin [option] command [command-option] command ......
+参数如下：
+  extended-status
+    可获得所有MySQL性能指标，即SHOW GLOBAL STATUS的输出
+  status
+    获取当前MySQL的几个基本的状态值，包括线程数、查询量、慢查询等
+  variables
+    打印出可用变量
+  ping
+    查看服务器是否存活
+  shutdown
+    关掉服务器
+  processlist
+    显示服务其中活跃线程列表
+  version
+    得到服务器的版本信息
+  password 'new-password'
+    新口令，将老口令改为新口令
+{% endhighlight %}
+
+
+### extended-status
+
+默认输出的都是累计值，可以通过 ```-r/--relative``` 查看各个指标的差值；然后再配合 ```-i/--sleep``` 指定刷新的频率。
+
+{% highlight text %}
+$ mysqladmin -uroot -pnew-password -h127.1 -P3307 -r -i 1 extended-status |\
+   grep "Questions\|Queries\|Innodb_rows\|Com_select \|Com_insert \|Com_update \|Com_delete"
+
+$ mysqladmin -uroot -pnew-password -h127.1 -P3307 -r -i 1 extended-status |\
+   awk -F"|" '{\
+     if($2 ~ /Variable_name/){\
+       print " <-------------    "  strftime("%H:%M:%S") "    ------------->";\
+     }\
+     if($2 ~ /Questions|Queries|Innodb_rows|Com_select |Com_insert |Com_update |Com_delete/)\
+       print $2 $3;\
+   }'
+
+$ mysqladmin -uroot -pnew-password -h127.1 -P3307 -r -i 1 extended-status |\
+   awk -F"|" \
+   "BEGIN{ count=0; }"\
+   '{ if($2 ~ /Variable_name/ && ((++count)%20 == 1)){\
+       print "----------|---------|--- MySQL Command Status --|----- Innodb row operation ----";\
+       print "---Time---|---QPS---|select insert update delete|  read inserted updated deleted";\
+   }\
+   else if ($2 ~ /Queries/){queries=$3;}\
+   else if ($2 ~ /Com_select /){com_select=$3;}\
+   else if ($2 ~ /Com_insert /){com_insert=$3;}\
+   else if ($2 ~ /Com_update /){com_update=$3;}\
+   else if ($2 ~ /Com_delete /){com_delete=$3;}\
+   else if ($2 ~ /Innodb_rows_read/){innodb_rows_read=$3;}\
+   else if ($2 ~ /Innodb_rows_deleted/){innodb_rows_deleted=$3;}\
+   else if ($2 ~ /Innodb_rows_inserted/){innodb_rows_inserted=$3;}\
+   else if ($2 ~ /Innodb_rows_updated/){innodb_rows_updated=$3;}\
+   else if ($2 ~ /Uptime / && count >= 2){\
+     printf(" %s |%9d",strftime("%H:%M:%S"),queries);\
+     printf("|%6d %6d %6d %6d",com_select,com_insert,com_update,com_delete);\
+     printf("|%6d %8d %7d %7d",innodb_rows_read,innodb_rows_inserted,innodb_rows_updated,innodb_rows_deleted);\
+   }}'
+{% endhighlight %}
+
+<!--
 ## mysqlbinlog
 
 二进制日志 (Binary Log) 是由多个事件 (events) 组成，用于描述对于数据库的修改内容，MySQL 服务器以二进制的形式写入，可以通过该工具显示文件中具体事件的内容。

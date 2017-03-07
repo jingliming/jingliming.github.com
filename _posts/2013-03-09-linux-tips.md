@@ -55,6 +55,19 @@ $ find -inum XXX | xargs -I {} rm {}
 $ find -inum XXX -delete
 {% endhighlight %}
 
+如果文件的文件名含有终端无法正确显示的字符，那么可以通过 inode 来删除，处理命令如下。
+
+{% highlight text %}
+----- 查看文件innode
+# ls -li
+total 0
+358315 -rw-r--r-- 1 root root 0 Apr 6 23:13 ???}
+
+----- 通过inode删除文件，如下两种方式相同
+# find . -inum 358315 -delete
+# rm -i `find . -maxdepth 1 -inum 358315 -print`
+{% endhighlight %}
+
 
 ## sudo VS. su
 
