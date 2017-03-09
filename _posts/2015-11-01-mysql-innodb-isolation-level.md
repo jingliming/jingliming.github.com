@@ -122,6 +122,61 @@ mysql> insert into user values (1, 'andy', 28);
 |REPEATABLE READ|NO|NO|YES|
 |SERIALIZABLE|NO|NO|NO|
 
+### 事务超时
+
+与事务超时相关的变量可以参考。
+
+{% highlight text %}
+----- 设置锁超时时间，单位为秒，默认50s
+mysql> SHOW VARIABLES LIKE 'innodb_lock_wait_timeout';
++--------------------------+-------+
+| Variable_name            | Value |
++--------------------------+-------+
+| innodb_lock_wait_timeout | 50    |
++--------------------------+-------+
+1 row in set (0.00 sec)
+
+----- 超时后的行为，默认OFF，详见如下介绍
+mysql> SHOW VARIABLES LIKE 'innodb_rollback_on_timeout';
++----------------------------+-------+
+| Variable_name              | Value |
++----------------------------+-------+
+| innodb_rollback_on_timeout | OFF   |
++----------------------------+-------+
+1 row in set (0.02 sec)
+{% endhighlight %}
+
+[innodb_rollback_on_timeout ](https://dev.mysql.com/doc/refman/5.7/en/innodb-parameters.html#sysvar_innodb_rollback_on_timeout) 变量默认值为 OFF，如果事务因为加锁超时，会回滚上一条语句执行的操作；如果设置 ON，则整个事务都会回滚。
+
+当上述变量为 OFF 时，也就是事务会回滚到上一个保存点，这是因为 InnoDB 在执行每条 SQL 语句之前，都会创建一个保存点，可以参见 row_insert_for_mysql() 函数中的代码。
+
+{% highlight text %}
+row_insert_for_mysql()
+ |-row_insert_for_mysql_using_ins_graph()
+   |-trx_savept_take()
+{% endhighlight %}
+
+如果事务因为加锁超时，相当于回滚到上一条语句，但是报错后，事务还没有完成，用户可以选择是继续提交，或者回滚之前的操作，由用户选择是否进一步提交或者回滚事务。
+
+上述参数为 ON 时，整个事务都回滚；详细的内容可以从 row_mysql_handle_errors() 中验证。
+
+<!--
+问题：innodb_rollback_on_timeout为OFF，事务的原子性被破坏了吗？
+答：NO，从示例中可以看到，事务只是回退上一条语句的状态，而整个事务实际上没有完成(提交或者回滚)，而作为应用程序在检测这个错误时，应该选择是提交或者回滚事务。如果严格要求事务的原子性，当然是执行ROLLBACK，回滚事务。
+-->
+
+### 其它
+
+如何判断当前会话已经开启了一个事务？
+
+{% highlight text %}
+----- 可以直接使用在事务中会报错的语句。
+mysql> SELECT @@TX_ISOLATION;
+mysql> SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+
+----- 或者通过如下SQL查看，如果在事务中则会返回当前的事务ID，否则返回为空。
+mysql> SELECT trx_id FROM information_schema.innodb_trx WHERE trx_mysql_thread_id = connection_id();
+{% endhighlight %}
 
 
 ## 隔离级别

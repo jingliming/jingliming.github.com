@@ -994,10 +994,80 @@ $ mysqladmin -uroot -pnew-password -h127.1 -P3307 -r -i 1 extended-status |\
    }}'
 {% endhighlight %}
 
-<!--
 ## mysqlbinlog
 
 二进制日志 (Binary Log) 是由多个事件 (events) 组成，用于描述对于数据库的修改内容，MySQL 服务器以二进制的形式写入，可以通过该工具显示文件中具体事件的内容。
+
+{% highlight text %}
+----- 备份时指定多个binlog文件
+$ mysqlbinlog --stop-date="2015-04-20 9:59:59" mysql-bin.[0-9]* | \
+    mysql -u root -pyour-password
+
+----- 只恢复单个库example
+$ mysqlbinlog --stop-date="2015-04-20 9:59:59" mysql-bin.000001 | \
+    mysql -u root -pyour-password --one-database example
+
+----- 指定起始时间以及库
+$ mysqlbinlog --start-datetime='2015-08-05 00:00:00' --stop-datetime='2015-08-05 10:00:00' \
+    --database=db_name mysql-bin.000001
+
+----- 也可以指定binlog的position位置
+$ mysqlbinlog --start-postion=107 --stop-position=1000 --database=db_name mysql-bin.000001
+
+----- 从远程服务器读取
+$ mysqlbinlog -u username -p password -h127.1 -P3306 --read-from-remote-server \
+    --start-datetime='2015-08-05 00:00:00' --stop-datetime='2015-08-05 10:00:00' mysql-bin.000001
+{% endhighlight %}
+
+### ROW格式解析
+
+首先准备下数据。
+
+{% highlight sql %}
+CREATE DATABASE test;
+USE test;
+CREATE TABLE foobar (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    name CHAR(20) NOT NULL,
+    sex ENUM('F','M') NOT NULL DEFAULT 'M',
+    address VARCHAR(30) NOT NULL
+) Engine=InnoDB;
+INSERT INTO foobar(name,sex,address) VALUES('Barton','M','Washington'),('Borg','M','New Mexico'),
+    ('Steven','M','Colorado');
+UPDATE foobar SET address='Texas';
+{% endhighlight %}
+
+可以直接通过 mysqlbinlog 解析。
+
+{% highlight text %}
+----- 解析ROW格式binlog文件
+$ mysqlbinlog --no-defaults -v -v --base64-output=DECODE-ROWS mysql-bin.000003
+... ...
+### INSERT INTO `test`.`foobar`
+### SET
+###   @1=1 /* INT meta=0 nullable=0 is_null=0 */
+###   @2='Barton' /* STRING(60) meta=65084 nullable=0 is_null=0 */
+###   @3=2 /* ENUM(1 byte) meta=63233 nullable=0 is_null=0 */
+###   @4='Washington' /* VARSTRING(90) meta=90 nullable=0 is_null=0 */
+... ...
+### UPDATE `test`.`foobar`
+### WHERE
+###   @1=3 /* INT meta=0 nullable=0 is_null=0 */
+###   @2='Steven' /* STRING(60) meta=65084 nullable=0 is_null=0 */
+###   @3=2 /* ENUM(1 byte) meta=63233 nullable=0 is_null=0 */
+###   @4='Colorado' /* VARSTRING(90) meta=90 nullable=0 is_null=0 */
+### SET
+###   @1=3 /* INT meta=0 nullable=0 is_null=0 */
+###   @2='Steven' /* STRING(60) meta=65084 nullable=0 is_null=0 */
+###   @3=2 /* ENUM(1 byte) meta=63233 nullable=0 is_null=0 */
+###   @4='Texas' /* VARSTRING(90) meta=90 nullable=0 is_null=0 */
+{% endhighlight %}
+
+@1、@2、@3、@4 分别代表了第 1~4 列。
+
+<!--
+MySQL 误操作后数据恢复（update,delete忘加where条件）
+http://www.cnblogs.com/gomysql/p/3582058.html
 -->
 
 ## 参考

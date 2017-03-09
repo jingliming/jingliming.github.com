@@ -120,6 +120,7 @@ Percona 是最接近官方 MySQL Enterprise 发行版的版本，也就是说它
 * [MySQL 执行简介](/post/mysql-executor.html)，简单介绍 MySQL 中的查询最终是如何执行的。
 * [MySQL 自带工具](/post/mysql-tools-internal.html)，简单介绍下 MySQL 中自带的工具集。
 * [MySQL 常用工具](/post/mysql-tools.html)，一些运维过程中常见的三方工具，包括压测工具。
+* [MySQL Core 文件](/post/mysql-core-file.html)，一些关于 CoreDump 文件以及 debuginfo 的介绍。
 * [MySQL 杂项](/post/mysql-tips.html)，简单记录下 MySQL 常见的一些操作。
 
 高可用:
@@ -134,6 +135,7 @@ Percona 是最接近官方 MySQL Enterprise 发行版的版本，也就是说它
 
 InnoDB:
 
+* [InnoDB 简单介绍](/post/mysql-innodb-introduce.html)，介绍一下与 InnoDB 相关的资料。
 * [InnoDB 隔离级别](/post/mysql-innodb-isolation-level.html)，主要介绍下 InnoDB 中如何使用事务的隔离级别。
 
 
@@ -151,7 +153,6 @@ InnoDB:
 
 InnoDB:
 
-* [InnoDB 简介](/post/mysql-innodb-introduce.html)，介绍一下与 InnoDB 相关的资料。
 * [InnoDB 线程](/post/mysql-innodb-threads.html)，介绍下 InnoDB 中与线程相关的资料。
 * [InnoDB Buffer Pool](/post/mysql-innodb-buffer-pool.html)，
 * [InnoDB Insert Buffer](/post/mysql-innodb-insert-buffer.html)，
