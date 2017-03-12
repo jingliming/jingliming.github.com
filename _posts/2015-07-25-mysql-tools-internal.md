@@ -48,6 +48,10 @@ mysqldumpslow
     用于处理慢查询日志文件；
 mysqladmin
     用于管理MySQL服务器；
+
+----- 其它
+my_print_defaults
+    读取配置文件中的配置选项；
 {% endhighlight %}
 
 <!--
@@ -1069,6 +1073,59 @@ $ mysqlbinlog --no-defaults -v -v --base64-output=DECODE-ROWS mysql-bin.000003
 MySQL 误操作后数据恢复（update,delete忘加where条件）
 http://www.cnblogs.com/gomysql/p/3582058.html
 -->
+
+## innochecksum
+
+使用该工具时必须停止 MySQL 服务器，否则会报 "Unable to lock file" 错误，如果是在线的最好使用 ```CHECK TABLE``` 命令。
+
+简单来说，该工具会读取 InnoDB 的表空间，计算每个页的 Checksum 值，然后与页中的值比较，如果不同则会报错。
+
+{% highlight text %}
+innochecksum --verbose=FALSE --log=/tmp/innocheck.log
+常用参数：
+  --help/info
+    查看帮助信息；
+  --verbose
+    打印详细信息，可以通过--verbose=FALSE关闭；
+  --count/-c
+    只打印页的数量信息；
+  --start-page=NUM/-s NUM; --end-page=NUM/-e NUM; --page=NUM/-p NUM
+    指定开始、结束页，或者只查看指定的页；
+  --strict-check/-C
+    指定checksum算法，通常有innodb、crc32、none，默认是从三者中选择，否则强制指定；
+{% endhighlight %}
+
+详细使用文档可以参考 [innochecksum](https://dev.mysql.com/doc/refman/en/innochecksum.html) 。
+
+<!--
+--page-type-summary, -S
+innochecksum /tmp/data/*/*.ibd
+-->
+
+## my_print_defaults
+
+会按照顺序读取配置文件，并提取相应属组的配置项，可以指定多个属组。
+
+{% highlight text %}
+----- 使用示例
+$ my_print_defaults mysqlcheck client
+--user=myusername
+--password=secret
+--host=localhost
+
+常见参数如下：
+  --config-file=file_name, --defaults-file=file_name, -c file_name
+    只读取如上选项指定的配置文件。
+  --defaults-extra-file=file_name, --extra-file=file_name, -e file_name
+    读取全局配置项且在读取用户配置前的配置文件。
+{% endhighlight %}
+
+如果不添加任何参数，可以看到配置文件默认的加载顺序。
+
+{% highlight text %}
+Default options are read from the following files in the given order:
+/etc/mysql/my.cnf /etc/my.cnf ~/.my.cnf
+{% endhighlight %}
 
 ## 参考
 

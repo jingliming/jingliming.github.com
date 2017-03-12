@@ -64,9 +64,38 @@ Offices: stores sales office data.
 其中 README.md 中包括了如何进行安装。
 
 
+## 其它
+
+
+
+### sql_mode
+
+sql_mode 是个很容易被忽视的变量，在生产环境必须将这个值设置为严格模式，所以开发、测试环境的数据库也必须要设置，这样在开发测试阶段就可以发现问题
+
+{% highlight text %}
+----- 查看变量
+mysql> SHOW VARIABLES LIKE 'sql_mode%'\G
+ *************************** 1. row ***************************
+ Variable_name: sql_mode
+         Value: ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,
+         NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
+         1 row in set (0.01 sec)
+
+----- 设置变量
+mysql> SET GLOBAL sql_mode='';
+{% endhighlight %}
+
+详细可以参考官方手册 [MySQL Reference Manual - Server SQL Modes](https://dev.mysql.com/doc/refman/5.7/en/sql-mode.html) 。
+
+
 <!---
 http://blog.csdn.net/imzoer/article/details/8277797
 -->
+
+## 参考
+
+[MySQL Reference Manual - Server SQL Modes](https://dev.mysql.com/doc/refman/5.7/en/sql-mode.html)
+
 
 {% highlight text %}
 {% endhighlight %}

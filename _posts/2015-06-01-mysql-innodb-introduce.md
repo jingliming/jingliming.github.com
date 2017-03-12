@@ -60,7 +60,9 @@ MySQL 的各种数据保存在 datadir 变量指定的目录下，使用 OS 的�
 
 各个文件的详细介绍如下：
 
-* ibdata1，系统表空间<br>包括了 Undo log、Double Write Buffer、Insert Buffer 等。
+* ibdata1，系统表空间<br>包括了 Undo log、Double Write Buffer、Insert Buffer 等，可以通过 innodb_data_file_path 变量查看文件名称和大小。
+
+* ib_logfile0/1，redo-log日志<br>InnoDB 的 redo-log ，顺序写入，循环利用。
 
 * db-name/，与数据库名称相同的目录<br>除了 information_schema 之外，每个数据库都有一个相同名称的目录，而 information_schema 实际上是一个视图，提供了访问元数据的一个接口，因此没有保存与之相关的文件。
 
@@ -95,22 +97,16 @@ static int innobase_init(void *p)
 }
 {% endhighlight %}
 
-然后，其调用流程如下：
+然后，其调用流程如下，也就是最终调用的是 srv_printf_innodb_monitor() 函数。
 
 {% highlight text %}
-innobase_show_status()                # handler/ha_innodb.cc
-  |-innodb_show_status()              # handler/ha_innodb.cc
-    |-srv_printf_innodb_monitor()     # 实际打印函数入口，srv/srv0srv.cc
-      |-lock_print_info_summary()     # 打印锁相关信息
+innobase_show_status()               ← handler/ha_innodb.cc
+  |-innodb_show_status()
+    |-srv_printf_innodb_monitor()    ← 实际打印函数入口，srv/srv0srv.cc
+      |-lock_print_info_summary()    ← 打印锁相关信息
+      |-log_print()                  ← LOG，redo日志相关
 {% endhighlight %}
-<!--
-show_innodb_vars()
-  |-innodb_export_status()
-    |-srv_export_innodb_status()
-      |-srv_printf_innodb_monitor()              // 实际打印出内容
--->
 
-也就是最终调用的是 srv_printf_innodb_monitor() 函数。
 
 {% highlight text %}
 MariaDB [(none)]> SHOW ENGINE INNODB STATUS\G
@@ -304,7 +300,19 @@ I/O sum[0]:cur[0], unzip sum[0]:cur[0]
 {% endhighlight %}
 
 对于 ibdata1 文件各个文件所占 page 数量，可以通过 innodb_page_info.py ibdata1 查看。
+
+
+
+select name, comment from information_schema.innodb_metrics where name like 'buffer_flush_%';
 -->
+
+
+
+### 其它
+
+在 MySQL 中设置与 InnoDB 相关的变量时，实际对应到源码后是将变量中的 innodb 替换为了 srv ，例如 innodb_read_ahead_threshold 对应到源码中是 srv_read_ahead_threshold 。
+
+
 
 {% highlight text %}
 {% endhighlight %}

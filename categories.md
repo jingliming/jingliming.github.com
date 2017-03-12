@@ -120,6 +120,7 @@ Percona 是最接近官方 MySQL Enterprise 发行版的版本，也就是说它
 * [MySQL 执行简介](/post/mysql-executor.html)，简单介绍 MySQL 中的查询最终是如何执行的。
 * [MySQL 自带工具](/post/mysql-tools-internal.html)，简单介绍下 MySQL 中自带的工具集。
 * [MySQL 常用工具](/post/mysql-tools.html)，一些运维过程中常见的三方工具，包括压测工具。
+* [MySQL 启动脚本](/post/mysql-mysqld-safe.html)，详细介绍下 mysqld_safe 脚本的执行流程。
 * [MySQL Core 文件](/post/mysql-core-file.html)，一些关于 CoreDump 文件以及 debuginfo 的介绍。
 * [MySQL 杂项](/post/mysql-tips.html)，简单记录下 MySQL 常见的一些操作。
 

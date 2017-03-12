@@ -81,7 +81,7 @@ class Options:
 
         for opt, arg in opts:
             if opt in ('-h'):
-                self.useage()
+                self.usage()
                 sys.exit(1)
             elif opt in ('-v'):
                 self.verbose = True

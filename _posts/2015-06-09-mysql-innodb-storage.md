@@ -298,13 +298,13 @@ XDES_STATE标识该extent descriptor所代表的extent的所属状态，定义�
 
 ### Page
 
-页是 InnoDB 中的最小物理存储分配单位，在 include/univ.i 文件中通过宏指定，默认大小是 16K。
+页是 InnoDB 中的最小的逻辑存储单位，很多基本操作都是以页为单位进行，在 ```include/univ.i``` 文件中通过宏指定，默认大小是 16K。
 
 {% highlight c %}
 #define UNIV_PAGE_SIZE      ((ulint) srv_page_size)
 {% endhighlight %}
 
-与页相关的宏定义基本都在 fil0fil.h 头文件中，其中定义了多种页类型，其中比较常见的举例如下：
+而变量 ```srv_page_size``` 的大小，实际对应了 ```innodb_page_size``` 参数。与页相关的宏定义基本都在 fil0fil.h 头文件中，其中定义了多种页类型，其中比较常见的举例如下：
 
 {% highlight c %}
 #define FIL_PAGE_INDEX      17855    // 数据索引页
