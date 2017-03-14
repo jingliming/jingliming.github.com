@@ -218,6 +218,37 @@ cd path && rm -rf *.exe
 {% endhighlight %}
 
 
+## man
+
+Linux 上的 manpage 是用 groff 语法编写的，实际上可以通过如下的命令查看：
+
+{% highlight text %}
+zcat man.1.gz | groff -man -Tascii | more
+{% endhighlight %}
+
+其查找路径可以通过 ```man -w``` 命令查看，或者查看配置文件 /etc/man.config；如下是常见的查看命令：
+
+{% highlight text %}
+----- 查看搜索路径
+$ man -w
+----- 显示man命令搜索到的第一个文件路径
+$ man -w passwd
+----- 显示所有匹配的man文档
+$ man -aw passwd
+
+----- 指定领域限制
+$ man 5 passwd
+$ man -S 1:2 passwd
+
+----- 同命令whatis ，将在whatis数据库查找以关键字开同的帮助索引信息
+$ man -f httpd
+----- 同命令apropos 将搜索whatis数据库，模糊查找关键字
+$ man -k httpd
+{% endhighlight %}
+
+
+
+
 ## 备份脚本
 
 如下是一个备份用的脚本，不过 email 没有调试使用过，暂时记录下。

@@ -1214,7 +1214,8 @@ SET GLOBAL innodb_old_blocks_time = 0;
 
 可以通过 innodb_buffer_pool_instances 参数配置实例个数，默认为 1，最大可以配置为 64；只有当 innodb_buffer_pool_size 的值大于 1G 时才会生效，而且每个实例均分 BP 缓存。
 
-通过多个 BP 可以减小竞争，每个页(page)将通过一个 hash 函数随机分配到 BP 中。????????
+通过多个 BP 可以减小竞争，每个页(page)将通过一个 hash 函数随机分配到 BP 中。
+??
 
 ### 预读策略
 
@@ -1525,7 +1526,156 @@ checkpoint会将最近写入的LSN
 
 
 
+如果 redo log 可以无限地增大，同时缓冲池也足够大，是不是就意味着可以不将缓冲池中的脏页刷新回磁盘上？宕机时，完全可以通过 redo log 来恢复整个数据库系统中的数据。
+
+显然，上述的前提条件是不满足的，这也就引入了 checkpoint 技术。
+
+在这篇文章里，就简单介绍下 MySQL 中的实现。
+
 ## CheckPoint
+
+Checkpoint (检查点) 的目的是为了解决以下几个问题：1、缩短数据库的恢复时间；2、缓冲池不够用时，将脏页刷新到磁盘；3、重做日志不可用时，刷新脏页。
+
+* 数据库宕机时，不需要重做所有的日志，因为 Checkpoint 之前的脏页都已经刷新回磁盘，只需对 Checkpoint 后的 redo log 进行恢复即可，这样就大大缩短了恢复的时间。
+
+* 当缓冲池不够用时，会根据 LRU 算法淘汰最近最少使用的页，若此页为脏页，那么需要强制执行 Checkpoint，将脏页刷回磁盘。
+
+* 当前数据库对 redo log 的设计都是循环使用的，为了防止被覆盖，必须强制 Checkpoint，将缓冲池中的页至少刷新到当前 redo log 的位置。
+
+InnoDB 通过 Log Sequence Number, LSN 来标记版本，这是 8 字节的数字，每个页有 LSN，重做日志中也有 LSN，Checkpoint 也有 LSN，这个是联系三者的关键变量。
+
+LSN 当前状态可以通过如下命令查看。
+
+{% highlight text %}
+mysql> SHOW ENGINE INNODB STATUS\G
+---
+LOG
+---
+Log sequence number 293590838           LSN1事务创建时一条日志
+Log flushed up to   293590838
+Pages flushed up to 293590838
+Last checkpoint at  293590829
+0 pending log flushes, 0 pending chkp writes
+1139 log i/o's done, 0.00 log i/o's/second
+{% endhighlight %}
+
+### 分类
+
+通常有两种 Checkpoint，分别为：Sharp Checkpoint、Fuzzy Checkpoint；前者在正常关闭数据库时使用，会将所有脏页刷回磁盘；后者，会在运行时使用，用于部分脏页的刷新。
+
+Checkpoint 所做的事情无外乎是将缓冲池中的脏页刷回到磁盘，不同之处在于每次刷新多少页到磁盘，每次从哪里取脏页，以及什么时间触发 Checkpoint。
+
+#### Master Thread Checkpoint
+
+InnoDB 的主线程以每秒或每十秒的速度从缓冲池的脏页列表中刷新一定比例的页回磁盘，这个过程是异步的，此时 InnoDB 可以进行其他的操作，用户查询线程不会阻塞。
+
+#### FLUSH_LRU_LIST Checkpoint
+
+InnoDB 要保证 BP 中有足够空闲页，在 1.1.x 之前，该操作发生在用户查询线程中，显然这会阻塞用户的查询。如果没有足够空闲页，需要将 LRU 列表尾端的页移除，如果有脏页，那么就需要进行 Checkpoint，因为这些页来自 LRU 列表，所以称为 FLUSH_LRU_LIST Checkpoint 。
+
+MySQL-5.6 (InnoDB-1.2.x) 版本开始，这个检查被放在了一个单独的 Page Cleaner 线程中进行，而且用户可以通过参数 ```innodb_lru_scan_depth``` 控制 LRU 列表中可用页的数量。
+
+{% highlight text %}
+mysql>  SHOW GLOBAL VARIABLES LIKE 'innodb_lru_scan_depth';
++-----------------------+-------+
+| Variable_name         | Value |
++-----------------------+-------+
+| innodb_lru_scan_depth | 1024  |
++-----------------------+-------+
+1 row in set (0.01 sec)
+{% endhighlight %}
+
+#### Async/Sync Flush Checkpoint
+
+指的是重做日志文件不可用的情况，这时需要强制将一些页刷新回磁盘，而此时脏页是从脏页列表中选取的。若将已经写入到重做日志的LSN记为redo_lsn，将已经刷新回磁盘最新页的LSN记为checkpoint_lsn，则可定义：
+
+checkpoint_age = redo_lsn - checkpoint_lsn
+
+再定义以下的变量：
+
+async_water_mark = 75% * total_redo_log_file_size
+
+sync_water_mark = 90% * total_redo_log_file_size
+
+若每个重做日志文件的大小为1GB，并且定义了两个重做日志文件，则重做日志文件的总大小为2GB。那么async_water_mark=1.5GB，sync_water_mark=1.8GB。则：
+
+当checkpoint_age<async_water_mark时，不需要刷新任何脏页到磁盘；
+
+当async_water_mark<checkpoint_age<sync_water_mark时触发Async Flush，从Flush列表中刷新足够的脏页回磁盘，使得刷新后满足checkpoint_age<async_water_mark；
+
+checkpoint_age>sync_water_mark这种情况一般很少发生，除非设置的重做日志文件太小，并且在进行类似LOAD DATA的BULK INSERT操作。此时触发Sync Flush操作，从Flush列表中刷新足够的脏页回磁盘，使得刷新后满足checkpoint_age<async_water_mark。
+
+可见，Async/Sync Flush Checkpoint是为了保证重做日志的循环使用的可用性。在InnoDB 1.2.x版本之前，Async Flush Checkpoint会阻塞发现问题的用户查询线程，而Sync Flush Checkpoint会阻塞所有的用户查询线程，并且等待脏页刷新完成。从InnoDB 1.2.x版本开始——也就是MySQL 5.6版本，这部分的刷新操作同样放入到了单独的Page Cleaner Thread中，故不会阻塞用户查询线程。
+
+MySQL官方版本并不能查看刷新页是从Flush列表中还是从LRU列表中进行Checkpoint的，也不知道因为重做日志而产生的Async/Sync Flush的次数。但是InnoSQL版本提供了方法，可以通过命令SHOW ENGINE INNODB STATUS来观察，如：
+
+{% highlight text %}
+mysql> show engine innodb status \G
+BUFFER POOL AND MEMORY
+----------------------
+Total memory allocated 2058485760; in additional pool allocated 0
+Dictionary memory allocated 913470
+Buffer pool size   122879
+Free buffers       79668
+Database pages     41957
+Old database pages 15468
+Modified db pages  0
+Pending reads 0
+Pending writes: LRU 0, flush list 0, single page 0
+Pages made young 15032929, not young 0
+0.00 youngs/s, 0.00 non-youngs/s
+Pages read 15075936, created 366872, written 36656423
+0.00 reads/s, 0.00 creates/s, 0.90 writes/s
+Buffer pool hit rate 1000 / 1000, young-making rate 0 / 1000 not 0 / 1000
+Pages read ahead 0.00/s, evicted without access 0.00/s, Random read ahead 0.00/s
+LRU len: 41957, unzip_LRU len: 0
+I/O sum[39]:cur[0], unzip sum[0]:cur[0]
+{% endhighlight %}
+
+
+Async/Sync Flush Checkpoint？？？？？？
+是指重做日志文件不可用时，需要强制将脏页列表中的一些页刷新回磁盘。这可以保证重做日志文件可循环使用。在InnoDB1.2.X版本之前，Async Flush Checkpoint会阻塞发现问题的用户查询线程，Sync Flush Checkpoint会阻塞所有查询线程。InnoDB1.2.X之后放到单独的Page Cleaner Thread。
+
+https://www.percona.com/blog/2011/04/04/innodb-flushing-theory-and-solutions/
+
+
+#### Dirty Page too much Checkpoint
+
+即脏页数量太多时，InnoDB 会强制进行 Checkpoint 。
+
+{% highlight text %}
+mysql> SHOW GLOBAL VARIABLES LIKE 'innodb_max_dirty_pages_pct';
++----------------------------+-----------+
+| Variable_name              | Value     |
++----------------------------+-----------+
+| innodb_max_dirty_pages_pct | 75.000000 |
++----------------------------+-----------+
+1 row in set (0.03 sec)
+{% endhighlight %}
+
+也即当缓冲池中脏页的数量占据 75% 时，强制进行 Checkpoint，刷新一部分的脏页到磁盘，其目的还是为了保证缓冲池中有足够可用的空闲页。
+
+### CheckPoint 机制
+
+在 Innodb 每次都取最老的 modified page 对应的 LSN，并将此脏页的 LSN 作为 Checkpoint 点记录到日志文件，意思就是 "此 LSN 之前对应的日志和数据都已经刷新到磁盘" 。
+
+当 MySQL 启动做崩溃恢复时，会从 last checkpoint 对应的 LSN 开始扫描 redo log ，并将其应用到 buffer pool，直到 last checkpoint 对应的 LSN 等于 log flushed up to 对应的 LSN，则恢复完成。
+
+如下是整个 redo log 的生命周期。
+
+![innodb checkpoint lsn]({{ site.url }}/images/databases/mysql/checkpoint-lsn.png "innodb checkpoint lsn"){: .pull-center }
+
+InnoDB 的一条事务日志共经历 4 个阶段：
+
+1. 创建阶段 (log sequence number, LSN1)：事务创建一条日志，当前系统 LSN 最大值，新的事务日志 LSN 将在此基础上生成，也就是 LSN1+新日志的大小；
+
+2. 日志刷盘 (log flushed up to, LSN2)：当前已经写入日志文件做持久化的 LSN；
+
+3. 数据刷盘 (oldest modified data log, LSN3)：当前最旧的脏页数据对应的 LSN，写 Checkpoint 的时候直接将此 LSN 写入到日志文件；
+
+4. 写CKP (last checkpoint at, LSN4)：当前已经写入 Checkpoint 的 LSN，也就是上次的写入；
+
+对于系统来说，以上 4 个 LSN 是递减的，即： LSN1>=LSN2>=LSN3>=LSN4 。如上所述，LSN 当前状态可以通过如下命令查看。
 
 {% highlight text %}
 mysql> SHOW ENGINE INNODB STATUS\G
@@ -1559,22 +1709,26 @@ void log_print( FILE* file)
 }
 {% endhighlight %}
 
-通常有两种 Checkpoint，分别为：Sharp Checkpoint、Fuzzy Checkpoint；前者在正常关闭数据库时使用，会将所有脏页刷回磁盘；后者，会在运行时使用，用于部分脏页的刷新。
+### 日志保护机制
 
-其中，后者的部分脏页刷新机制主要有以下几种：
+InnoDB 中 LSN 是单调递增的，而日志文件大小却是固定的，所以在写入的时候通过取余来计算偏移量，这样存在两个 LSN 写入到同一位置的可能，如果日志被覆盖，而数据也没有刷盘，一旦宕机，数据就丢失了。
 
-Master Thread Checkpoint
-主线程会以每秒或每十秒的速度从缓冲池的脏页列表中将一定比例的脏页刷回到磁盘；这个过程是异步的，不会阻塞查询线程。
+为此，InnoDB 实现了一套日志保护机制，详细实现如下。
 
-FLUSH_LRU_LIST Checkpoint
-InnoDB要保证LRU列表中有足够的空闲页可以使用，如果没有，会将LRU列表尾端的页淘汰，如果被淘汰的页中有脏页，会强制执行Checkpoint刷回脏页数据到磁盘，显然这会阻塞用户查询线程。从InnoDB1.2.X版本开始，这个检查放到单独的Page Cleaner Thread中进行，并且用户可以通过innodb_lru_scan_depth控制LRU列表中可用页的数量，默认值为 1024。
+![checkpoint redo buffer protect]({{ site.url }}/images/databases/mysql/checkpoint-redo-buffer-protect.png "checkpoint redo buffer protect"){: .pull-center }
 
-Async/Sync Flush Checkpoint？？？？？？
-是指重做日志文件不可用时，需要强制将脏页列表中的一些页刷新回磁盘。这可以保证重做日志文件可循环使用。在InnoDB1.2.X版本之前，Async Flush Checkpoint会阻塞发现问题的用户查询线程，Sync Flush Checkpoint会阻塞所有查询线程。InnoDB1.2.X之后放到单独的Page Cleaner Thread。
-https://www.percona.com/blog/2011/04/04/innodb-flushing-theory-and-solutions/
+首先，明确下概念，上述的 buf 是指 redo log buffer，而 ckp 实际上与 buffer pool 相关，也就是脏页的刷脏。上述直线表示 redo log 的空间，会乘 0.9 的安全系数。
 
-Dirty Page too much Checkpoint
-脏页数量太多时，InnoDB引擎会强制进行Checkpoint；其目的还是为了保证缓冲池中有足够可用的空闲页，可以通过参数innodb_max_dirty_pages_pct来设置。
+* Ckp age (LSN1- LSN4) 还没有做 Checkpoint 的日志范围，若超过日志空间，说明被覆盖的日志可能还没有刷到磁盘，而其 BP 中对应的数据 (脏页) 肯定没有刷到磁盘上；
+* Buf age (LSN1- LSN3) 脏页对应的日志还没有刷盘的范围，若超过日志空间，说明被覆盖的日志及其 BP 中对应数据肯定还没有刷到磁盘；
+
+Buf async   日志空间大小 * 7/8  强制将Buf age-Buf async的脏页刷盘，此时事务还可以继续执行，所以为async，对事务的执行速度没有直接影响（有间接影响，例如CPU和磁盘更忙了，事务的执行速度可能受到影响）
+Buf sync    日志空间大小 * 15/16    强制将2*(Buf age-Buf async)的脏页刷盘，此时事务停止执行，所以为sync，由于有大量的脏页刷盘，因此阻塞的时间比Ckp sync要长。
+Ckp async   日志空间大小 * 31/32    强制写Checkpoint，此时事务还可以继续执行，所以为async，对事务的执行速度没有影响（间接影响也不大，因为写Checkpoint的操作比较简单）
+Ckp sync    日志空间大小 * 64/64    强制写Checkpoint，此时事务停止执行，所以为sync，但由于写Checkpoint的操作比较简单，即使阻塞，时间也很短
+
+
+<!-- http://tech.uc.cn/?p=716 -->
 
 
 {% highlight text %}
@@ -2150,6 +2304,343 @@ ibdata1文件是InnoDB存储引擎的共享表空间文件，该文件中主要�
 关于MySQL的方方面面大家想了解什么，可以直接留言回复，我会从中选择一些热门话题进行分享。 同时希望大家多多转发，多一些阅读量是老叶继续努力分享的绝佳助力，谢谢大家 :)
 
 最后打个广告，运维圈人士专属铁观音茶叶微店上线了，访问：http://yejinrong.com 获得专属优惠
+
+
+
+
+MySQL-5.7.7引入的一个系统库sys-schema，包含了一系列视图、函数和存储过程，主要是一些帮助MySQL用户分析问题和定位问题，可以方便查看哪些语句使用了临时表，哪个用户请求了最多的io，哪个线程占用了最多的内存，哪些索引是无用索引等。
+
+其数据均来自performance schema和information schema中的统计信息。
+
+MySQL 5.7.7 and higher includes the sys schema, a set of objects that helps DBAs and developers interpret data collected by the Performance Schema. sys schema objects can be used for typical tuning and diagnosis use cases.
+
+MySQL Server blog中有一个很好的比喻：
+
+For Linux users I like to compare performance_schema to /proc, and SYS to vmstat.
+
+也就是说，performance schema和information schema中提供了信息源，但是，没有很好的将这些信息组织成有用的信息，从而没有很好的发挥它们的作用。而sys schema使用performance schema和information schema中的信息，通过视图的方式给出解决实际问题的答案。
+
+查看是否安装成功
+select * from sys.version;
+查看类型
+select * from sys.schema_object_overview where db='sys';
+当然，也可以通过如下命令查看
+show full tables from sys
+show function status where db = 'sys';
+show procedure status where db = 'sys'
+
+user/host资源占用情况
+SHOW TABLES FROM `sys` WHERE
+    `Tables_in_sys` LIKE 'user\_%' OR
+ `Tables_in_sys` LIKE 'host\_%'
+IO资源使用，包括最近IO使用情况latest_file_io
+SHOW TABLES LIKE 'io\_%'
+schema相关，包括表、索引使用统计
+SHOW TABLES LIKE 'schema\_%'
+等待事件统计
+SHOW TABLES LIKE 'wait%'
+语句查看，包括出错、全表扫描、创建临时表、排序、空闲超过95%
+SHOW TABLES LIKE 'statement%'
+当前正在执行链接，也就是processlist
+其它还有一些厂家的帮助函数，PS设置。
+https://www.slideshare.net/Leithal/the-mysql-sys-schema
+http://mingxinglai.com/cn/2016/03/sys-schema/
+http://www.itpub.net/thread-2083877-1-1.html
+
+x$NAME保存的是原始数据，比较适合通过工具调用；而NAME表更适合阅读，比如使用命令行去查看。
+
+
+select digest,digest_text from performance_schema.events_statements_summary_by_digest\G
+CALL ps_trace_statement_digest('891ec6860f98ba46d89dd20b0c03652c', 10, 0.1, TRUE, TRUE);
+CALL ps_trace_thread(25, CONCAT('/tmp/stack-', REPLACE(NOW(), ' ', '-'), '.dot'), NULL, NULL, TRUE, TRUE, TRUE);
+
+优化器调优
+https://dev.mysql.com/doc/internals/en/optimizer-tracing.html
+
+
+MySQL performance schema instrumentation interface(PSI)
+
+struct PFS_instr_class {}; 基类
+
+
+通过class page_id_t区分页，
+
+class page_id_t {
+private:
+    ib_uint32_t     m_space;     指定tablespace
+    ib_uint32_t     m_page_no;   页的编号
+
+
+
+
+
+buf_page_get_gen()          获取数据库中的页
+ |-buf_pool_get()           所在buffer pool实例
+ |-buf_page_hash_lock_get()
+ |-buf_page_hash_get_low()  尝试从bp中获取页
+ |-buf_read_page()
+   |-buf_read_page_low()
+     |-buf_page_init_for_read()  初始化bp
+    |-buf_LRU_get_free_block() 如果没有压缩，则直接获取空闲页
+    |-buf_LRU_add_block()
+    |
+    |-buf_buddy_alloc()        压缩页，使用buddy系统
+  |-fil_io()
+ |-buf_block_get_state()         根据页的类型，判断是否需要进一步处理，如ZIP
+ |-buf_read_ahead_random()
+
+buf_read_ahead_linear()
+
+http://www.myexception.cn/database/511937.html
+http://blog.csdn.net/taozhi20084525/article/details/17613785
+http://blogread.cn/it/article/5367
+http://mysqllover.com/?p=303
+http://www.cnblogs.com/chenpingzhao/p/5107480.html ？？？
+https://docs.oracle.com/cd/E17952_01/mysql-5.7-en/innodb-recovery-tablespace-discovery.html
+http://mysqllover.com/?p=1214
+
+
+
+[mysqld]
+innodb_data_file_path            = ibdata1:12M;ibdata2:12M:autoextend
+
+
+
+<br><br><br><h1>文件 IO 操作</h1><p>
+在 InnoDB 中所有需要持久化的信息都需要文件操作，例如：表文件、重做日志文件、事务日志文件、备份归档文件等。InnoDB 对文件 IO 操作可以是煞费苦心，主要包括两方面：A) 对异步 IO 的实现；B) 对文件操作管理和 IO 调度的实现。<br><br>
+
+其主要实现代码集中在 os_file.* + fil0fil.* 文件中，其中 os_file.* 是实现基本的文件操作、异步 IO 和模拟异步 IO；fil0fil.* 是对文件 IO 做系统的管理和 space 结构化。<br><br>
+
+Innodb 的异步 IO 默认使用 libaio。
+</p>
+
+<!--
+在innodb中，文件的操作是比较关键的，innodb封装了基本的文件操作，例如：文件打开与关闭、文件读写以及文件属性访问等。这些是基本的文件操作函数封装。在linux文件的读写方面，默认是采用pread/pwrite函数进行读写操作，如果系统部支持这两个函数，innodb用lseek和read、write函数联合使用来达到效果. 以下是innodb文件操作函数:
+os_file_create_simple                        创建或者打开一个文件
+os_file_create                                     创建或者打开一个文件，如果操作失败会重试，直到成功
+os_file_close                                       关闭打开的文件
+os_file_get_size                                   获得文件的大小
+os_file_set_size                                   设置文件的大小并以0填充文件内容
+os_file_flush                                        将写的内容fsync到磁盘
+os_file_read                                        从文件中读取数据
+os_file_write                                       将数据写入文件
+innodb除了实现以上基本的操作以外，还实现了文件的异步IO模型，在Windows下采用的IOCP模型来进行处理（具
+体可以见网上的资料），在linux下是采用aio来实现的，有种情况，一种是通过系统本身的aio机制来实现，还有一种是
+通过多线程信号模拟来实现aio.这里我们重点来介绍，为了实现aio,innodb定义了slot和slot array,具体数据结构如下：
+
+typedef struct os_aio_slot_struct
+{
+     ibool   is_read;                             /*是否是读操作*/
+     ulint   pos;                                    /*slot array的索引位置*/
+     ibool   reserved;                           /*这个slot是否被占用了*/
+     ulint   len;                                     /*读写的块长度*/
+     byte*   buf;                                   /*需要操作的数据缓冲区*/
+     ulint   type;                                   /*操作类型：OS_FILE_READ OS_FILE_WRITE*/
+     ulint   offset;                                 /*当前操作文件偏移位置，低32位*/
+     ulint   offset_high;                        /*当前操作文件偏移位置，高32位*/
+     os_file_t   file;                               /*文件句柄*/
+     char*   name;                               /*文件名*/
+     ibool   io_already_done;             /*在模拟aio的模式下使用，TODO*/
+     void*   message1;
+     void*   message2;
+#ifdef POSIX_ASYNC_IO
+     struct aiocb   control;                 /*posix 控制块*/
+#endif
+}os_aio_slot_t;
+
+typedef struct os_aio_array_struct
+{
+ os_mutex_t  mutex;          /*slots array的互斥锁*/
+ os_event_t  not_full;         /*可以插入数据的信号，一般在slot数据被aio操作后array_slot有空闲可利用的slot时发送*/
+ os_event_t  is_empty;       /*array 被清空的信号，一般在slot数据被aio操作后array_slot里面没有slot时发送这个信号*/
+
+ ulint   n_slots;                     /*slots总体单元个数*/
+ ulint   n_segments;             /*segment个数，一般一个对应n个slot，n = n_slots/n_segments，一个segment作为aio一次的操作范围*/
+ ulint   n_reserved;              /*有效的slots个数*/
+ os_aio_slot_t* slots;         /*slots数组*/
+
+ os_event_t*     events;         /*slots event array，暂时没弄明白做啥用的*/
+}os_aio_array_t;
+
+-->
+其中数据刷盘的主要代码在 innodb/buf/buf0flu.c 中。
+<pre style="font-size:0.8em; face:arial;">
+buf_flush_batch()
+ |-buf_do_LRU_batch()                         根据传入的type决定调用函数
+ |-buf_do_flush_list_batch()
+   |-buf_flush_page_and_try_neighbors()
+     |-buf_flush_try_neighbors()
+       |-buf_flush_page()                     刷写单个page
+          |-buf_flush_write_block_low()       实际刷写单个page
+
+    buf_flush_write_block_low调用buf_flush_post_to_doublewrite_buf （将page放到double write buffer中，并准备刷写）
+
+    buf_flush_post_to_doublewrite_buf 调用 fil_io （ 文件IO的封装）
+
+    fil_io 调用 os_aio （aio相关操作）
+
+    os_aio 调用 os_file_write （实际写文件操作）
+
+</pre>
+
+
+其中buf_flush_batch 只有两种刷写方式： BUF_FLUSH_LIST 和 BUF_FLUSH_LRU 两种方式的方式和触发时机简介如下：
+
+BUF_FLUSH_LIST: innodb master线程中 1_second / 10 second 循环中都会调用。触发条件较多（下文会分析）
+
+BUF_FLUSH_LRU: 当Buffer Pool无空闲page且old list中没有足够的clean page时，调用。刷写脏页后可以空出一定的free page，供BP使用。
+
+从触发频率可以看到 10 second 循环中对于 buf_flush_batch( BUF_FLUSH_LIST ) 的调用是10秒一次IO高负载的元凶所在。
+
+我们再来看10秒循环中flush的逻辑：
+
+    通过比较过去10秒的IO次数和常量的大小，以及pending的IO次数，来判断IO是否空闲，如果空闲则buf_flush_batch( BUF_FLUSH_LIST,PCT_IO(100) );
+
+    如果脏页比例超过70，则 buf_flush_batch( BUF_FLUSH_LIST,PCT_IO(100) );
+
+    否则  buf_flush_batch( BUF_FLUSH_LIST,PCT_IO(10) );
+
+可以看到由于SSD对于随机写的请求响应速度非常快，导致IO几乎没有堆积。也就让innodb误认为IO空闲，并决定全力刷写。
+
+其中PCT_IO(N)  = innodb_io_capacity *N% ，单位是页。因此也就意味着每10秒，innodb都至少刷10000个page或者刷完当前所有脏页。
+
+updated on 2013/10/31: 在5.6中官方的adaptive flush算法有所改变，但是空闲状态下innodb_io_capacity对于刷写page数量的影响仍然不改变。
+UNIQUE 索引 IO 与聚簇索引 IO 完全一致，因为二者都必须读取页面，不能进行 Insert Buffer 优化。
+<pre style="font-size:0.8em; face:arial;">
+buf_page_get_gen()
+ |-buf_page_hash_lock_get()                 # 判断所需的页是否在缓存中
+ |-buf_read_page()                          # 如果不存在则直接从文件读取的buff_pool中
+   |-buf_read_page_low()                    # 实际底层执行函数
+     |-fil_io()
+        |-os_aio()                          # 实际是一个宏定义，最终调用如下函数
+        | |-os_aio_func()                   # 其入参包括了mode，标识同步/异步
+        |   |-os_file_read_func()           # 同步读
+        |   | |-os_file_pread()
+        |   |   |-pread()
+        |   |
+        |   |-os_file_write_func()          # 同步写
+        |   | |-os_file_pwrite()
+        |   |   |-pwrite()
+        |   |
+        |   |-... ...                       # 对于异步操作，不同的mode其写入array会各不相同 #A
+        |   |-os_aio_array_reserve_slot()   # 从相应队列中选取一个空闲slot，保存需要读写的信息
+        |   | |
+        |   | |-local_seg=... ...           # 1. 首先在任务队列中选择一个segment #B
+        |   | |
+        |   | |-os_mutex_enter()            # 2. 对队列加锁，遍历该segement，选择空闲的slot，如果没有则等待
+        |   | |
+        |   | |                             # 3. 如果array已经满了，根据是否使用AIO决定具体策略
+        |   | |-os_aio_simulated_wake_handler_threads()    # 非native AIO，模拟唤醒
+        |   | |-os_wait_event(array->not_full)             # native aio 则等待not_full信号
+        |   | |
+        |   | |-os_aio_array_get_nth_slot() # 4. 已经确定是有slot了，选择空闲的slot
+        |   | |
+        |   | |-slot... ...                 # 5. 将文件读写请求信息保存在slot，如目标文件、偏移量、数据等
+        |   | |
+        |   | |                             # 6. 对于Win AIO、Native AIO采取不同策略
+        |   | |-ResetEvent(slot->handle)        # 对于Win调用该接口
+        |   | |-io_prep_pread()                 # 而Linux AIO则根据传入的type，决定执行读或写
+        |   | |-io_prep_pwrite()
+        |   |
+        |   |                               # 执行IO操作
+        |   |-WriteFile()                       # 对于Win调用该函数
+        |   |-os_aio_linux_dispatch()           # 对于LINUX_NATIVE_AIO需要执行该函数，将IO请求分发给内核层
+        |   | |-io_submit()                 # 调用AIO接口函数发送
+        |   |
+        |   |-os_aio_windows_handle()       # Win下如果AIO_SYNC调用则通过该函数等待AIO结束
+        |     |-... ...                     # 根据传入的array判断是否为sync_array
+        |     |-WaitForSingleObject()           # 是则等待指定的slot aio操作完成
+        |     |-WaitForMultipleObjects()        # 否则等待array中所有的aio操作完成
+        |     |-GetOverlappedResult()       # 获取AIO的操作结果
+        |     |-os_aio_array_free_slot()    # 最后释放当前slot
+        |
+ |      |-fil_node_complete_io()            # 如果是同步IO，则会等待完成，也就是确保调用os_aio()已经完成了IO操作
+ |-buf_read_ahead_random()                  # 同时做预读
+
+fil_aio_wait()
+ |-os_aio_linux_handle()
+
+os_aio_linux_handle
+
+    分析完os_aio_windows_handle函数，接着分析Linux下同样功能的函数：os_aio_linux_handle
+        无限循环，遍历array，直到定位到一个完成的I/O操作(slot->io_already_done)为止
+        若当前没有完成的I/O，同时有I/O请求，则进入os_aio_linux_collect函数
+            os_aio_linux_collect：从kernel中收集更多的I/O请求
+                调用io_getevents函数，进入忙等，等待超时设置为OS_AIO_REAP_TIMEOUT
+
+            /** timeout for each io_getevents() call = 500ms. */
+
+            #define OS_AIO_REAP_TIMEOUT    (500000000UL)
+                若io_getevents函数返回ret > 0，说明有完成的I/O，进行一些设置，最主要是将slot->io_already_done设置为TRUE
+
+                slot->io_already_done = TRUE;
+                若系统I/O处于空闲状态，那么io_thread线程的主要时间，都在io_getevents函数中消耗。
+
+
+log_buffer_flush_to_disk()
+ |-log_write_up_to()
+</pre>
+
+
+
+<ol type='A'><li>
+<!--type = OS_FILE_READ; mode = OS_AIO_SYNC；-->
+在这步中会选择不同的 array，包括了 os_aio_sync_array、os_aio_read_array、os_aio_write_array、os_aio_ibuf_array、os_aio_log_array。每个 aio array 在系统启动时调用 os0file.c::os_aio_init() 初始化。
+<pre style="font-size:0.8em; face:arial;">
+innobase_start_or_create_for_mysql() {
+    ... ...
+    os_aio_init(io_limit,            // 每个线程可并发处理pending IO的数量
+        srv_n_read_io_threads,       // 处理异步read IO线程的数量
+        srv_n_write_io_threads,      // 处理异步write IO线程的数量
+        SRV_MAX_N_PENDING_SYNC_IOS); // 同步IO array的slots个数，
+    ... ...
+}
+
+io_limit:
+   windows = SRV_N_PENDING_IOS_PER_THREAD = 32
+     linux = 8 * SRV_N_PENDING_IOS_PER_THREAD = 8 * 32 = 256
+
+srv_n_read_io_threads:
+    通过innobase_read_io_threads/innodb_read_io_threads参数控制
+    因此可并发处理的异步read page请求为：io_limit * innodb_read_io_threads
+
+srv_n_write_io_threads:
+    通过innobase_write_io_threads/innodb_write_io_threads参数控制
+    因此可并发处理的异步write请求为：io_limit * innodb_write_io_threads
+    注意，当超过此限制时，必须将已有的异步IO部分写回磁盘，才能处理新的请求
+
+SRV_MAX_N_PENDING_SYNC_IOS:
+    同步IO不需要处理线程log thread、ibuf thread个数均为1
+</pre>
+接下来是创建 array 。
+<pre style="font-size:0.8em; face:arial;">
+os_aio_init()
+ |-os_aio_array_create()
+</pre>
+异步 IO 主要包括两大类：A) 预读page，需要通过异步 IO 方式进行；B) 主动merge，Innodb 主线程对需要 merge 的 page 发出异步读操作，在read_thread 中进行实际 merge 处理。<!--
+注：如何确定将哪些read io请求分配给哪些read thread？
+
+    首先，每个read thread负责os_aio_read_array数组中的一部分。
+    例如：thread0处理read_array[0, io_limit-1]；thread1处理read_array[io_limit, 2*io_limit – 1]，以此类推
+    os_aio_array_reserve_slot函数中实现了array的分配策略(array未满时)。
+    给定一个Aio read page，[space_id, page_no]，首先计算local_seg(local_thd):
+    local_seg = (offset >> (UNIV_PAGE_SIZE_SHIFT + 6)) % array->n_segments;
+    然后从read_array的local_seg * io_limit处开始向后遍历array，直到找到一个空闲slot。
+    一来保证相邻的page，能够尽可能分配给同一个thread处理，提高aio(merge io request)性能；
+    二来由于是循环分配，也基本上保证了每个thread处理的io基本一致。
+--></li><br><li>
+
+
+
+选择 segment 时，是根据偏移量来计算 segment 的，从而可以尽可能的将相邻的读写请求放到一起，从而有利于 IO 层的合并操作。
+</li></ol>
+<!--
+http://blog.csdn.net/wudongxu/article/details/8647501  innodb学习（一）——innodb如何使用aio
+http://blog.csdn.net/yuanrxdu/article/details/41418421  MySQL系列：innodb源码分析之文件IO
+http://hedengcheng.com/?p=98   InnoDB AIO
+http://mysqllover.com/?p=1444  InnoDB IO子系统介绍
+-->
+</p>
 
 
 

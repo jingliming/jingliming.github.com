@@ -87,6 +87,22 @@ mysql> SET GLOBAL sql_mode='';
 
 详细可以参考官方手册 [MySQL Reference Manual - Server SQL Modes](https://dev.mysql.com/doc/refman/5.7/en/sql-mode.html) 。
 
+### show tables
+
+
+{% highlight text %}
+----- 只能使用单个like语句
+mysql> SHOW TABLES LIKE 'host%';
+
+----- 如果要使用多个，需要使用WHERE子句，其中FROM子句可以省略
+mysql> SHOW TABLES FROM `sys` WHERE `Tables_in_sys` LIKE 'user%' OR `Tables_in_sys` LIKE 'host%';
+{% endhighlight %}
+
+<!--
+select * from mysql.user where user like 'root%' and host like 'local%';
+%匹配多个任意字符；_匹配单个任意字符；
+也可以使用正则表达式，也即[NOT] REGEXP操作符或者[NOT] RLIKE。
+-->
 
 <!---
 http://blog.csdn.net/imzoer/article/details/8277797
