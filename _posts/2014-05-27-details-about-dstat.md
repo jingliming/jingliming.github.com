@@ -26,10 +26,37 @@ dstat 是一个不错的系统监控程序，类似于 vmstat、iostat、mpstat�
 
 ![dstat-sample]{: .pull-center}
 
-其帮助手册可以通过 man 1 dstat 查看，命令的基本格式如下。
+其帮助手册可以通过 man 1 dstat 查看，命令的基本格式如下，也可以通过 -h 选项查看。
 
 {% highlight text %}
 dstat [-afv] [options..] [delay [count]]
+
+常用选项：
+  -c, --cpu
+    统计CPU状态，包括 user, system, idle (空闲等待时间百分比), wait (等待磁盘IO),
+    hardware interrupt (硬件中断), software interrupt (软件中断) 等；
+  -d, --disk
+    统计磁盘读写状态，主要包括了读写信息；
+  -l, --load
+    统计系统负载情况，包括1分钟、5分钟、15分钟平均值；
+  -m, --mem
+    统计系统物理内存使用情况，包括used, buffers, cache, free；
+  -s, --swap
+    统计swap已使用和剩余量；
+  -n, --net
+    统计网络使用情况，包括接收和发送数据；
+  -p, --proc
+    统计进程信息，包括runnable、uninterruptible、new；
+  -N eth1,total
+    统计eth1接口汇总流量；
+  -r, --io
+    统计I/O请求，包括读写请求；
+  -y, --sys
+    统计系统信息，包括中断、上下文切换；
+  -t
+    显示统计时时间，对分析历史数据非常有用；
+  --fs
+    统计文件打开数和inodes数；
 {% endhighlight %}
 
 其中最后两个参数表示，每隔 delay 秒显示一行，总计 count 行，默认值是 1s 和空 (无限)。如果 delay 大于 1 ，默认该行还是每隔 1s 更新一次，当超过 delay 秒后，换行。
@@ -231,12 +258,18 @@ def perform(update):
 
 除了文章中列举的链接之外，还可以参考一篇本地保存的 [Dstat: plugin­based real­time monitoring][dstat-ref]，忘记在那里下载的了。
 
+另外，可以参考 [Dstat Offical Site](http://dag.wiee.rs/home-made/dstat/)，以及关于 [Dstat的介绍](http://www.ukuug.org/events/linux2007/2007/papers/Wieers.pdf) 。
+
+
 [dstat-official]:              http://dag.wiee.rs/home-made/dstat/                  "dstat 官网"
 [sched-official]:              https://docs.python.org/2/library/sched.html         "Sched 官方调用"
 [dstat-ref]:                   /reference/linux/plugin­based real­time monitoring .pdf
 
 [dstat-sample]:                /images/python/dstat.png                             "dstat 示例"
 [dstat-helloworld]:            /images/python/dstat-helloworld.png                  "dstat helloworld 插件示例"
+
+<!--
+-->
 
 {% highlight python %}
 {% endhighlight %}

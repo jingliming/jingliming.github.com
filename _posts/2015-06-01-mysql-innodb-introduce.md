@@ -79,37 +79,14 @@ MySQL 的各种数据保存在 datadir 变量指定的目录下，使用 OS 的�
 
 ## 状态查看
 
+对于 InnoDB 状态的查看，有如下两种方法。
+
+### show engine
+
 通过如下命令可以查看当前 InnoDB 的状态。
 
 {% highlight text %}
 mysql> SHOW ENGINE INNODB STATUS\G
-{% endhighlight %}
-
-上述命令会调用存储引擎中定义的 show_status() 接口，对于 InnoDB 来说，调用逻辑如下。
-
-{% highlight cpp %}
-// 初始化为相应的函数
-static int innobase_init(void *p)
-{
-    ... ...
-    innobase_hton->show_status = innobase_show_status;
-    ... ...
-}
-{% endhighlight %}
-
-然后，其调用流程如下，也就是最终调用的是 srv_printf_innodb_monitor() 函数。
-
-{% highlight text %}
-innobase_show_status()               ← handler/ha_innodb.cc
-  |-innodb_show_status()
-    |-srv_printf_innodb_monitor()    ← 实际打印函数入口，srv/srv0srv.cc
-      |-lock_print_info_summary()    ← 打印锁相关信息
-      |-log_print()                  ← LOG，redo日志相关
-{% endhighlight %}
-
-
-{% highlight text %}
-MariaDB [(none)]> SHOW ENGINE INNODB STATUS\G
 *************************** 1. row ***************************
   Type: InnoDB
   Name:
@@ -300,11 +277,91 @@ I/O sum[0]:cur[0], unzip sum[0]:cur[0]
 {% endhighlight %}
 
 对于 ibdata1 文件各个文件所占 page 数量，可以通过 innodb_page_info.py ibdata1 查看。
-
-
-
-select name, comment from information_schema.innodb_metrics where name like 'buffer_flush_%';
 -->
+
+#### 源码实现
+
+上述命令会调用存储引擎中定义的 show_status() 接口，对于 InnoDB 来说，调用逻辑如下。
+
+{% highlight cpp %}
+// 初始化为相应的函数
+static int innobase_init(void *p)
+{
+    ... ...
+    innobase_hton->show_status = innobase_show_status;
+    ... ...
+}
+{% endhighlight %}
+
+然后，其调用流程如下，也就是最终调用的是 srv_printf_innodb_monitor() 函数。
+
+{% highlight text %}
+innobase_show_status()               ← handler/ha_innodb.cc
+  |-innodb_show_status()
+    |-srv_printf_innodb_monitor()    ← 实际打印函数入口，srv/srv0srv.cc
+      |-lock_print_info_summary()    ← 打印锁相关信息
+      |-log_print()                  ← LOG，redo日志相关
+{% endhighlight %}
+
+
+
+### innodb_metrics
+
+从 MySQL 5.6 开始，引入了 ```information_schema.innodb_metrics``` 表，包含了比 ```show global status``` 更详细的内容，而且相比 ```performance_schema``` 更轻量级。
+
+八卦下，据说 ```innodb_metrics``` 表是在 Oracle-Sun 谈判的时候，所以就只实现了这一个表 ^_^
+
+该表中包括了，页的分裂和合并、Purge 的性能、Adaptive Hash Index 活动、页的刷新、日志刷新、Index Condition Pushdown(ICP) 等等；监控那些指标可以分别控制。
+
+InnoDB 中提供了如下的变量，可以对表内的参数进行设置。
+
+{% highlight text %}
+----- 查看可以使用的变量
+mysql> SHOW GLOBAL VARIABLES LIKE 'innodb_monitor_%';
++--------------------------+-------+
+| Variable_name            | Value |
++--------------------------+-------+
+| innodb_monitor_disable   |       |
+| innodb_monitor_enable    |       |
+| innodb_monitor_reset     |       |
+| innodb_monitor_reset_all |       |
++--------------------------+-------+
+4 rows in set (0.00 sec)
+
+----- 查看当前的监控指标
+mysql> SELECT name,subsystem,status,type,comment FROM information_schema.innodb_metrics;
+
+----- 开启一个指标项
+mysql> SET GLOBAL innodb_monitor_enable='buffer_pool_reads';
+----- 关闭一个指标项
+mysql> SET GLOBAL innodb_monitor_disable='buffer_pool_reads';
+----- 重置参数，只重置XXX_RESET列参数
+mysql> SET GLOBAL innodb_monitor_reset='buffer_pool_reads';
+----- 重置所有参数，会重置所有参数
+mysql> SET GLOBAL innodb_monitor_reset_all='buffer_pool_reads';
+----- 也可以使用通配符
+mysql> SET GLOBAL innodb_monitor_enable='buffer_pool_%';
+{% endhighlight %}
+
+可以参考 [Reference Manual](https://dev.mysql.com/doc/refman/en/innodb-metrics-table.html) 以及 [Get started with InnoDB Metrics Table](https://blogs.oracle.com/mysqlinnodb/entry/get_started_with_innodb_metrics) 。
+
+#### 源码解析
+
+监控的源码实现在 ```storage/innobase/srv/srv0mon.cc``` 文件中，通过如下变量进行统计。
+
+{% highlight cpp %}
+static monitor_info_t   innodb_counter_info[] =
+{
+    /* A dummy item to mark the module start, this is
+    to accomodate the default value (0) set for the
+    global variables with the control system. */
+    {"module_start", "module_start", "module_start",
+    MONITOR_MODULE,
+    MONITOR_DEFAULT_START, MONITOR_DEFAULT_START},
+    ... ...
+};
+{% endhighlight %}
+
 
 
 

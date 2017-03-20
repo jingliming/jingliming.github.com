@@ -40,7 +40,7 @@ systemtap 的核心思想是定义一个事件 (event)，并给出处理该事�
 
 ### 安装
 
-可以通过 YUM 进行安装，详细的内容在下面；对于 CentOS 来说，此时会在 /usr/share/systemtap/tapset/ 目录下安装 tapset 库。
+可以通过 YUM 进行安装，详细的内容在下面；对于 CentOS 来说，此时会在 ```/usr/share/systemtap/tapset/``` 目录下安装 tapset 库。
 
 #### 0. 判断内核是否支持 systemtap
 
@@ -260,6 +260,8 @@ semantic error: missing x86_64 kernel/module debuginfo [man warning::debuginfo] 
 
 
 <!--
+[本地文档](/reference/linux/systemtap/Red_Hat_Enterprise_Linux-7-SystemTap_Beginners_Guide-en-US.pdf)
+
 http://blog.csdn.net/zhangskd/article/details/38084337  内核调试工具 — kdump & crash
 https://segmentfault.com/a/1190000000680628
 http://myaut.github.io/dtrace-stap-book/

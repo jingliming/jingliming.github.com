@@ -45,23 +45,17 @@ https://linux.cn/article-6924-1.html   Linux 性能分析的前 60 秒
 | mpstat   | 查看多处理器状况                                            |
 | vmstat   | 查看系统状态、硬件和系统信息等。                            |
 | iostat   | 查看CPU 负载，硬盘状况                                      |
+| pidstat  | 监控全部或指定进程，包括CPU、内存、IO、任务切换、线程等     |
 | netstat  | 查看网络状况                                                |
 | iptraf   | 实时网络状况监测                                            |
 | tcpdump  | 抓取网络数据包，详细分析                                    |
 | mpstat   | 查看多处理器状况                                            |
 | tcptrace | 数据包分析工具                                              |
 | netperf  | 网络带宽工具                                                |
-| sar      | 综合工具，查看系统状况，可以记录历史状态                             |
+| sar      | 综合工具，查看系统状况，可以记录历史状态                    |
 | dstat    | 综合工具，综合了 vmstat, iostat, ifstat, netstat 等多个信息 |
 
-
-
-
-
-
-
-
-
+在 CentOS 中，sysstat 包中包括了 sar、iostat、mpstat、pidstat 等。
 
 ## 经典
 

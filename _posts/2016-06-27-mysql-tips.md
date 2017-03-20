@@ -34,10 +34,40 @@ mysql> GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'newpass' WITH GR
 mysql> ALTER USER 'root'@'localhost' IDENTIFIED BY 'new-password';
 {% endhighlight %}
 
+## pager
+
+如果一次查看的数据集比较大，可以通过 ```pager``` 命令设置显示。
+
+{% highlight text %}
+----- 使用less查看
+mysql> pager less
+PAGER set to 'less'
+
+----- 如果查看InnoDB状态，也可以使用如下方式
+mysql> pager grep sequence
+PAGER set to 'grep sequence'
+mysql> SHOW ENGINE INNODB STATUS\G SELECT sleep(60); SHOW ENGINE INNODB STATUS\G
+Log sequence number 84 3836410803
+1 row in set (0.06 sec)
+
+1 row in set (1 min 0.00 sec)
+
+Log sequence number 84 3838334638
+1 row in set (0.05 sec)
+{% endhighlight %}
+
+
+
+
+
 <!--
 set global validate_password_policy=0; set global validate_password_mixed_case_count=2;
 
 information_schema   tables   所有表的元数据信息 select table_name from information_schema.tables where table_schema='database-name'参考：http://dev.mysql.com/doc/refman/en/server-system-variables.html
+
+* unknown variable 'default-character-set=utf8'<br>
+  可以通过 mysql --help | grep my.cnf 查看配置文件的加载顺序,用 character_set_server=utf8 来取代 default-character-set=utf8 能解决这个问题.
+
 -->
 
 {% highlight text %}

@@ -20,6 +20,11 @@ title: Categories
 
 在此，仅介绍 Linux 相关内容，包括了常用的方法，以及相应的内核介绍。
 
+<!--
+于编程语言、Web、云计算、Linux 相关的漫画
+http://turnoff.us/
+-->
+
 #### Network
 
 对与内核中网络部分的介绍。
@@ -65,6 +70,10 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 记录与监控相关的内容。
 
 * [Linux 监控](/post/linux-monitor.html)，简单记录一下在 Linux 监控中一些比较常见的工具、网站、资料等信息。
+* [Linux 监控之 CPU](/post/linux-monitor-cpu.html)，简单介绍下 Linux 中与 CPU 监控相关的内容。
+* [Linux 监控之 Memory](/post/linux-monitor-memory.html)，简单介绍下 Linux 中与 Memory 监控相关的内容。
+* [Linux 监控之 IO](/post/linux-monitor-io.html)，简单介绍下 Linux 中与 IO 监控、测试相关的内容。
+* [Linux 监控杂项](/post/linux-monitor-misc.html)，简单列举一些常见的监控工具，以及配置方式等。
 * [Dstat 使用及其原理](/post/details-about-dstat.html)，一个使用 Python 编写的跨平台监控工具。
 * [Systemtap](/post/linux-systemtap.html)，介绍内核神器 Systemtap 的使用方式，包括了如何使用最新的安全特性。
 
@@ -88,6 +97,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Linux 常用技巧](/post/linux-tips.html)，简单记录了一些在 Linux 中常用的技巧。
 * [TMUX](/post/tmux.html)，一个终端复用工具，类似 screen 但是更加方便使用，更加高端。
 * [Linux 绘图工具](/post/linux-gnuplot.html)，这是一个命令行驱动的绘图工具，支持多个平台。
+* [Linux 后台服务管理](/post/linux-daemon-tools.html)，介绍目前常用的后台服务管理。
 * [你所不知道的定时任务](/post/details-about-cronie.html)，也就是 Linux 中如何使用 crontab，以及常见错误。
 * [Git 分支管理](/post/git-branch-model.html)，主要介绍 git 的分支处理常用操作，以及比较经典的版本分支管理方式。
 
@@ -122,6 +132,7 @@ Percona 是最接近官方 MySQL Enterprise 发行版的版本，也就是说它
 * [MySQL 常用工具](/post/mysql-tools.html)，一些运维过程中常见的三方工具，包括压测工具。
 * [MySQL 启动脚本](/post/mysql-mysqld-safe.html)，详细介绍下 mysqld_safe 脚本的执行流程。
 * [MySQL Core 文件](/post/mysql-core-file.html)，一些关于 CoreDump 文件以及 debuginfo 的介绍。
+* [MySQL 关闭过程](/post/mysql-shutdown.html)，简单分析下 mysqld 进程关闭的过程，以及关闭过程中执行的操作。
 * [MySQL 杂项](/post/mysql-tips.html)，简单记录下 MySQL 常见的一些操作。
 
 高可用:
@@ -138,6 +149,9 @@ InnoDB:
 
 * [InnoDB 简单介绍](/post/mysql-innodb-introduce.html)，介绍一下与 InnoDB 相关的资料。
 * [InnoDB 隔离级别](/post/mysql-innodb-isolation-level.html)，主要介绍下 InnoDB 中如何使用事务的隔离级别。
+* [InnoDB Redo Log](/post/mysql-innodb-redo-log.html)，介绍 redo log 相关。
+* [InnoDB Checkpoint](/post/mysql-innodb-checkpoint.html)，介绍 InnoDB 中与 checkpoint 相关内容，包括如何写入、何时写入。
+* [InnoDB Double Write Buffer](/post/mysql-innodb-double-write-buffer.html)，介绍为什么会有 dblwr 机制，以及 InnoDB 中如何实现。
 
 
 <!--
@@ -206,6 +220,9 @@ Just More Pythonic ~~~
 
 <!--
 http://marklodato.github.io/visual-git-guide/index-en.html
+
+一个不错的网站，包含了各种书籍。
+http://apprize.info/
 -->
 
 ## Tags

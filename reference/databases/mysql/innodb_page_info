@@ -5,7 +5,7 @@ Usage: innodb_page_info [OPTIONS] sub-cmd
 Options:
     -h   help
     -v   verbose mode
-    -f   space file
+    -f   table-space file
     -p   check which page, start with 0
 Sub-cmd:
 
@@ -35,7 +35,6 @@ FIL_PAGE_DATA_END = 8    # size of the page trailer
 
 
 PAGE_DIR_SLOT_SIZE = 2   # size of slot in the page directory
-
 
 
 innodb_page_type={

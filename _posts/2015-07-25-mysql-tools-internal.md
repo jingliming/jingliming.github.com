@@ -1093,12 +1093,22 @@ innochecksum --verbose=FALSE --log=/tmp/innocheck.log
     指定开始、结束页，或者只查看指定的页；
   --strict-check/-C
     指定checksum算法，通常有innodb、crc32、none，默认是从三者中选择，否则强制指定；
+  --page-type-summary/-S
+    打印文件中页的统计信息，包括了总页类型以及数量；
+  --page-type-dump=file-name/-D file-name
+    打印各个页的详细信息，将其输出到一个文件中；
+
+常用示例：
+  ----- 检查系统表空间，也可以使用table-name.ibd，默认出错时才会输出异常
+  innodbchecksum ibdata1
+  ----- 保存文件中各个页的信息，并在最后打印统计信息
+  innodbchecksum -S -D /tmp/page.info schema/*.ibd
 {% endhighlight %}
+
 
 详细使用文档可以参考 [innochecksum](https://dev.mysql.com/doc/refman/en/innochecksum.html) 。
 
 <!--
---page-type-summary, -S
 innochecksum /tmp/data/*/*.ibd
 -->
 

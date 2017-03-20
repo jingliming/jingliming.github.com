@@ -575,5 +575,9 @@ http://www.cnblogs.com/zhoujinyi/archive/2012/10/17/2726462.html
 innodb文件类型格式整理，故障恢复
 https://github.com/chhabhaiya/undrop-for-innodb
 http://www.askmaclean.com/archives/mysql-recover-innodb.html
+
+
+Chapter 22 InnoDB Storage Engine
+https://dev.mysql.com/doc/internals/en/innodb.html
 -->
 

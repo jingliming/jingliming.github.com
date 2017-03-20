@@ -83,6 +83,9 @@ http://mysqllover.com/?p=594
 http://siddontang.com/?p=594
 http://keithlan.github.io/      binlog
 http://hatemysql.com/           binlog
+
+备份
+http://apprize.info/php/effective/index.html
 -->
 
 

@@ -66,6 +66,40 @@ sar [interval [count]]
 
 ![monitor sar]({{ site.url }}/images/linux/monitor-misc-sar.png "monitor sar"){: .pull-center width="80%" }
 
+## 多线程
+
+在 Linux 下可以通过如下程序查看多线程。
+
+{% highlight text %}
+----- 通过-H(Threads toggle)参数，一行显示一个线程
+$ top -H -p `pidof mysqld`
+
+----- 查看所有存在的线程，H(Show threads as if they were processes)
+$ ps Hp `pidof mysqld`
+
+----- 查看线程调用堆栈
+$ pstack `pidof mysqld`
+
+----- 查看线程数
+$ pstree -p `pidof mysqld`
+{% endhighlight %}
+
+<!--
+3、ps -mp <PID>
+手册中说：m Show threads after processes
+这样可以查看一个进程起的线程数。
+-->
+
+
+
+
+
+
+
+
+
+
+
 
 {% highlight text %}
 {% endhighlight %}

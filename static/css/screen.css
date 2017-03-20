@@ -529,6 +529,8 @@ caption {
 }
 table {
     margin: 0 auto;
+    margin-bottom: 1em;
+    margin-top: 1em;
     border-collapse:collapse;
 }
 th {
