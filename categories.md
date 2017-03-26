@@ -32,7 +32,6 @@ http://turnoff.us/
 * [Linux 网络设置](/post/network-setting.html)，Linux 中一些常见的网络设置。
 
 <!--
-
 * [Linux 网络协议栈简介](/post/network-introduce.html)，简单介绍一下 Linux 中网络协议栈的相关内容。
 * [网络监控 netstat VS. ss](/post/network-nettools-vs-iproute2.html)，netstat 和 ss 命令是比较典型的网络监控工具，在此介绍对比下。
 * [Linux 网络常见监控项以及报错](/post/network-monitor.html)，报错和监控之间的关系太紧密，就将两者合并到了一起。
@@ -74,6 +73,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Linux 监控之 Memory](/post/linux-monitor-memory.html)，简单介绍下 Linux 中与 Memory 监控相关的内容。
 * [Linux 监控之 IO](/post/linux-monitor-io.html)，简单介绍下 Linux 中与 IO 监控、测试相关的内容。
 * [Linux 监控杂项](/post/linux-monitor-misc.html)，简单列举一些常见的监控工具，以及配置方式等。
+* [Collectd](/post/collectd.html)，一个 C 语言编写的多线程监控采集程序，对其进行简单的介绍。
 * [Dstat 使用及其原理](/post/details-about-dstat.html)，一个使用 Python 编写的跨平台监控工具。
 * [Systemtap](/post/linux-systemtap.html)，介绍内核神器 Systemtap 的使用方式，包括了如何使用最新的安全特性。
 
@@ -117,13 +117,14 @@ MySQL 是一款最流行的开源关系型数据库，最初由瑞典的 MySQL A
 
 Percona 是最接近官方 MySQL Enterprise 发行版的版本，也就是说它提供了一些 MySQL 企业版采用的功能，并且包括了一些比较好用的常用工具。其中的缺点是，为了确保对产品中所包含功能的控制，他们自己管理代码，并不接受社区开发人员的贡献。
 
-文章列表：
+#### 文章
 
 * [MySQL 写在开头](/post/mysql-begin.html)，主要保存一些经常使用的 MySQL 资源。
 * [MySQL 简单介绍](/post/mysql-introduce.html)，简单介绍 MySQL 常见的使用方法，包括安装启动、客户端使用、调试等。
 * [MySQL 基本概念](/post/mysql-basic.html)，介绍 MySQL 中一些基本的概念，包括了 SQL、JOIN、常见测试库等。
 * [MySQL 监控指标](/post/mysql-monitor.html)，包括了一些 MySQL 常见的监控指标及其含义等。
 * [MySQL 用户管理](/post/mysql-users.html)，一些用户相关的操作，包括了用户管理、授权、密码恢复等。
+* [MySQL 语法解析](/post/mysql-parser.html)，SQL 的处理过程包括了词法分析、语法分析、语义分析、构造执行树等。
 * [MySQL 插件详解](/post/mysql-plugin.html)，关于 MySQL 中一些插件功能的实现，主要是一些通用插件的介绍。
 * [MySQL 存储引擎](/post/mysql-storage-engine-plugin.html)，介绍下与存储引擎相关的内容，包括了提供的接口，实现方法等。
 * [MySQL 线上部署](/post/mysql-deploy-online.html)，简单记录一些线上部署时常见的配置内容。
@@ -135,7 +136,7 @@ Percona 是最接近官方 MySQL Enterprise 发行版的版本，也就是说它
 * [MySQL 关闭过程](/post/mysql-shutdown.html)，简单分析下 mysqld 进程关闭的过程，以及关闭过程中执行的操作。
 * [MySQL 杂项](/post/mysql-tips.html)，简单记录下 MySQL 常见的一些操作。
 
-高可用:
+#### 高可用
 
 * [MySQL 日志相关](/post/mysql-log.html)，一些常见的日志介绍，同时也包括了 binlog 的详细介绍。
 * [MySQL 组提交](/post/mysql-group-commit.html)，主要是关于 binlog 的组提交实现，介绍各个阶段的实现原理。
@@ -145,7 +146,7 @@ Percona 是最接近官方 MySQL Enterprise 发行版的版本，也就是说它
 * [MySQL Crash-Safe 复制](/post/mysql-crash-safe-replication.html)，在主备复制时，如何保证数据的一致性，当然主要是备库。
 * [MySQL 组复制](/post/mysql-group-replication.html)，也就是基于 Paxos 协议变体实现，提供了一种高可用、强一致的实现。
 
-InnoDB:
+#### InnoDB
 
 * [InnoDB 简单介绍](/post/mysql-innodb-introduce.html)，介绍一下与 InnoDB 相关的资料。
 * [InnoDB 隔离级别](/post/mysql-innodb-isolation-level.html)，主要介绍下 InnoDB 中如何使用事务的隔离级别。
@@ -217,13 +218,30 @@ Just More Pythonic ~~~
 * [Flask 完整例子](/post/flask-examples.html)，实际上就是 Flask 中的完整示例，包括了单元测试等相关的内容。
 -->
 
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 
-<!--
-http://marklodato.github.io/visual-git-guide/index-en.html
+![Golang Logo]({{ site.url }}/images/go/golang-logo-3.jpg "Golang Logo"){: .pull-center width="350"}
 
-一个不错的网站，包含了各种书籍。
-http://apprize.info/
--->
+Golang 从 2007 年末由 Robert Griesemer、Rob Pike、Ken Thompson 主持开发，后来还加入了 Ian Lance Taylor、Russ Cox 等人，最终于 2009 年 11 月开源，在 2012 年发布了稳定版本。
+
+实际上，Golang 基于现有的技术实现，例如协程 (Coroutine)、IO 多路复用 (multiplexing)、异步 IO 等，然后在此之上进行了一些原语的封装。开始 Golang 包含了很多 C 语言代码，在 1.5 版本开始，包括运行时 (runtime)、编译器 (compiler)和连接器 (linker) 也都全部是由 Golang 所编写。
+
+现在 Golang 的开发已经是完全开放的，并且拥有一个活跃的社区。简单来说，Golang 是一个开源、高并发、高效的编程语言，支持垃圾回收，具有很好的可伸缩性。
+
+而且，越来越多的项目开始使用 Golang 进行开发，例如 Docker、LXD、InfluxDB、etcd 等等。另外，与 Golang 类似的高并发语言还可以参考 Rust、Elixir 。
+
+#### 文章
+
+* [Golang 简介](/post/golang-introduce.html)，主要介绍 Golang 的环境搭建，常用工具等。
+* [Golang 如何编码？](/post/golang-how-to-write-go-code.html)，一篇官方文章的翻译，介绍如何进行编写代码。
+
+#### InfluxDB
+
+一个开源分布式时序、事件和指标数据库。
+
+* [InfluxDB 简介](/post/influxdata-influxdb.html)，简单介绍常见概念，如何安装，常用操作等。
+
 
 ## Tags
 
@@ -231,3 +249,14 @@ http://apprize.info/
 <h3 id="{{ category | first }}">{{ category | first }}</h3>
 <ul>{% for post in category[1] %}<li>{{ post.date | date: "%Y-%m-%d" }} <a href="{{post.url}}">{{ post.title }}</a></li>{% endfor %}</ul>
 {% endfor %}
+
+<!--
+各个语言的排名
+https://www.tiobe.com/tiobe-index/
+
+git介绍
+http://marklodato.github.io/visual-git-guide/index-en.html
+
+一个不错的网站，包含了各种书籍。
+http://apprize.info/
+-->

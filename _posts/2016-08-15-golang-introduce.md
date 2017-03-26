@@ -1,9 +1,9 @@
 ---
-title: Go 语言简介
+title: Golang 简介
 layout: post
 comments: true
 language: chinese
-category: [go,program]
+category: [program,golang,linux]
 keywords: golang,go,简介
 description: golang 目前越来越火，包括了 Docker、InfluxDB、etcd 等等，越来越多的工程都在使用 golang 。虽然它的语法都比较 "奇葩"，一些高级语言支持的特性却都不支持，但其高并发、高效率等等，也使其热度不减。这篇文章主要简单介绍下 golang 环境的搭建。
 ---
@@ -91,13 +91,11 @@ func main() {
 }
 {% endhighlight %}
 
-另外，在源码目录下，可以直接通过 go build 进行编译，此时将编译该目录下所有的源码，并生成与 **目录名称** 相同的二进制文件。
+另外，在源码目录下，可以直接通过 ```go build``` 进行编译，此时将编译该目录下所有的源码，并生成与 **目录名称** 相同的二进制文件。
 
-当然，也可以在源码目录下执行 go install 进行安装；或者将上述代码放到 $GOPATH/src/examples/hello 目录下，然后执行 go install examples/hello 即可，此时就会编译并安装到 $GOPATH/bin 目录下。
-
+当然，也可以在源码目录下执行 ```go install``` 进行安装；或者将上述代码放到 ```$GOPATH/src/examples/hello``` 目录下，然后执行 ```go install examples/hello``` 即可，此时就会编译并安装到 $GOPATH/bin 目录下。
 
 <!--
-
 瘦身<br>
 go 采用静态编译，编译后的文件会很大，可以通过 go build -ldflags "-s -w" 这种方式编译。
 
@@ -149,8 +147,6 @@ http://studygolang.com/articles/1785   vim配置
 http://golanghome.com/post/550         Go编码规范指南
 http://www.yankay.com/go-clear-concurreny/
 -->
-
-
 
 
 ## 其它

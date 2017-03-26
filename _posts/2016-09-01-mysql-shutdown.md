@@ -125,7 +125,7 @@ innobase_end()
  | |-fts_optimize_shutdown()
  | |-dict_stats_shutdown()
  | |-logs_empty_and_mark_files_at_shutdown()   ← 1.  将buffer pool落盘，并将LSN写入表空间，主要函数，后面均为资源清理
- | | |-ib::info()                              ← 1.0 打印Starting shutdown日志
+ | | |-ib::info()                              ← 1.0 打印Starting shutdown日志 <<<<<<
  | | |-srt_shutdown_state                            设置变量，进入SRV_SHUTDOWN_CLEANUP状态
  | | |
  | | |-srv_any_background_threads_are_active() ← 1.1 等待后台线程关闭，没1min打印一次等待线程信息
@@ -171,7 +171,6 @@ $ mysqladmin -uroot ext -i 1 | grep "Innodb_buffer_pool_pages_dirty"
 {% endhighlight %}
 
 <!--
-
 2. 参数innodb_max_dirty_pages_pct
 
 Buffer_Pool中Dirty_Page所占的数量，直接影响InnoDB的关闭时间。参数innodb_max_dirty_pages_pct可以直接控制了Dirty_Page在Buffer_Pool中所占的比率，而且幸运的是innodb_max_dirty_pages_pct是可以动态改变的。
@@ -234,6 +233,9 @@ InnoDB 在关闭时，会每隔 100ms 检查一次后台线程是否已经全部
 
 [Reference Manual - The Server Shutdown Process](https://dev.mysql.com/doc/refman/en/server-shutdown.html)
 
+<!--
+
+-->
 
 
 {% highlight text %}

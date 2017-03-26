@@ -1,11 +1,11 @@
 ---
-title: GoLang 如何编码？
+title: Golang 如何编码？
 layout: post
 comments: true
 source: https://golang.org/doc/code.html
 language: chinese
-category: [linux]
-keywords: golang
+category: [program,golang,linux]
+keywords: golang,go
 description: 这篇文章实际上是 golang 官网 [How to Write Go Code](https://golang.org/doc/code.html) 的大致翻译，主要介绍了在 golang 环境中，如何进行编写代码，其中包括了搭建一个简单 go 包，以及如何使用 go tool 等等。
 ---
 
@@ -379,6 +379,8 @@ import "github.com/golang/example/stringutil"
 {% endhighlight %}
 
 这种方式可以很方便的提供给其他用户使用，相关帮助可以查看 go help importpath 。
+
+
 
 {% highlight text %}
 {% endhighlight %}

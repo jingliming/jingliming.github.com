@@ -470,6 +470,9 @@ http://fedoraproject.org/wiki/How_to_create_an_RPM_package
 
 包含生成GPG签名
 http://laoguang.blog.51cto.com/6013350/1103628
+
+一个collectd创建的示例
+http://giovannitorres.me/how-to-build-rpms-collectd-example.html
 -->
 
 {% highlight text %}

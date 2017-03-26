@@ -20,7 +20,9 @@ Core 文件又称为 Core Dump 文件，对于线上的服务而言，也就意�
 
 ## 简介
 
-当程序运行的过程中异常终止或崩溃，操作系统会将程序当时的内存状态记录下来，保存在一个文件中，这种行为就叫做 Core Dump 。
+在开发一个程序时，程序可能会在运行过程中异常终止或者崩溃，这时操作系统就会把程序挂掉时的内存状态记录下来，并写入一个叫做 Core 的文件中，这种行为就叫做 Core Dump 操作，通过这个文件可以方便的进行调试。
+
+> 在使用半导体作为内存的材料前，人类使用的是线圈作为内存的材料，线圈叫做 Core，用线圈制作的内存就是 Core Memory。
 
 除了内存信息之外，还有些关键的程序运行状态也会同时 dump 下来，例如寄存器信息 (包括程序指针、栈指针等)、内存管理信息、其他处理器和操作系统状态和信息；而这些信息对于编程人员诊断和调试程序是非常有帮助。
 
@@ -36,9 +38,14 @@ Core 文件又称为 Core Dump 文件，对于线上的服务而言，也就意�
 ----- 查看配置，如果为0，则说明未开启
 $ ulimit -c
 
------ 设置转储文件大小，单位时blocks(KB)，unlimited表示不限
+----- 设置转储文件大小，单位是blocks(KB)，unlimited表示不限
 # ulimit -c unlimited
+
+----- 设置转储文件大小为100KB
+# ulimit -c 100
 {% endhighlight %}
+
+当设置为 unlimited 时，则表示不限制内核转储文件的大小，发生问题时所有的内存都将转储到文件中；对于大量消耗内存的程序可以限制转储文件的大小。
 
 如果要持久化，可以修改 ```/etc/security/limits.conf``` 文件即可，参考如下示例。
 
@@ -47,7 +54,7 @@ $ ulimit -c
     *           soft    core          unlimited
 {% endhighlight %}
 
-默认生成的 core 文件保存在可执行文件所在目录下，默认文件名为 core；当然，也可以通过如下方式进行设置。
+默认生成的 core 文件保存在可执行文件所在目录下，文件名为 core；当然，也可以通过如下方式进行设置。
 
 {% highlight text %}
 ----- 添加PID后缀
@@ -55,6 +62,25 @@ $ ulimit -c
 
 ----- 设置输出目录，格式为core-命令名-PID-时间戳
 # echo "/tmp/core-%e-%p-%t" > /proc/sys/kernel/core_pattern
+
+常见参数：
+   %t: 设置文件转储时的 unix 时间，从 1970.1.1 0:00:00 开始的秒数。
+   %e: 执行的命令名。
+   %p: 被转储进程的 PID 。
+   %u: 被转储进程的真实用户 ID ，也即 UID 。
+   %g: 被转储进程的真实组 ID ，也即 GID 。
+   %s: 引发转储的信号编号。
+   %h: 主机名，同 uname(2) 返回的 nodename 。
+   %c: 转储文件大小的上限，2.6.24 以后可以使用。
+{% endhighlight %}
+
+设置完 core_pattern 之后，core_user_pid 会无效，也可以通过 sysctl 进行设置。
+
+{% highlight text %}
+# cat /etc/sysctl.conf
+kernel.core_pattern = /var/%e-%p-%t.core
+kernel.core_user_pid = 0
+# sysctl -p
 {% endhighlight %}
 
 
@@ -83,7 +109,8 @@ int a (int *p)
 }
 int main (void)
 {
-  int *p = 0;   /* null pointer */
+  int *p = NULL;
+  *p = 0;         // 访问0地址，发生Segmentation fault错误
   return a (p);
 }
 EOF
@@ -145,7 +172,14 @@ Stack level 0, frame at 0xffd590a4:
   ebp at 0xffd5909c, eip at 0xffd590a0
 {% endhighlight %}
 
-从上面可以看出，可以还原 core_demo 执行时的场景，使用 where 查看当前程序调用函数栈帧，还可以查看寄存器、变量等信息。
+从上面可以看出，可以还原 core_demo 执行时的场景，使用 where 或者 backtrace 查看当前程序调用函数栈帧，来定位 core dump 的文件行，还可以查看寄存器、变量等信息。
+
+也可以通过如下方式查看。
+
+{% highlight text %}
+$ gdb -c core_demo.core.24816 core_demo
+{% endhighlight %}
+
 
 ### 其它
 
@@ -159,6 +193,22 @@ core:      ELF 32-bit LSB core file Intel 80386, version 1 (SYSV), SVR4-style
 ----- 查看是那个进程信息
 # strings core.6440 | head
 {% endhighlight %}
+
+可以在 core_pattern 中加入管道符，然后调用用户程序，例如将转储文件压缩。
+
+{% highlight text %}
+# echo "|/usr/local/sbin/core_helper %e %p %t" > /proc/sys/kernel/core_pattern
+
+$ cat /usr/local/sbin/core_helper
+#!/bin/sh
+exec gzip - > /var/$1-$2-$3.core.gz
+$ gunzip -c /var/xxx-xxx-xxx.core.gz > ~/xxx-xxx-xxx.core
+{% endhighlight %}
+
+可以将 ```ulimit -S -c unlimited > /dev/null 2>&1``` 使用户登陆时即可以设置转储功能。默认内核会转储共享内存，可以设置排除共享内存。
+
+
+
 
 <!--
 Dump more information
