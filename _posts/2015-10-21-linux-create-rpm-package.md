@@ -40,7 +40,7 @@ $ mkdir -pv ~/rpm-maker/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
 ### 配置环境
 
-打包相关的配置保存在宏文件 (macrofiles) 中，制作包时的操作都在 topdir 指定的目录下，可以通过如下方式查看。
+打包相关的配置保存在宏文件 (macrofiles) 中，默认使用 ```$HOME/rpmbuild``` 目录，用户配置文件保存在 ```$HOME/.rpmmacros```；而制作包时的操作实际都在 topdir 指定的目录下，可以通过如下方式查看。
 
 {% highlight text %}
 --- 查看所有的配置文件顺序

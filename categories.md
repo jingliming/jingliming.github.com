@@ -123,7 +123,9 @@ Percona 是最接近官方 MySQL Enterprise 发行版的版本，也就是说它
 * [MySQL 简单介绍](/post/mysql-introduce.html)，简单介绍 MySQL 常见的使用方法，包括安装启动、客户端使用、调试等。
 * [MySQL 基本概念](/post/mysql-basic.html)，介绍 MySQL 中一些基本的概念，包括了 SQL、JOIN、常见测试库等。
 * [MySQL 监控指标](/post/mysql-monitor.html)，包括了一些 MySQL 常见的监控指标及其含义等。
+* [MySQL Handler 监控](/post/mysql-handler.html)，主要介绍下监控指标中与 handler_read_* 相关的内容。
 * [MySQL 用户管理](/post/mysql-users.html)，一些用户相关的操作，包括了用户管理、授权、密码恢复等。
+* [MySQL 通讯协议](/post/mysql-protocol.html)，简单介绍 MySQL 的服务器与客户端是如何进行通讯的。
 * [MySQL 语法解析](/post/mysql-parser.html)，SQL 的处理过程包括了词法分析、语法分析、语义分析、构造执行树等。
 * [MySQL 插件详解](/post/mysql-plugin.html)，关于 MySQL 中一些插件功能的实现，主要是一些通用插件的介绍。
 * [MySQL 存储引擎](/post/mysql-storage-engine-plugin.html)，介绍下与存储引擎相关的内容，包括了提供的接口，实现方法等。
@@ -143,6 +145,7 @@ Percona 是最接近官方 MySQL Enterprise 发行版的版本，也就是说它
 * [MySQL 复制方式](/post/mysql-replication.html)，数据复制方法，也是一些高可用解决方案的基础，介绍概念、配置方式。
 * [MySQL 复制源码解析](/post/mysql-replication-sourcecode.html)，从源码的角度看看复制是如何执行的。
 * [MySQL 半同步复制](/post/mysql-semisync.html)，关于半同步复制的详细解析，包括了源码的实现方式。
+* [MySQL GTID 简介](/post/mysql-gtid.html)，主要介绍下 GTID 配置、实现方式，有那些限制，运维场景等。
 * [MySQL Crash-Safe 复制](/post/mysql-crash-safe-replication.html)，在主备复制时，如何保证数据的一致性，当然主要是备库。
 * [MySQL 组复制](/post/mysql-group-replication.html)，也就是基于 Paxos 协议变体实现，提供了一种高可用、强一致的实现。
 

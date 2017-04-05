@@ -976,12 +976,11 @@ $ mysqladmin -uroot -pnew-password -h127.1 -P3307 -r -i 1 extended-status |\
    }'
 
 $ mysqladmin -uroot -pnew-password -h127.1 -P3307 -r -i 1 extended-status |\
-   awk -F"|" \
-   "BEGIN{ count=0; }"\
-   '{ if($2 ~ /Variable_name/ && ((++count)%20 == 1)){\
+   awk 'BEGIN{ FS="|"; count=0; } { \
+   if($2 ~ /Variable_name/ && ((++count)%20 == 1)){ \
        print "----------|---------|--- MySQL Command Status --|----- Innodb row operation ----";\
        print "---Time---|---QPS---|select insert update delete|  read inserted updated deleted";\
-   }\
+   } \
    else if ($2 ~ /Queries/){queries=$3;}\
    else if ($2 ~ /Com_select /){com_select=$3;}\
    else if ($2 ~ /Com_insert /){com_insert=$3;}\
@@ -994,7 +993,7 @@ $ mysqladmin -uroot -pnew-password -h127.1 -P3307 -r -i 1 extended-status |\
    else if ($2 ~ /Uptime / && count >= 2){\
      printf(" %s |%9d",strftime("%H:%M:%S"),queries);\
      printf("|%6d %6d %6d %6d",com_select,com_insert,com_update,com_delete);\
-     printf("|%6d %8d %7d %7d",innodb_rows_read,innodb_rows_inserted,innodb_rows_updated,innodb_rows_deleted);\
+     printf("|%6d %8d %7d %7d\n",innodb_rows_read,innodb_rows_inserted,innodb_rows_updated,innodb_rows_deleted);\
    }}'
 {% endhighlight %}
 

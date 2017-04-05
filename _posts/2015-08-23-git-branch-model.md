@@ -3,7 +3,7 @@ title: Git 分支管理
 layout: post
 comments: true
 language: chinese
-category: [misc]
+category: [linux,misc]
 keywords: git,版本管理,branch,分支
 description: 相比其它的版本管理软件，git 有很多优点，其中很重要的一个特性就是版本的分支 (branch) 和合并 (merge) 十分方便。git 分支并非生成一个物理代码拷贝，而是只生成一个指向当前版本的指针，又被称为 "快照" (snapshot) ，因此，处理起来是分快速，而且节省空间。接下来，就看看 git 的版本分支管理策略。
 ---

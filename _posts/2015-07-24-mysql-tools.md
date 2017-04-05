@@ -21,7 +21,7 @@ description: 工欲善其事，必先利其器；在本文章中介绍了与 MyS
 
 ![Percona Tools Logo]({{ site.url }}/images/databases/mysql/percona-tools-logo.png "Percona Tools Logo"){: .pull-right width="300px"}
 
-该工具集基本上是 perl 脚本，可以直接从官方网站 [percona-toolkit](https://www.percona.com/downloads/percona-toolkit/) 上下载源码，文档也可以直接从上述的网站下载，只需要填写个表格即可。
+该工具集基本上是 perl 脚本，可以直接从官方网站 [percona-toolkit](https://www.percona.com/downloads/percona-toolkit/) 上下载源码，或者 [github](https://github.com/percona/percona-toolkit/releases) ，文档也可以直接从上述的网站下载，只需要填写个表格即可。
 
 为了方便下载，本地保存了一个版本 [percona-toolkit-2.2.19.tar.gz](/reference/mysql/percona-toolkit-2.2.19.tar.gz) 以及 [Percona-Toolkit-2.2.19.pdf](/reference/mysql/Percona-Toolkit-2.2.19.pdf) 。
 
@@ -190,7 +190,7 @@ $ ./sysbench --mysql-host=127.1 --mysql-port=3306 --mysql-user=root \
 
 ## tcprstat
 
-关于该工具详细可以参考 [通过 tcprstat 工具统计应答时间](/blog/linux-tcprstat.html) 的内容，包括了详细代码的参考。
+关于该工具详细可以参考 [通过 tcprstat 工具统计应答时间](/post/linux-tcprstat.html) 的内容，包括了详细代码的参考。
 
 如文章中所示，如果服务器监听 127.1 会导致无法使用，可以通过如下方法解决。
 

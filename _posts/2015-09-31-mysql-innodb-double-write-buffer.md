@@ -16,7 +16,13 @@ description: 从 Double Write Buffer 来看，貌似是内存中的一块缓存�
 
 ## 简介
 
-总体来说 double write 是为了在宕机或者掉电时提高系统的可靠性，而牺牲了一点点写性能；在介绍 double write 的实现之前，有必要先了解一下 partial page write 问题。
+总体来说，Double Write Buffer 是 InnoDB 所使用的一种较为独特的文件 Flush 实现技术，也就是牺牲了一点点写性能，提高系统 Crash 或者断电情况下数据的安全性，避免写入的数据不完整。
+
+在介绍 double write 的实现之前，有必要先了解一下 partial page write 问题。
+
+<!--
+一般来说，Innodb 在将数据同步到数据文件进行持久化之前，首先会将需要同步的内容写入存在于表空间中的系统保留的存储空间，也就是被我们称之为 Double Write Buffer 的地方，然后再将数据进 行文件同步。所以实质上，Double Write Buffer 中就是存放了一份需要同步到文件中数据的一个备份， 以便在遇到系统 Crash 或者主机断电的时候，能够校验最后一次文件同步是否准确的完成了，如果未完 成，则可以通过这个备份来继续完成工作，保证数据的正确性。
+-->
 
 ### 问题起因
 
@@ -104,7 +110,9 @@ mysql> SHOW STATUS LIKE 'innodb_dblwr_%';
 
 ![how innodb double write recovery]({{ site.url }}/images/databases/mysql/innodb-double-write-recovery.jpg "how innodb double write recovery"){: .pull-center }
 
-有些时候，并不一定需要 double write，例如，从机；有些文件系统 (如ZFS) 或者硬件也提供了类似的原子写入功能，因此可以关闭 double write 功能。
+有些时候，并不是所有的场景都需要使用 Double Write 这样的机制来保证数据的安全准确性，比如当我们使用某些特别文件系统的时候，如在 Solaris 平台上非常著名的 ZFS 文件系统，他就可以自己保证文件写入的完整性。
+
+再有就是从机，或者硬件也提供了类似的原子写入功能，因此可以关闭 double write 功能。
 
 也即将 innodb_doublewrite 变量设置为 OFF，此时的写入过程大致如下。
 

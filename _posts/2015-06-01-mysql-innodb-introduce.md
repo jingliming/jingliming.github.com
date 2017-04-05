@@ -359,10 +359,15 @@ static monitor_info_t   innodb_counter_info[] =
     MONITOR_MODULE,
     MONITOR_DEFAULT_START, MONITOR_DEFAULT_START},
     ... ...
+    {"buffer_flush_background_pages", "buffer",
+     "Pages queued as a background batch",
+     MONITOR_SET_MEMBER, MONITOR_FLUSH_BACKGROUND_TOTAL_PAGE,
+     MONITOR_FLUSH_BACKGROUND_PAGES},
+    ... ...
 };
 {% endhighlight %}
 
-
+计数器在那里增加，可以通过最后的一个宏定义查看，如上述 ```MONITOR_FLUSH_BACKGROUND_PAGES``` 。
 
 
 ### 其它

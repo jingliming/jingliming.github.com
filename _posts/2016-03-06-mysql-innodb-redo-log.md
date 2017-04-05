@@ -158,6 +158,36 @@ mysql> SHOW GLOBAL STATUS LIKE 'Innodb_os_log_written';
 
 <!-- https://www.percona.com/blog/2012/10/08/measuring-the-amount-of-writes-in-innodb-redo-logs/ -->
 
+#### innodb_log_buffer_size
+
+该参数就是用来设置 InnoDB 的 Log Buffer 大小，系统默认值为 16MB，主要作用就是缓冲 redo log 数据，增加缓存可以使大事务在提交前不用写入磁盘，从而提高写 IO 性能。
+
+可以通过系统状态参数，查看性能统计数据来分析 Log 的使用情况：
+
+{% highlight text %}
+mysql> SHOW STATUS LIKE 'innodb_log%';
++---------------------------+-------+
+| Variable_name             | Value |
++---------------------------+-------+
+| Innodb_log_waits          | 0     |  由于缓存过小，导致事务必须等待的次数
+| Innodb_log_write_requests | 30    |  日志写请求数
+| Innodb_log_writes         | 21    |  向日志文件的物理写次数
++---------------------------+-------+
+3 rows in set (0.03 sec)
+{% endhighlight %}
+
+<!--
+通过这三个状态参数我们可以很清楚的看到 Log Buffer 的等待次数等性能状态。
+
+当然，如果完全从 Log Buffer 本身来说，自然是大一些会减少更多的磁盘 IO。但是由于 Log 本身是 为了保护数据安全而产生的，而 Log 从 Buffer 到磁盘的刷新频率和控制数据安全一致的事务直接相关， 并且也有相关参数来控制（innodb_flush_log_at_trx_commit），所以关于 Log 相关的更详细的实现机 制和优化在后面的“事务优化”中再做更详细的分析，这里就不展开了。
+
+innodb_additional_mem_pool_size 参数理解
+
+innodb_additional_mem_pool_size 所设置的是用于存放 Innodb 的字典信息和其他一些内部结构所 需要的内存空间。所以我们的 Innodb 表越多，所需要的空间自然也就越大，系统默认值仅有 1MB。当 然，如果 Innodb 实际运行过程中出现了实际需要的内存比设置值更大的时候，Innodb 也会继续通过 OS 来申请内存空间，并且会在 MySQL 的错误日志中记录一条相应的警告信息让我们知晓。
+
+从我个人的经验来看，一个常规的几百个 Innodb 表的 MySQL，如果不是每个表都是上百个字段的 话，20MB 内存已经足够了。当然，如果你有足够多的内存，完全可以继续增大这个值的设置。实际上， innodb_additional_mem_pool_size 参数对系统整体性能并无太大的影响，所以只要能存放需要的数据即 可，设置超过实际所需的内存并没有太大意义，只是浪费内存而已。
+-->
+
 
 ## 文件结构
 
