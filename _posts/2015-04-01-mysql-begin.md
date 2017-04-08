@@ -62,6 +62,7 @@ innodb_ruby 工具的源码可以参考 [Github](https://github.com/jeremycole/i
 
 * [An Outline for a Book on InnoDB](http://www.xaprb.com/blog/2015/08/08/innodb-book-outline/)，关于 InnoDB 的一些关键技术点。
 
+* [Awesome MySQL](http://shlomi-noach.github.io/awesome-mysql/)，介绍很多与 MySQL 相关的软件、资源等。
 
 ## 经典课程
 
@@ -87,6 +88,7 @@ http://hatemysql.com/           binlog
 备份
 http://apprize.info/php/effective/index.html
 -->
+
 
 
 {% highlight text %}

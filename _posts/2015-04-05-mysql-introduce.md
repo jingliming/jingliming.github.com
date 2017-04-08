@@ -174,11 +174,13 @@ cmake ..                                       \
     -DWITH_EMBEDDED_SERVER=OFF                 \
     -DWITH_EXAMPLE_STORAGE_ENGINE=ON           \
     -DWITH_BOOST=../boost
+
+TODODO: UNIV_LRU_DEBUG 该编辑项如何打开
 -->
 
-注意，除了上述列举的选项外，可通过 cmake .. -LH 查看当前版本所支持的选项，如要重新编译可以直接运行 make clean; rm CMakeCache.txt; cmake .. 即可。
+注意，除了上述列举的选项外，可通过 ```cmake .. -LH``` 查看当前版本所支持的选项，如要重新编译可以直接运行 ```make clean; rm CMakeCache.txt; cmake ..``` 即可。
 
-另外，MariaDB 不支持使用 -DWITH_DEBUG=1，应该使用 -DCMAKE_BUILD_TYPE=Debug；更多 MySQL 编译选项可以参考 [Source Configration Options](http://dev.mysql.com/doc/mysql-sourcebuild-excerpt/en/source-configuration-options.html) 。
+另外，MariaDB 不支持使用 ```-DWITH_DEBUG=1```，应该使用 ```-DCMAKE_BUILD_TYPE=Debug```；更多 MySQL 编译选项可以参考 [Source Configration Options](http://dev.mysql.com/doc/mysql-sourcebuild-excerpt/en/source-configuration-options.html) 。
 
 在使用 make 进行编译时，可以通过 -j 选项指定使用多个 Jobs 进行编译，也就是通过多个 CPU 进行编译，这样可以加快编译速度。
 
