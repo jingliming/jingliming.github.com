@@ -53,9 +53,9 @@ $ ssh foobar@192.168.9.123 -p 2222
 
 实际上，对于 OpenSSH 客户端，可以通过配置文件简化登陆。
 
-OpenSSH 客户端会使用 ~/.ssh/config 用户配置文件，也可以使用全局配置 /etc/ssh/ssh_config，如果没有该文件则需要手动创建，该文件中的配置项通过 Key = Value 格式进行设置。
+OpenSSH 客户端会使用 ```~/.ssh/config``` 用户配置文件，也可使用全局配置 ```/etc/ssh/ssh_config```，如果没有该文件则需要手动创建，该文件中的配置项通过 ```Key = Value``` 格式进行设置。
 
-通过如下的方式指定别名，可以支持通配符 *%，注意，配置项大小写不敏感，值大小写敏感。
+通过如下的方式指定别名，可以支持通配符 ```*%```，注意，配置项大小写不敏感，值大小写敏感。
 
 {% highlight text %}
 Host *                           # 对于所有主机通用配置项
@@ -106,7 +106,7 @@ $ ssh -f -N tunnel
 
 ## 共享连接
 
-当登陆一台服务器后，可以通过共享链接实现免登陆，也就是说第一次登陆之后，后面的会自动登陆。需要在添加配置文件 ~/.ssh/config(600) 中添加如下内容。
+当登陆一台服务器后，可以通过共享链接实现免登陆，也就是说第一次登陆之后，后面的会自动登陆。需要在添加配置文件 ```~/.ssh/config(600)``` 中添加如下内容。
 
 {% highlight text %}
 host *
@@ -134,7 +134,7 @@ host *
 
 #### 1. 服务端设置
 
-在服务器端，首先确认 /etc/ssh/sshd_config 这个文件，检查下面几行是否有效。
+在服务器端，首先确认 ```/etc/ssh/sshd_config``` 这个文件，检查下面几行是否有效。
 
 {% highlight text %}
 RSAAuthentication yes
@@ -170,7 +170,7 @@ $ scp ~/.ssh/id_rsa.pub foobar@remote-server-ip:~
 
 #### 4. 公钥保存
 
-配置文件中通过 AuthorizedKeysFile 指定公钥保存的文件名，一般是 .ssh/authorized_keys 文件，然后直接添加到该文件中即可。
+配置文件中通过 AuthorizedKeysFile 指定公钥保存的文件名，一般是 ```.ssh/authorized_keys``` 文件，然后直接添加到该文件中即可。
 
 {% highlight text %}
 $ mkdir ~/.ssh/ && chmod 700 ~/.ssh/
@@ -194,6 +194,15 @@ $ chmod 600 ~/.ssh/id_rsa
 $ ssh -i id_rsa user-name@remote-server-ip
 {% endhighlight %}
 
+#### 6. 添加到known_hosts
+
+如果是初次登陆时，会提示是否将对应的主机添加到 known_hosts 文件中，可以通过如下命令自动添加，而不需要交互。
+
+{% highlight text %}
+$ ssh -T -o StrictHostKeyChecking=no 192.144.51.85 'date'
+{% endhighlight %}
+
+
 ### 简化配置
 
 也可以通过如下命令简单地进行设置。
@@ -212,7 +221,7 @@ $ cat .ssh/id_rsa.pub >> .ssh/authorized_keys
 $ ssh 127.1
 {% endhighlight %}
 
-ssh-copy-id 命令会自动将公钥添加到 ~/.ssh/authorized_keys 文件中。
+ssh-copy-id 命令会自动将公钥添加到 ```~/.ssh/authorized_keys``` 文件中。
 
 ### 安全相关
 

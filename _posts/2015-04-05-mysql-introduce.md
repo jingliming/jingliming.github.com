@@ -72,15 +72,31 @@ MySQL 内部维持着一些 Cache 和 Buffer，比如 Query Cache 用来缓存�
 
 # rpm -Uvh http://dev.mysql.com/get/mysql-community-release-el7-5.noarch.rpm ← 安装仓库
 # yum install mysql-community-server                                         ← 安裝社区版
+# cat << EOF > /etc/my.cnf                                                   ← 设置配置文件
+[client]
+password        = new_password
+port            = 5506
+socket          = /tmp/mysql-5506.sock
+[mysqld]
+user            = mysql
+port            = 5506
+socket          = /tmp/mysql-5506.sock
+basedir         = /usr
+datadir         = /home/foobar/databases/data-5506
+pid-file        = /home/foobar/databases/data-5506/mysqld.pid
+EOF
+# /usr/sbin/mysqld --initialize-insecure --basedir=/usr --user=mysql \       ← 初始化数据，可通过空白密码登陆
+    --datadir=/home/foobar/databases/data-5506
 # systemctl start mysqld                                                     ← 启动server
 
 $ mysql -h 127.1                                                             ← 直接登陆
+mysql> ALTER USER 'root'@'localhost' IDENTIFIED BY 'new_password';           ← 修改密码
+mysql> FLUSH PRIVILEGES;
 {% endhighlight %}
 
-当然也可以从 [MySQL 官网](http://dev.mysql.com/downloads/)、[MariaDB 官网](https://downloads.mariadb.org/) 或者 [Percona 官网](https://www.percona.com/) 下载相应的安装包，或者源码。
+注意，需要保证上级目录权限为 755，否则可能会报 Permission denied 错误。
 
-对于 CentOS 7 来说，可以从 [MySQL Community Downloads](https://dev.mysql.com/downloads/) 下载 server、client、common、libs 对应的 RPM 包，然后安装即可。
-
+当然也可以从 [MySQL 官网](http://dev.mysql.com/downloads/)、[MariaDB 官网](https://downloads.mariadb.org/) 或者 [Percona 官网](https://www.percona.com/) 下载相应的安装包，或者源码。对于 CentOS 7 来说，可以从 [MySQL Community Downloads](https://dev.mysql.com/downloads/) 下载 server、client、common、libs 对应的 RPM 包，也可从 [sohu 镜像](http://mirrors.sohu.com/mysql/) 下载，然后安装即可。
 
 ### 简单配置
 
