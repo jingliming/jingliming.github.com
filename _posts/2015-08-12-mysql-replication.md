@@ -45,6 +45,32 @@ SQL thread 会读取本地的 relay log，然后将相应的语句写入到数�
 
 如果是 SQL 线程导致的，那么会比较复杂一些，需要根据具体的情况排查。
 
+### reset 命令
+
+简单介绍下常用的相关的命令。
+
+#### RESET MASTER
+
+用于删除所有的 binglog 日志文件，并将日志索引文件清空，重新开始所有新的日志文件；通常用于第一次进行搭建主从库时，进行 binlog 初始化工作。
+ 
+#### RESET SLAVE
+
+用于删除 SLAVE 数据库的 relaylog 日志文件，并重新启用新的 relaylog 文件；如果使用 ALL 参数，同时会清理相关的主库信息。
+
+通常用于在主备切换时，为了防止备库异常链接原主库导致数据不一致，需要清理与主库的链接信息，保证新主库不会再链接到原主库，为此，提供了 ```RESET SLAVE``` 命令。
+
+但是不同的 MySQL 版本，对应的命令可能会有所区别，简述如下：
+
+{% highlight text %}
+MySQL 5.0+5.1 执行 STOP SLAVE; CHANGE MASTER TO MASTER_HOST=''; RESET SLAVE；
+MySQL 5.5+5.6 执行 STOP SLAVE; RESET SLAVE ALL；
+{% endhighlight %}
+
+对于所有版本都严禁设置 ```master-user```、```master-host```、```master-password``` 参数，当然在 MySQL 5.5 之后的版本不再支持这些参数了。
+
+<!--
+LINKKK: https://www.percona.com/blog/2013/04/17/reset-slave-vs-reset-slave-all-disconnecting-a-replication-slave-is-easier-with-mysql-5-5/
+-->
 
 ### 相关文件
 
@@ -570,8 +596,7 @@ mysql> CHANGE MASTER TO master_host='localhost',master_port=3307,
        master_auto_position = 1;
 {% endhighlight %}
 
-可以参考 [build-gtid-replication-mm.sh](/reference/databases/mysql/build-gtid-replication-mm.sh) 脚本，会在 /tmp 目录下创建 gtid 的主主复制；或者主从复制 [build-gtid-replication-ms.sh](/reference/databases/mysql/build-gtid-replication-ms.sh) 。
-
+可以参考 [build-gtid-replication-mm.sh](/reference/databases/mysql/build-gtid-replication-mm.sh) 脚本，会在 /tmp 目录下创建 gtid 的主主复制；或者主从复制 [build-gtid-replication-ms.sh](/reference/databases/mysql/build-gtid-replication-ms.sh)；或者一主多从复制 [build-gtid-replication-multislaves.sh](/reference/databases/mysql/build-gtid-replication-multislaves.sh)，需要注意的是，在备库链接到主库前，需要执行 ```RESET MASTER;``` 命令清空 GTID_EXECUTED，否则会导致 Errant-Transaction 。
 
 <!--
 需要注意开启 GTID 复制模式的约束：

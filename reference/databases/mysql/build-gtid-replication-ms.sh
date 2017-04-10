@@ -134,9 +134,9 @@ case "$1" in
         ;;
     stop)
         echo -n "Shutdown MySQL server"
-        $MYSQL_BASE/bin/mysqladmin -uroot -S /tmp/mysql-master.sock shutdown
+        $MYSQL_BASE/bin/mysqladmin -uroot -pnew-password -S /tmp/mysql-master.sock shutdown >/dev/null 2>&1
         echo_message "Shutdown Master1 Done"
-        $MYSQL_BASE/bin/mysqladmin -uroot -S /tmp/mysql-slave.sock shutdown
+        $MYSQL_BASE/bin/mysqladmin -uroot -pnew-password -S /tmp/mysql-slave.sock shutdown >/dev/null 2>&1
         echo_message "Shutdown Master2 Done"
         pidof mysqld > /dev/null && echo "Something error" || echo "Check OK" ;;
     start)

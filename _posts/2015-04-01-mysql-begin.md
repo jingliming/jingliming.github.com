@@ -87,6 +87,18 @@ http://hatemysql.com/           binlog
 
 备份
 http://apprize.info/php/effective/index.html
+
+
+http://www.cnblogs.com/cenliang/p/4908085.html MySQL高可用方案，包括相关资料
+
+
+maatkit MySQL工具集
+
+http://cybend.com/html/201602/a35.htm
+
+https://www.percona.com/blog/2009/05/14/why-mysqls-binlog-do-db-option-is-dangerous/
+
+http://keithlan.github.io/2015/11/02/mysql_replicate_rule/
 -->
 
 

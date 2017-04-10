@@ -126,7 +126,7 @@ EOF
     sql="CHANGE MASTER TO master_host='localhost',master_port=3307,master_user='mysync',
          master_password='kidding',MASTER_AUTO_POSITION=1"
     $MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-master2.sock -p"new-password" 2>/dev/null \
-            -e "$sql"
+            -e "RESET MASTER; $sql"
     $MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-master2.sock -p"new-password" 2>/dev/null \
             -e "START SLAVE"
     echo_message "Start Master1=>Master2 Done"
@@ -137,7 +137,7 @@ EOF
     sql="CHANGE MASTER TO master_host='localhost',master_port=3308,master_user='mysync',
          master_password='kidding',MASTER_AUTO_POSITION=1"
     $MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-master1.sock -p"new-password" 2>/dev/null \
-            -e "$sql"
+            -e "RESET MASTER; $sql"
     $MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-master1.sock -p"new-password" 2>/dev/null \
             -e "START SLAVE"
     echo_message "Start Master2=>Master1 Done"
@@ -149,9 +149,9 @@ case "$1" in
         ;;
     stop)
         echo -n "Shutdown MySQL server"
-        $MYSQL_BASE/bin/mysqladmin -uroot -S /tmp/mysql-master1.sock shutdown
+        $MYSQL_BASE/bin/mysqladmin -uroot -pnew-password -S /tmp/mysql-master.sock shutdown >/dev/null 2>&1
         echo_message "Shutdown Master1 Done"
-        $MYSQL_BASE/bin/mysqladmin -uroot -S /tmp/mysql-master2.sock shutdown
+        $MYSQL_BASE/bin/mysqladmin -uroot -pnew-password -S /tmp/mysql-slave.sock shutdown >/dev/null 2>&1
         echo_message "Shutdown Master2 Done"
         pidof mysqld > /dev/null && echo "Something error" || echo "Check OK" ;;
     start)

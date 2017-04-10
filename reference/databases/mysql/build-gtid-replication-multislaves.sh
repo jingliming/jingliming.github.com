@@ -55,7 +55,13 @@ pid-file        = /tmp/mysql-master.pid
 datadir         = /tmp/mysql-master
 port            = 3307
 server-id       = 1
+relay_log_index = relay-bin.index
+relay_log       = relay-bin
+report_host     = 127.0.0.1
+report_port     = 3307
 relay_log_purge = OFF
+master-info-repository = table
+relay-log-info-repository = table
 EOF
     echo_message "Master Done"
     for ((i=1; i<=$SLAVE_NUM; i++)); do
@@ -73,7 +79,7 @@ port            = `expr ${i} + 3307`
 server-id       = `expr ${i} + 1`
 relay_log_index = relay-bin.index
 relay_log       = relay-bin
-report_host     = 127.1
+report_host     = 127.0.0.1
 report_port     = `expr ${i} + 3307`
 relay_log_purge = OFF
 master-info-repository = table
@@ -129,10 +135,10 @@ EOF
     echo -n "6. Start replication"
     sleep 3
     $MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-master.sock -p"new-password" 2>/dev/null \
-            -e "GRANT REPLICATION SLAVE ON *.* to 'mysync'@'localhost' IDENTIFIED BY 'kidding'"
+            -e "GRANT REPLICATION SLAVE ON *.* to 'mysync'@'%' IDENTIFIED BY 'kidding'"
     for ((i=1; i<=$SLAVE_NUM; i++)); do
         $MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-slave${i}.sock -p"new-password" 2>/dev/null \
-                -e "GRANT REPLICATION SLAVE ON *.* to 'mysync'@'localhost' IDENTIFIED BY 'kidding'"
+                -e "GRANT REPLICATION SLAVE ON *.* to 'mysync'@'%' IDENTIFIED BY 'kidding'"
     done
     sleep 1
     file=`$MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-master.sock -p"new-password" 2>/dev/null     \
@@ -140,10 +146,10 @@ EOF
     position=`$MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-master.sock -p"new-password" 2>/dev/null \
             -e "SHOW MASTER STATUS\G" | grep "Position" | awk '{print $NF}'`
     sql="CHANGE MASTER TO master_host='localhost',master_port=3307, master_user='mysync',
-         master_password='kidding', master_log_file='$file',master_log_pos=$position"
+         master_password='kidding',MASTER_AUTO_POSITION=1"
     for ((i=1; i<=$SLAVE_NUM; i++)); do
         $MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-slave${i}.sock -p"new-password" 2>/dev/null \
-                -e "$sql"
+                -e "RESET MASTER; $sql"
         $MYSQL_BASE/bin/mysql -uroot -S/tmp/mysql-slave${i}.sock -p"new-password" 2>/dev/null \
                 -e "START SLAVE"
     done

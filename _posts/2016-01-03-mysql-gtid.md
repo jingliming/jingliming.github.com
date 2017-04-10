@@ -108,6 +108,18 @@ mysql> SHOW SESSION VARIABLES LIKE 'gtid_next';
 由于 GTID 在全局唯一性，通过 GTID 可以在自动切换时对一些复杂的复制拓扑很方便的提升新主库及新备库。
 
 
+### 通讯协议
+
+开启 GTID 之后，除了将原有的 file+position 替换为 GTID 之外，实际上还实现了一套新的复制协议，简单来说，GTID 的目的就是保证所有节点执行了相同的事务。
+
+老协议很简单，备库链接到主库时会带有 file+position 信息，用来确认从那个文件开始复制；而新协议则是在链接到主库时会发送当前备库已经执行的 GTID Sets，主库将所有缺失的事务发送给备库。
+
+<!--
+TODODO:
+LINKKK: https://www.percona.com/blog/2014/05/09/gtids-in-mysql-5-6-new-replication-protocol-new-ways-to-break-replication/
+-->
+
+
 ## 源码实现
 
 在 binlog 中，与 GTID 相关的事件类型包括了：
@@ -826,6 +838,83 @@ Query OK, 0 rows affected (0.02 sec)
 
 实际生产应用中，当遇到上述的情况后，需要 DBA 人为保证该备库数据和主库一致；或者即使不一致，这些差异也不会导致今后的主从异常，例如，所有主库上只有 insert 没有 update 。
 
+### Errant-Transaction
+
+简单来说，就是没有在主库执行，而是直接在备库执行的事务，通常可能是在修复备库的问题或者应用异常写入了备库导致。
+
+如果发生 ET 的备库被提升为主库，那么根据 GTID 协议，新主库就会发现备库没有执行 ET 中的事务，接下来就可能会发生如下两种情况：
+
+1. 备库中 ET 对应的 binlog 仍然存在，那么会将相应的事件发送给新的备库，此时则会导致数据不一致或者发生其它异常；
+2. 备库中 ET 对应的 binlog 已经被删除，由于无法发送给备库，那么会导致复制异常。
+
+对于有些需要修复备库的任务可以通过 ``` SET sql_log_bin=0``` 命令，设置会话参数，防止生成 ET，当然，此时需要保证数据一致性。在修复时有两种方案：
+
+1. 在 GTID 的执行历史中删除 ET，这样即使备库被提升为主库，也不会发生异常；
+2. 在其它 MySQL 服务中执行空白的事务，使其它库认为已经执行了 ET，那么 Failover 之后也不会尝试获取相应的事件。
+
+接下来看个示例。
+
+{% highlight text %}
+----- 在主库执行如下SQL，查看主库已执行事务对应的GTID Sets
+mysql> SHOW MASTER STATUS\G
+*************************** 1. row ***************************
+... ...
+Executed_Gtid_Set: 8e349184-bc14-11e3-8d4c-0800272864ba:1-30,
+8e3648e4-bc14-11e3-8d4c-0800272864ba:1-7
+
+----- 同上，在备库执行
+mysql> SHOW SLAVE STATUS\G
+... ...
+Executed_Gtid_Set: 8e349184-bc14-11e3-8d4c-0800272864ba:1-29,
+8e3648e4-bc14-11e3-8d4c-0800272864ba:1-9
+
+----- 比较两个GTID Sets
+mysql> SELECT gtid_subset('8e349184-bc14-11e3-8d4c-0800272864ba:1-29,
+8e3648e4-bc14-11e3-8d4c-0800272864ba:1-9','8e349184-bc14-11e3-8d4c-0800272864ba:1-30,
+8e3648e4-bc14-11e3-8d4c-0800272864ba:1-7') AS slave_is_subset;
++-----------------+
+| slave_is_subset |
++-----------------+
+|               0 |
++-----------------+
+1 row in set (0.00 sec)
+
+----- 获取对应的差值
+mysql> SELECT gtid_subtract('8e349184-bc14-11e3-8d4c-0800272864ba:1-29,
+8e3648e4-bc14-11e3-8d4c-0800272864ba:1-9','8e349184-bc14-11e3-8d4c-0800272864ba:1-30,
+8e3648e4-bc14-11e3-8d4c-0800272864ba:1-7') AS errant_transactions;
++------------------------------------------+
+| errant_transactions                      |
++------------------------------------------+
+| 8e3648e4-bc14-11e3-8d4c-0800272864ba:8-9 |
++------------------------------------------+
+1 row in set (0.00 sec)
+{% endhighlight %}
+
+接下来，看看如何修复，假设有 3 个服务，A (主库)、B (备库的异常 XXX:3) 以及 C (备库的异常 YYY:18-19)，那么，接下来可以在不同的服务器上写入空白事务。
+
+{% highlight text %}
+# A
+- Inject empty trx(XXX:3)
+- Inject empty trx(YYY:18)
+- Inject empty trx(YYY:19)
+# B
+- Inject empty trx(YYY:18)
+- Inject empty trx(YYY:19)
+# C
+- Inject empty trx(XXX:3)
+{% endhighlight %}
+
+当然，也可以使用 MySQL-Utilities 中的 mysqlslavetrx 脚本写入空白事务。
+
+{% highlight text %}
+$ mysqlslavetrx --gtid-set='457e7d57-1da2-11e7-9c71-286ed488dd40:5' --verbose \
+    --slaves='root:new-password@127.0.0.1:3308,root:new-password@127.0.0.1:3309'
+{% endhighlight %}
+
+
+
+
 ## 参考
 
 [MySQL Reference Manual - Replication with Global Transaction Identifiers](https://dev.mysql.com/doc/refman/en/replication-gtids.html) 。
@@ -839,10 +928,11 @@ https://www.percona.com/blog/2016/11/10/database-daily-ops-series-gtid-replicati
 Database Daily Ops Series: GTID Replication and Binary Logs Purge
 https://www.percona.com/blog/2016/12/01/database-daily-ops-series-gtid-replication-binary-logs-purge/
 
-
 http://mysqllover.com/?p=594
--->
 
+在使用GTID之前需要考虑的内容
+http://www.fromdual.ch/things-you-should-consider-before-using-gtid
+-->
 
 {% highlight text %}
 {% endhighlight %}

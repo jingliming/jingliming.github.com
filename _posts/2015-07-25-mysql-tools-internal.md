@@ -625,6 +625,8 @@ $ mysqlslap --auto-generate-sql --concurrency=10,20,50 --iterations=4 --number-o
  The WITH CONSISTENT SNAPSHOT clause starts a consistent read for storage engines that are capable of it. This applies only to InnoDB. The effect is the same as issuing a START TRANSACTION followed by a SELECT from any InnoDB  table. See Section 13.2.10.4, “Consistent Non-Locking Read”. The WITH CONSISTENT SNAPSHOT clause does not change the current transaction isolation level, so it provides a consistent snapshot only if the current isolation level is one that allows consistent read (REPEATABLE READ or SERIALIZABLE).
 
  12.4.1. START TRANSACTION, COMMIT, and ROLLBACK Syntax
+
+mysqldump -u root -p --all-databases –flush-privileges --single-transaction --flush-logs --triggers --routines --events –hex-blob > /path/to/backupdir/full_backup-$TIMESTAMP.sql
 -->
 
 

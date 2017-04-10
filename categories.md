@@ -133,7 +133,7 @@ Percona 是最接近官方 MySQL Enterprise 发行版的版本，也就是说它
 * [MySQL 执行简介](/post/mysql-executor.html)，简单介绍 MySQL 中的查询最终是如何执行的。
 * [MySQL 自带工具](/post/mysql-tools-internal.html)，简单介绍下 MySQL 中自带的工具集。
 * [MySQL 常用工具](/post/mysql-tools.html)，一些运维过程中常见的三方工具，包括压测工具。
-* [MySQL Sandbox](/post/mysql-sandbox.html)，用于在本地搭建多个 MySQL 实例的工具，包括了主备、循环复制、一主多备等等。
+* [MySQL Sandbox](/post/mysql-sandbox.html)，本地搭建多个 MySQL 实例的工具，包括主备、循环复制、一主多备等等。
 * [MySQL 启动脚本](/post/mysql-mysqld-safe.html)，详细介绍下 mysqld_safe 脚本的执行流程。
 * [MySQL Core 文件](/post/mysql-core-file.html)，一些关于 CoreDump 文件以及 debuginfo 的介绍。
 * [MySQL 关闭过程](/post/mysql-shutdown.html)，简单分析下 mysqld 进程关闭的过程，以及关闭过程中执行的操作。
@@ -148,6 +148,7 @@ Percona 是最接近官方 MySQL Enterprise 发行版的版本，也就是说它
 * [MySQL 半同步复制](/post/mysql-semisync.html)，关于半同步复制的详细解析，包括了源码的实现方式。
 * [MySQL GTID 简介](/post/mysql-gtid.html)，主要介绍下 GTID 配置、实现方式，有那些限制，运维场景等。
 * [MySQL Crash-Safe 复制](/post/mysql-crash-safe-replication.html)，在主备复制时，如何保证数据的一致性，当然主要是备库。
+* [MySQL 高可用 MHA](/post/mysql-replication-mha.html)，相对成熟的方案，能做到30秒内自动故障切换，且尽可能保证数据一致性。
 * [MySQL 组复制](/post/mysql-group-replication.html)，也就是基于 Paxos 协议变体实现，提供了一种高可用、强一致的实现。
 
 #### InnoDB
