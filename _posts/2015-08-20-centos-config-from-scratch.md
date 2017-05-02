@@ -255,8 +255,30 @@ gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
 # yum --disablerepo=\* --enablerepo=c6-media install mysql-server  # 只使用本地光盘
 {% endhighlight %}
 
+#### 原生本地源
 
+如上的 ISO 镜像文件中，已经包含了索引文件 (位于 repodata 文件夹)，如果自己创建本地镜像，例如平时收藏的 RPM 软件包或者集成测试等，此时需要通过 createrepo 创建索引文件。
 
+{% highlight text %}
+----- 1. 创建本地yum仓库目录
+$ mkdir -p /share/CentOS/7/local/x86_64/RPMS
+
+----- 2. 创建索引&更新缓存
+$ createrepo /share/CentOS/7/local/x86_64
+$ yum makecache
+
+----- 3. 创建本地repo文件
+$ cat<<-"EOF">/etc/yum.repos.d/CentOS-Local.repo
+[local]
+name=CentOS-$releasever - local packages for $basearch
+baseurl=file:///share/CentOS/$releasever/local/$basearch
+enabled=1
+gpgcheck=0
+protect=1
+EOF
+{% endhighlight %}
+
+另外，可以参考 [How to create public mirrors for CentOS](https://wiki.centos.org/HowTos/CreatePublicMirrors)、[Create Local Repos](https://wiki.centos.org/HowTos/CreateLocalRepos) 。
 
 
 ## 常用软件配置

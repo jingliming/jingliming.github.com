@@ -48,7 +48,7 @@ $ mysqladmin -uROOT -pOLD_PASSWD password NEW_PASSWD                 ← 通过m
 $ mysqladmin -uROOT -p flush-privileges
 
 ----- 权限管理
-mysql> GRANT ALL PRIVILIGES ON *.* TO 'user'@'%' [IDENTIFIED BY 'password'];
+mysql> GRANT ALL ON *.* TO 'user'@'%' [IDENTIFIED BY 'password'];
 mysql> GRANT ALL PRIVILIGES ON [TABLE | DATABASE] student,course TO user1,user2;
 mysql> GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, CREATE TEMPORARY, ALTER,
        DROP, REFERENCES, INDEX, CREATE VIEW, SHOW VIEW, CREATE ROUTINE,
@@ -80,6 +80,17 @@ mysql> FLUSH PRIVILEGS;
 {% endhighlight %}
 
 也就是将创建用户和授权是否分开处理。
+
+#### 取消GRNAT
+
+默认 root 是有 GRANT 权限，为了安全考虑可以手动取消其权限。
+
+{% highlight text %}
+mysql> UPDATE mysql.user SET grant_priv='N' WHERE user='ROOT';
+mysql> FLUSH PRIVILEGES;
+{% endhighlight %}
+
+注意，修改权限后需要重新登录生效！
 
 ### 用户设置
 
@@ -141,7 +152,7 @@ Plan C 是免密码登陆。
 
 在此，主要列举一些常见的用户相关操作。
 
-### 重置 root 用户秘密
+### 重置 root 用户密码
 
 如果忘记了 root 用户，可以通过如下方法进行更改。
 

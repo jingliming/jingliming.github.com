@@ -149,101 +149,29 @@ Folks = FIN
 
 Netcat 用于调试、检查网络的工具包，可用于创建 TCP/IP 连接，最大的用途就是用来处理 TCP UDP 套接字。在网络安全领域被称作 "TCP IP 的瑞士军刀" (Swiss-army knife for TCP/IP)。
 
+在 CentOS 中，可以通过如下方式安装。
 
-<!--
-2.2.1  网络连接
-　　类似于Telnet的功能，使用Netcat能够简便地登录到目标机上开放的端口。
-　　例如，
-nc mail.server.net 25
-　　向mail.server.net的25号TCP端口发起连接。
+{% highlight text %}
+----- CentOS 6版本安装
+# yum install nc
 
-2.2.2  端口扫描
-　　Netcat同样可以进行端口扫描，但与Nmap相比，它的性能及使用范围都很有限。如果只想简单地探测几个端口的开放状态，使用Netcat也可行。
-　　端口扫描格式如下：
-nc –v –z hostnameport[s]
-　　实例：
-nc –v –z www.yahoo.com 80 22
-　　扫描yahoo网站的80、22端口，判断其是否开放。
+----- CentOS 7版本安装
+# yum install nmap-ncat
+{% endhighlight %}
 
-2.2.3  文件传输
-　　Netcat最初的用途就是文件传输，它可以像Cat命令一样将读取的文件重定向到网络上的另外的文件。Netcat在网络应用中既可以当做服务器端，开启本机一个监听端口，也可以作为客户端向其他服务器端口发起连接。所以，文件传输，即是在两端分别运行Netcat。
-　　在接受端，运行Netcat开启端口监听服务。
-nc –L –p 4444 >receivedfile.zip
-　　此处-L启动监听模式（即作为服务器端），开启4444端口，将接受到的数据写入到文件somefile.zip中。
-　　而在发送端，只需连接该服务器端开放的端口，并选择需要发送的文件。
-nc 192.168.1.43 4444< testfile.zip
-　　使用<符号输入testfile.zip文件，并向目标机的4444端口发起连接。在建立连接成功后，发送端会将文件传送到接收端，接受端将收到的数据写入receivedfile.zip文件。整个过程，比较类似于cat命令，因为具体的网络传输过程由Netcat负责。
+常用参数简单列举如下。
 
-2.2.4  开启后门
-　　Netcat甚至也可以用作后门程序。如果用户已经侵入到一台计算机，那么让该计算机在开机后（或其他条件下）自动启动Netcat，打开指定的端口，等待用户连接，在连接成功后执行特定程序（如cmd.exe，以便远程执行命令）。
-nc –L –p 4444 –e cmd.exe
-　　以监听模式启动Netcat，开启TCP端口4444，在与客户端成功建立连接后，执行cmd.exe程序（-e cmd.exe，此处为用户打开命令行执行窗口，用户可以通过命令操作此计算机）。
-　　在客户端，直接连接目标机的4444端口即可。
-nc 192.168.1.43 4444
-　　连接后，客户端可以接收到一个命令行窗口。
-
-2.2.5  端口转发
-　　端口转发（PortForwarding）也是Netcat比较实用的用法。先将Netcat作为服务器接收其他主机的连接，然后将连接的数据转发另外的目标机端口。
-　　比如：
-mkfifo backpipe
-nc -l 12345  0<backpipe | nc www.google.com 801>backpipe
-　　比如，此处开启端口12345，作为www.google.com的代理。其他无法直接登陆google的用户可以通过此代理端口来与google进行交互。这里创建了一个fifo，是为实现双向数据通讯，因为管道运算符本身是单向的。
-
-2.2.6  标语提取
-　　标语提取（BannerGrabbing）的含义是抓取应用程序在建立连接后打印的标语提示信息，例如建立FTP连接后，FTP服务器可能打印出提示信息：FTP xxx.xxx等数据。
-　　所以，根据服务器打印的信息，有时可以推断出对方服务程序的详细版本。这也是Nmap进行服务与版本侦测采用方法。
-　　例如，首先创建一份文件，包含以下文本：
-[plain] view plaincopy
-HEAD / HTTP/1.0
-<return>
-<return>
-　　然后，将此文件发送到目标服务器的80端口，诱发对方发送HTTP首部数据。
-cat file>nc -vv -w 2 www.cnn.com 80 >output.txt
-　　然后可从output.txt查看到对方的发送的HEAD的标语信息。
-
-
-2.2.7  其他功能
-　　Netcat其他常用的功能：
-支持完全的DNS转发、逆向检查
-支持用户指定源端口
-支持用户指定源端IP地址
-内置宽松源路由能力（loosesource-routing capability）
-慢速发送模式，可指定每隔多少秒发送一行文本
-将发送或接收数据以16进制格式导出
-
-
-<pre style="font-size:0.8em; face:arial;">
--k     设置keepalive选项
-
-
-root@10.1.1.43:~# nc -h
-[v1.10-38]
-connect to somewhere:   nc [-options] hostname port[s] [ports] ...
-listen for inbound: nc -l -p port [-options] [hostname] [port]
-options:
-    -c shell commands   as `-e'; use /bin/sh to exec [dangerous!!]
-    -e filename     program to exec after connect [dangerous!!]
-    -b          allow broadcasts
-    -g gateway      source-routing hop point[s], up to 8                          设置路由器跃程通信网关，最高可设置8个。
-    -G num          source-routing pointer: 4, 8, 12, ...                         设置来源路由指向器，其数值为4的倍数。
-    -h          this cruft
-    -i secs         delay interval for lines sent, ports sca                      延时的间隔
-    -l          listen mode, for inbound connects                             监听模式,入站连接
-    -n          numeric-only IP addresses, no DNS                             直接使用ip地址,而不用域名服务器
-    -o file         hex dump of traffic                                           指定文件名称，把往来传输的数据以16进制字码倾倒成该文件保存。
-    -p port         local port number                                             本地端口
-    -r          randomize local and remote ports                              随机本地和远程端口
-    -q secs         quit after EOF on stdin and delay of secs
-    -s addr         local source address
-    -T tos          set Type Of Service
-    -t          answer TELNET negotiation
-    -u          UDP mode                                                      udp  模式
-    -v          verbose [use twice to be more verbose]                        显示过程,vv 更多
-    -w secs         timeout for connects and final net reads                      等待连接超时
-    -z          zero-I/O mode [used for scanning]                             使用输入/输出模式，只在扫描通信端口时使用。
-</pre>
--->
-
+{% highlight text %}
+常用参数：
+  -k      保持打开，默认只监听一个客户端，如果某一端退出则退出
+  -l      监听模式，用于接收链接请求，默认客户端退出后服务同时退出
+  -n      直接使用IP地址，不做DNS解析
+  -v      用于显示更详细的信息，可以使用多个
+  -u      UDP模式
+  -w secs 连接超时
+  -t      使用TELNET协议
+  -e file 链接后执行的命令
+{% endhighlight %}
 
 
 ### 常见示例
@@ -262,12 +190,24 @@ $ nc 127.1 2389                                  // 使用客户端模式来连�
 ##### 端口扫描
 
 {% highlight text %}
-$ nc -v -w 10 10.1.1.180 80
+----- 扫描10.1.1.180主机上的80或者1~14000号TCP端口
+$ nc -v -z -w2 10.1.1.180 80
 (UNKNOWN) [10.1.1.180] 80 (www) open
+$ nc -v -z -w2 10.1.1.180 1-14000
 
-$ nc -v -w 10 10.1.1.180 -z 80-30000
-(UNKNOWN) [10.1.1.180] 22000 (?) open
-(UNKNOWN) [10.1.1.180] 80 (www) open
+----- 扫描10.1.1.180主机上的1~14000号UDP端口
+$ nc -u -v -z -w2 10.1.1.180 1-14000
+{% endhighlight %}
+
+##### REMOTE主机绑定SHELL
+
+{% highlight text %}
+----- 绑定到5354端口
+$ nc -l -p 5354 -t -e c:\winnt\system32\cmd.exe
+$ nc -l -p 5354 -t -e /bin/bash
+
+----- 链接到服务器，可以执行Bash命令
+$ nc 10.1.1.180 5354
 {% endhighlight %}
 
 ##### 传输文件/文件夹
@@ -314,18 +254,15 @@ $ nc -n 172.1 1567 | dd of=/dev/sda       // 复制到其它机器
 
 如果已经做过分区并且只需要克隆 root 分区，可以根据系统 root 分区的位置，更改 sda 为 sda1，sda2 等等。
 
-<!--
-超时控制????<br>
+##### 超时控制
 多数情况我们不希望连接一直保持，那么我们可以使用 -w 参数来指定连接的空闲超时时间，该参数紧接一个数值，代表秒数，如果连接超过指定时间则连接会被终止。
-<pre style="font-size:0.8em; face:arial;">
+
+{% highlight text %}
 $ nc -l 2389
 $ nc -w 10 localhost 2389                // 该连接将在 10 秒后中断。
-</pre>
+{% endhighlight %}
+
 注意: 不要在服务器端同时使用 -w 和 -l 参数，因为 -w 参数将在服务器端无效果。
--->
-
-
-
 
 
 

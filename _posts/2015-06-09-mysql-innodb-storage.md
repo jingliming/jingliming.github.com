@@ -579,5 +579,8 @@ http://www.askmaclean.com/archives/mysql-recover-innodb.html
 
 Chapter 22 InnoDB Storage Engine
 https://dev.mysql.com/doc/internals/en/innodb.html
+
+MySQL · 引擎特性 · InnoDB文件系统管理
+https://yq.aliyun.com/articles/5586
 -->
 

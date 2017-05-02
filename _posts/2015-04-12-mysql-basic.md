@@ -37,7 +37,7 @@ $ mysqladmin --version
 
 ### 示例数据库
 
-通常最基本的是熟悉简单的 join 操作，以及基本的 CRUD(Create, Retrieve, Update, Delete) 操作，如下包括了很多教程示例。
+通常最基本的是熟悉简单的 join 操作，以及基本的 CRUD(Create, Retrieve, Update, Delete) 操作，如下包括了很多教程示例，可以参考 [MySQL Sample Databases](https://www3.ntu.edu.sg/home/ehchua/programming/sql/SampleDatabases.html) 中的介绍，在此简单列举几个。
 
 下面的示例可以参考 [MySQLTutorial](http://www.mysqltutorial.org/)，数据库的数据也可以从 [本地下载](/reference/mysql/from_mysqltutorial.sql) ，然后通过 source 导入。下图是对应的 ER 图，其中关于 ER-Diagram 相关的介绍可以参考 [ER Diagram Symbols and Meaning (LucidChart)](https://www.lucidchart.com/pages/ER-diagram-symbols-and-meaning) 。
 
@@ -63,9 +63,168 @@ Offices: stores sales office data.
 
 其中 README.md 中包括了如何进行安装。
 
+还有一个经常使用的示例数据库 [Sakila Sample Database](https://dev.mysql.com/doc/sakila/en/)。
+
+![sample sakila schema]({{ site.url }}/images/databases/mysql/sample-sakila-schema.png "sample sakila schema"){: .pull-center width="90%"}
+
+
+
+
+
+## 时间
+
+MySQL 中有三种时间类型，官方的解释如下：
+
+{% highlight text %}
+The DATE type is used for values with a date part but no time part. MySQL
+retrieves and displays DATE values in 'YYYY-MM-DD' format. The supported
+range is '1000-01-01' to '9999-12-31'.
+
+The DATETIME type is used for values that contain both date and time parts.
+MySQL retrieves and displays DATETIME values in 'YYYY-MM-DD HH:MM:SS' format.
+The supported range is '1000-01-01 00:00:00' to '9999-12-31 23:59:59'.
+
+The TIMESTAMP data type is used for values that contain both date and time
+parts. TIMESTAMP has a range of '1970-01-01 00:00:01' UTC to '2038-01-19
+03:14:07' UTC.
+{% endhighlight %}
+
+<!--
+发现DATETIME类型只支持mysql 5.6.5+
+
+|:----:|:--------------------|:--------------------|
+| 特性 |DATETIME|TIMESTAMP |
+| 显示 |YYYY-MM-DD HH:MM:SS|YYYY-MM-DD HH:MM:SS|
+| 范围 |1000-01-01 00:00:00 ~ 9999-12-31 23:59:59|1970-01-01 00:00:00 ~ 2038-01-19 03:14:07|
+| 存储 |8字节存储，采用数值格式|4字节存储，以UTC格式存储|
+| 时区 |无时区概念|时区转换，存储时对当前的时区进行转换，检索时再转换回当前的时区 |
+| 特性 |无|在insert, update时可以设置为自动更新时间|
+-->
+
+### 特殊属性
+
+timestamp 有两个比较特殊的属性，分别是 ```ON UPDATE CURRENT_TIMESTAMP``` 和 ```CURRENT_TIMESTAMP``` 两种，使用情况分别如下：
+
+#### CURRENT_TIMESTAMP
+
+当要向数据库执行 INSERT 操作时，如果有 timestamp 字段属性设为 CURRENT_TIMESTAMP，则无论这个字段有没有值都会插入当前系统时间。
+
+#### ON UPDATE CURRENT_TIMESTAMP
+
+当执行 update 操作时，并且字段有上述的属性时，则字段无论值有没有变化，它的值也会跟着更新为当前 UPDATE 操作时的时间。
+
+简单测试如下。
+
+{% highlight text %}
+----- 新建测试表
+mysql> CREATE TABLE foobar (
+  id INT(10) UNSIGNED NOT NULL PRIMARY KEY,
+  gmt_create TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  gmt_modify TIMESTAMP NOT NULL ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+Query OK, 0 rows affected (0.06 sec)
+
+----- 新写入数据时，会自动更新DEFAULT CURRENT_TIMESTAMP对应字段
+mysql> INSERT INTO foobar(id, gmt_modify) VALUES(1, now());
+Query OK, 1 row affected (0.01 sec)
+mysql> SELECT * FROM foobar;
++----+---------------------+---------------------+
+| id | gmt_create          | gmt_modify          |
++----+---------------------+---------------------+
+|  1 | 2016-04-23 13:04:59 | 2016-04-23 13:04:59 |
++----+---------------------+---------------------+
+1 row in set (0.00 sec)
+
+----- 在执行UPDATE语句时，会更新ON UPDATE CURRENT_TIMESTAMP对应字段
+mysql> UPDATE foobar SET id=2 WHERE id=1;
+Query OK, 1 row affected (0.01 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+mysql> SELECT * FROM foobar;
++----+---------------------+---------------------+
+| id | gmt_create          | gmt_modify          |
++----+---------------------+---------------------+
+|  2 | 2016-04-23 13:04:59 | 2016-04-23 13:06:27 |
++----+---------------------+---------------------+
+1 row in set (0.01 sec)
+{% endhighlight %}
+
+### 默认值
+
+从 MySQL 5.6.6 之后，可能会发现如下的 Warning 日志，```TIMESTAMP with implicit DEFAULT value is deprecated. Please use --explicit_defaults_for_timestamp server option (see documentation for more details).``` 这是因为这一版本之后，timestamp 类型的默认行为已经取消。
+
+在此之前，TIMESTAMP 类型的默认行为是：
+
+* TIMESTAMP 列如果没有明确声明 NULL 属性，则默认为 NOT NULL (而其它数据类型，未显示声明 NOT NULL，则允许 NULL值)，当设置 TIMESTAMP 的列值为 NULL，会自动存储为当前 timestamp。
+* 表中的第一个 TIMESTAMP 列，如果没有声明 NULL 属性、DEFAULT 或者 ON UPDATE，会自动分配 ```DEFAULT CURRENT_TIMESTAMP``` 和 ```ON UPDATE CURRENT_TIMESTAMP``` 属性。
+* 表中第二个 TIMESTAMP 列，如果没有声明 NULL 或 DEFAULT 值，则默认设置 ```'0000-00-00 00:00:00'```；插入行时没有指明改列的值，该列默认分配 ```'0000-00-00 00:00:00'```，且无警告。
+
+如果要关闭警告，如上所述，可以在启动时添加 ```--explicit_defaults_for_timestamp``` 参数，或者在下面的配置文件中添加如下的参数：
+
+{% highlight text %}
+[mysqld]
+explicit_defaults_for_timestamp=true
+{% endhighlight %}
+
+重启 MySQL 后，此时 TIMESTAMP 的行为如下：
+
+* 如果没有显示声明 ```NOT NULL``` 属性，也就是是允许 NULL 值的，可以直接设置改列为 NULL，而没有默认的填充行为。
+* 不会默认分配 ```DEFAULT CURRENT_TIMESTAMP``` 和 ```ON UPDATE CURRENT_TIMESTAMP``` 属性。
+* 声明为 ```NOT NULL``` 且没有默认子句的 TIMESTAMP 列是没有默认值的；往数据表中插入列，又没有给 TIMESTAMP 列赋值时，如果是严格 SQL 模式，会抛出一个错误，如果严格 SQL 模式没有启用，该列会赋值为 ```'0000-00-00 00:00:00'``` ，同时出现一个警告(和 MySQL 处理其他时间类型数据一样，如 DATETIME)。
+
+显然，通过该参数关闭了 timestamp 类型字段所拥有的一些会让人感到奇怪的默认行为，如果仍需要默认行为，则需要在建表的时候指定。
+
 
 ## 其它
 
+### 注释
+
+在 MySQL 中可以通过 ```#``` (从开始到结束)、```/* ... */``` (可以多行) 表示注释内容；从 MySQL-3.23 版本开始，可以通过 ```/*! ... */``` 这种特有的注释方式标示 MySQL 特有特性。
+
+MySQL 会解析其中的关键字，而其它数据库则会视为注释，从而保证兼容性。另外，从 3.23 开始支持 ```"-- "``` 格式的注释，功能与 ```#``` 类似；需要注意的是，双短划线之后有一个空格。
+
+接下来，重点说下 ```/*! ... */``` 这个注释，简言之，MySQL 会执行其中的内容，例如，MySQL 支持 STRAIGHT_JOIN 写法，而其它数据库可能不支持，那么就可以写成 ```SELECT /*! STRAIGHT_JOIN */ col1 FROM table1,table2 WHERE...``` 这种方式。
+
+另外，可以在叹号后面添加版本号，表示只有当 MySQL 的版本大于等于该版本时才会执行，例如只有 MySQL-3.23.02 之后才支持 TEMPORARY，那么可以写为 ```CREATE /*!32302 TEMPORARY */ TABLE t (a INT);``` 。
+
+其它的示例 ```CREATE DATABASE `blog` /*!40100 DEFAULT CHARACTER SET latin1 */;``` 。
+
+<!--
+### 字符串操作函数
+
+CONCAT(str1,str2,…)返回连接参数产生的字符串，返回值的规则如下：
+
+1. 如有任何一个参数为NULL，则返回值为NULL
+
+mysql> select concat("foobar", null);
++------------------------+
+| concat("foobar", null) |
++------------------------+
+| NULL                   |
++------------------------+
+1 row in set (0.00 sec)
+2. 如果所有参数均为非二进制字符串，则结果为非二进制字符串；
+3. 如果自变量中含有任一二进制字符串，则结果为一个二进制字符串；
+4. 一个数字参数被转化为与之相等的二进制字符串格式；若要避免这种情况，可使用显式类型 cast, 例如： SELECT CONCAT(CAST(int_col AS CHAR), char_col)。
+
+CONCAT_WS(separator,str1,str2,…)
+CONCAT_WS()是CONCAT With Separator的简写，第一个参数是其它参数的分隔符，可以是字符串或者其它类型，如果为NULL，则结果为NULL；另外，函数会忽略任何分隔符参数后的NULL值。
+mysql> SELECT CONCAT_WS(',', 'First Name', 'Second Name', 'Last Name') AS name;
++----------------------------------+
+| name                             |
++----------------------------------+
+| First Name,Second Name,Last Name |
++----------------------------------+
+1 row in set (0.00 sec)
+mysql> SELECT CONCAT_WS(',', 'First Name', NULL, 'Last Name') AS name;
++----------------------+
+| name                 |
++----------------------+
+| First Name,Last Name |
++----------------------+
+1 row in set (0.00 sec)
+
+group_concat
+-->
 
 
 ### sql_mode
@@ -85,10 +244,24 @@ mysql> SHOW VARIABLES LIKE 'sql_mode%'\G
 mysql> SET GLOBAL sql_mode='';
 {% endhighlight %}
 
-详细可以参考官方手册 [MySQL Reference Manual - Server SQL Modes](https://dev.mysql.com/doc/refman/5.7/en/sql-mode.html) 。
+简单列举如下常用的，详细可以参考官方手册 [MySQL Reference Manual - Server SQL Modes](https://dev.mysql.com/doc/refman/5.7/en/sql-mode.html) 。 <!--https://segmentfault.com/a/1190000005936172-->
+
+* NO_ZERO_IN_DATE<br>在严格模式下，不允许日期和月份为零。
+* NO_ZERO_DATE<br>不允许插入零日期，插入零日期会抛出错误而不是警告。
+* NO_AUTO_CREATE_USER<br>禁止 GRANT 创建密码为空的用户。
+* ONLY_FULL_GROUP_BY<br>参考如下。
+
+#### ONLY_FULL_GROUP_BY
+
+对于 ```GROUP BY``` 聚合操作，如果在 SELECT 中的列没有在 ```GROUP BY``` 中出现 (可以是聚合函数)，那么认为这个 SQL 是不合法的。
+
+例如 ```select language_id, count(1), length from film group by language_id;``` 是不合法的，原因是 MySQL 允许在 SELECT 列表中存在除聚集函数或 ```GROUP BY``` 以外的表达式，但是这些表达式的结果并不确定，通常也就没有太多意义，反而可能会导致错误。
+
+实际上 SQLServer、Oracle、PostgreSQL 基本都不支持这种语法，为此，MySQL 5.7 修订了这一语义。另外，需要注意 ```SELECT id+1 FROM tt GROUP BY 1+id;``` 这种是不允许的，而 ```SELECT id+1 FROM tt GROUP BY id+1;``` 则可以。
 
 ### show tables
 
+默认在使用 LIKE 过滤时，不能使用 AND/OR 等条件，可以通过如下方式添加过滤条件。
 
 {% highlight text %}
 ----- 只能使用单个like语句

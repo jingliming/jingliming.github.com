@@ -10,24 +10,19 @@ language: chinese
 
 <!-- more -->
 
-
-
-
-
-
-
-
-
 ## 常见配置
 
 简单列举一些常见的网络配置。
 
 {% highlight text %}
-# ifconfig eth0 down                                   ← 关闭网络设备
-# ifconfig eth0 hw ether xx:xx:xx:xx:xx:xx             ← 设置MAC地址
+# ifconfig eth0 down                                      ← 关闭网络设备
+# ifconfig eth0 hw ether xx:xx:xx:xx:xx:xx                ← 设置MAC地址
 # ifconfig eht0 up
-# ifconfig eth0 210.72.137.115 netmask 255.255.255.0   ← 配置IP
-# route add default gw 192.168.0.100 dev eth0          ← 添加默认路由
+# ifconfig eth0 210.72.137.115 netmask 255.255.255.0      ← 配置IP
+# route add default gw 192.168.0.100 dev eth0             ← 添加默认路由
+
+# ifconfig eth0:0 210.72.137.115 netmask 255.255.255.0 up ← 设置VIP
+# ifconfig eth0:0 down                                    ← 关闭VIP配置
 {% endhighlight %}
 
 如果 IP 和 GW 不在同一网段会出现 SIOCADDRT:No such process. 的错误，可以在上一条命令之前添加如下命令。

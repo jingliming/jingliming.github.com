@@ -3,7 +3,7 @@ title: InfluxDB
 layout: post
 comments: true
 language: chinese
-category: [linux]
+category: [linux,golang,database]
 keywords: influxdb,telegraf,influxdata,时序数据库
 description: InfluxDB 是一个开源分布式时序、事件和指标数据库，使用 Go 语言编写，无需外部依赖，其设计目标是实现分布式和水平伸缩扩展。InfluxData 提供了 TICK 一套解决方案，不过使用比较多的是 InfluxDB，在此就介绍下 InfluxDB 以及 Telegraf 。
 ---

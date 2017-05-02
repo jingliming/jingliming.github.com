@@ -414,6 +414,212 @@ http://miguelangelnieto.net/index.php/how-to-createrestore-a-slave-using-gtid-re
 默认使用基于GTID的异步复制，同时支持半同步复制 (semi-synchronous)，基于 NDB 的同步复制以及延迟复制 (Delayed Replication)
 
 
+
+
+### NC
+socat加强版
+http://brieflyx.me/2015/linux-tools/socat-introduction/
+
+
+### GCC
+http://www.jianshu.com/p/dd425b9dc9db
+http://filwmm1314.blog.163.com/blog/static/218259192012121225132/
+http://www.cnblogs.com/respawn/archive/2012/07/09/2582078.html
+
+### TSD
+
+在多线程程序中，所有线程共享程序中的变量，如果每个线程需要保存独自的数据，例如每个线程维护一个链表，但是通过相同的函数处理，这就是 Thread Specific Data 的作用。如下介绍 TSD 的使用方法：
+
+1. 声明一个 pthread_key_t 类型的全局变量；
+2. 通过 pthread_key_create() 函数创建 TSD，实际就是分配一个实例，并将其赋值给 pthread_key_t 变量，所有的线程都可以通过该变量访问，这就相当于提供了同名而不同值的全局变量；
+3. 调用  pthread_setspcific()、pthread_getspecific() 存储或者获取各个线程特有的值；
+
+TSD的实现详见： https://www.ibm.com/developerworks/cn/linux/thread/posix_threadapi/part2/
+
+int pthread_key_create(pthread_key_t *key, void (*destructor)(void*));
+int pthread_setspecific(pthread_key_t key, const void *value);
+void *pthread_getspecific(pthread_key_t key);
+
+
+
+### innodb_locks_unsafe_for_binlog 参数相关
+另外设置 innodb_locks_unsafe_for_binlog=1 ,binlog也要设为row格式。
+https://dev.mysql.com/doc/refman/5.7/en/innodb-parameters.html#sysvar_innodb_locks_unsafe_for_binlog
+innodb默认使用了next-gap算法，这种算法结合了index-row锁和gap锁。正因为这样的锁算法，innodb在可重复读这样的默认隔离级别上，可以避免幻象的产生。innodb_locks_unsafe_for_binlog最主要的作用就是控制innodb是否对gap加锁。
+注意该参数如果是enable的，则是unsafe的，此时gap不会加锁；反之，如果disable掉该参数，则gap会加锁。当然对于一些和数据完整性相关的定义，如外键和唯一索引（含主键）需要对gap进行加锁，那么innodb_locks_unsafe_for_binlog的设置并不会影响gap是否加锁。
+在5.1.15的时候，innodb引入了一个概念叫做“semi-consistent”，这样会在innodb_locks_unsafe_for_binlog的状态为ennable时在一定程度上提高update并发性。
+https://yq.aliyun.com/articles/62372
+
+
+
+### FLUSH TABLES WITH READ LOCK
+FLUSH TABLES WITH READ LOCK命令的作用是关闭所有打开的表，会将所有脏页刷新到磁盘，同时对所有数据库中的表都加一个全局读锁，直到显示执行UNLOCK TABLES，才释放持有的读锁。
+
+该操作常用于获取一致性数据备份。
+
+http://aklaus.blog.51cto.com/9724632/1656991
+http://blog.csdn.net/zbszhangbosen/article/details/7434181
+http://www.cnblogs.com/cchust/p/4603599.html
+http://www.cnblogs.com/sunss/archive/2012/02/02/2335960.html
+http://www.cnblogs.com/zhenghongxin/p/5527527.html
+http://myrock.github.io/2014/11/20/mysql-waiting-for-table-flush/
+http://blog.csdn.net/arkblue/article/details/27376991
+https://www.percona.com/blog/2012/03/23/how-flush-tables-with-read-lock-works-with-innodb-tables/
+https://www.percona.com/blog/2010/04/24/how-fast-is-flush-tables-with-read-lock/
+
+加锁过程是什么样的，为什么会阻塞现有的SELECT查询？
+
+http://www.penglixun.com/tech/database/the_process_of_mysqldump.html
+http://www.cnblogs.com/digdeep/p/4947694.html
+http://www.imysql.com/2008_10_24_deep_into_mysqldump_options
+http://www.cnblogs.com/zhoujinyi/p/5789465.html
+https://yq.aliyun.com/articles/59326
+
+
+#### sql_slave_skip_counter=N
+http://dinglin.iteye.com/blog/1236330
+http://xstarcd.github.io/wiki/MySQL/MySQL_replicate_error.html
+
+#### FOR UPDATE/
+SELECT ... FOR UPDATE 用于对查询的数据添加IX锁(意向排它锁)，此时，其它会话也就无法在这些记录上添加任何的S锁或X锁，通常使用的场景是为了防止在低隔离级别下出现幻读现象，用于保证 “本事务看到的是数据库存储的最新数据，并且看到的数据只能由本事务修改”。
+
+InnoDB默认使用快照读，使用 FOR UPDATE 之后不会阻塞其它会话的快照读，当然会阻塞lock in share mode和for update这种显示加锁的查询操作。
+
+CREATE TABLE `foobar` (
+  `id` int(11) NOT NULL,
+  `col` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+INSERT INTO foobar VALUES(1, 11),(2, 22);
+set session transaction isolation level REPEATABLE READ;
+set autocommit=0;
+select * from foobar where col = 11; **FOR UPDATE**
+
+set session transaction isolation level REPEATABLE READ;
+set autocommit=0;
+select * from foobar where col = 11;
+update foobar set col = 33 where col=11;
+
+select * from foobar where col = 11;
+update foobar set col = col*2 where col=11;
+
+
+SELECT ... LOCK IN SHARE MODE对于查询的数据添加IS(意向共享锁)，此时，其它会话可以读取这些记录，也可以继续添加IS锁，但是无法修改这些记录直到该事务执行完成。
+
+通常用于两张存在关联关系表的写操作，拿mysql官方文档的例子来说，一个表是child表，一个是parent表，假设child表的某一列child_id映射到parent表的c_child_id列，那么从业务角度讲，此时我直接insert一条child_id=100记录到child表是存在风险的，因为刚insert的时候可能在parent表里删除了这条c_child_id=100的记录，那么业务数据就存在不一致的风险。正确的方法是再插入时执行select * from parent where c_child_id=100 lock in share mode,锁定了parent表的这条记录，然后执行insert into child(child_id) values (100)就ok了。
+
+http://blog.csdn.net/cug_jiang126com/article/details/50544728
+http://chenzhou123520.iteye.com/blog/1860954
+https://www.percona.com/blog/2006/08/06/select-lock-in-share-mode-and-for-update/
+
+
+#### 复制过滤可能产生的异常
+
+http://keithlan.github.io/2015/11/02/mysql_replicate_rule/
+
+#### BLOG和TEXT区别
+BLOB和TEXT分别用于保存二进制和非二进制字符串，保存数据可变，都可以分为四类：TINYBLOB、BLOB、MEDIUMBLOB 和 LONGBLOB ，TEXT与之类似，只是其容纳长度有所不同；两者区别如下：
+
+* BLOB为二进制字符串，TEXT为非二进制字符串；
+* BLOG列没有字符集，并且排序和比较基于列值字节的数值；TEXT列有字符集，并且根据字符集的规则进行排序和比较；
+* 两种类型的DML不存在大小写转换，在非严格模式下超出最大长度时会截断并产生告警；严格模式则会报错；
+
+两者可以分别视为VARCHAR和VARBINARY，但是有如下区别：
+* BLOB和TEXT列不能有默认值；
+
+当保存或检索BLOB和TEXT列的值时不删除尾部空格。(这与VARBINARY和VARCHAR列相同）.
+
+对于BLOB和TEXT列的索引，必须指定索引前缀的长度。对于CHAR和VARCHAR，前缀长度是可选的.
+
+LONG和LONG VARCHAR对应MEDIUMTEXT数据类型。这是为了保证兼容性。如果TEXT列类型使用BINARY属性，将为列分配列字符集的二元校对规则.
+
+MySQL连接程序/ODBC将BLOB值定义为LONGVARBINARY，将MySQL TEXT值定义为LONGVARCHAR。由于BLOB和TEXT值可能会非常长，使用它们时可能遇到一些约束.
+
+BLOB或TEXT对象的最大大小由其类型确定，但在客户端和服务器之间实际可以传递的最大值由可用内存数量和通信缓存区大小确定。你可以通过更改max_allowed_packet变量的值更改消息缓存区的大小，但必须同时修改服务器和客户端程序。例如，可以使用 MySQL和MySQLdump来更改客户端的max_allowed_packet值.
+
+
+create table foobar (
+ 
+) engine=innodb;
+
+mysql>CREATE TABLE foobar (
+  id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  book CHAR(10) DEFAULT NULL,
+  msg BLOB,
+  ) ENGINE=InnoDB;
+http://blog.sina.com.cn/s/blog_4f925fc30102edg8.html
+http://imysql.com/2014/09/28/mysql-optimization-case-blob-stored-in-innodb-optimization.shtml
+http://www.qttc.net/201207121.html
+http://53873039oycg.iteye.com/blog/2002448
+
+
+
+#### 高可用
+循环复制
+http://xiezhenye.com/2015/08/%E8%AE%B0%E4%B8%80%E6%AC%A1-mysql-%E5%BE%AA%E7%8E%AF%E5%A4%8D%E5%88%B6.html
+http://www.cnblogs.com/cchust/p/5450510.html
+http://imysql.com/2015/09/14/solutions-of-mysql-ha.shtml
+http://blog.csdn.net/yangbutao/article/details/8807813
+http://www.jianshu.com/p/cc6746ac4fc2
+http://raffaelexr.blog.51cto.com/8555551/1747784
+http://wenson.iteye.com/blog/2263956
+
+#### VIP
+http://www.cnblogs.com/pangguoping/p/5721517.html
+
+
+##### MySQL Cache
+
+sql_cache意思是说，查询的时候使用缓存。
+
+sql_no_cache意思是查询的时候不适用缓存。
+
+sql_buffer_result意思是说，在查询语句中，将查询结果缓存到临时表中。
+
+这三者正好配套使用。sql_buffer_result将尽快释放表锁，这样其他sql就能够尽快执行。
+
+使用 FLUSH QUERY CACHE 命令，你可以整理查询缓存，以更好的利用它的内存。这个命令不会从缓存中移除任何查询。FLUSH TABLES 会转储清除查询缓存。
+RESET QUERY CACHE 使命从查询缓存中移除所有的查询结果。
+
+--------------------------------------------------
+
+那么MySQL到底是怎么决定到底要不要把查询结果放到查询缓存中呢？
+
+是根据query_cache_type这个变量来决定的。
+
+这个变量有三个取值：0,1,2，分别代表了off、on、demand。
+
+意思是说，如果是0，那么query cache 是关闭的。如果是1，那么查询总是先到查询缓存中查找，除非使用了sql_no_cache。如果是2，那么，只有使用 sql_cache的查询，才会去查询缓存中查找。
+
+
+###
+ysql [(none)]>grant super on db1.* to 'dtstack'@'%';
+ERROR 1221 (HY000): Incorrect usage of DB GRANT and GLOBAL PRIVILEGES        --因为super权限是管理级别的权限(super ,process,file)，不能够指定某个数据库on 后面必须跟*.*
+
+正确用法：
+mysql [(none)]>grant super on *.* to 'dtstack'@'%';
+Query OK, 0 rows affected (0.01 sec)
+释：
+1.super权限可以使用change master to 语句
+2.kill ， mysqladmin kill  kill_threads
+3.purge binary logs
+    EG：
+        wjj@(www.dtstack.com) [(none)]>show binary logs;
+          mysql [(none)]>purge binary logs to 'mysql-bin.000005';  --解释：删除MySQLbinlog日志，删除mysql-bin.000005之前的，不包括他本身
+          Query OK, 0 rows affected (0.03 sec
+          mysql [(none)]>show binary logs;
+       
+4.可以设置全局参数模式set global xx
+5.mysqladmin debug  启动或禁用日志记录
+6.有权限设置relad_only
+7.连接数达到max_connections上限时无法创建连接时，拥有super权限的用户可以创建一个连接
+
+
+
+
+
+
+
 ←
 -->
 

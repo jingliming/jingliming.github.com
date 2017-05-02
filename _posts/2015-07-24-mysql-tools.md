@@ -25,7 +25,7 @@ description: 工欲善其事，必先利其器；在本文章中介绍了与 MyS
 
 为了方便下载，本地保存了一个版本 [percona-toolkit-2.2.19.tar.gz](/reference/mysql/percona-toolkit-2.2.19.tar.gz) 以及 [Percona-Toolkit-2.2.19.pdf](/reference/mysql/Percona-Toolkit-2.2.19.pdf) 。
 
-该工具是通过 [Aspersa](http://aspersa.googlecode.com/svn/html/index.html) 修改过来的，这是一套脚本工具，不过保存在 google code 中，所以需要翻墙；也可以查看一下 [本地版本](/reference/mysql/aspersa.tar.bz2) 以及 [本地保存文档](/reference/mysql/aspersa) 。
+该工具是 [Aspersa](http://aspersa.googlecode.com/svn/html/index.html) 和 Aspersa 两个工具的合并修改过来的，这是一套脚本工具，不过保存在 google code 中，所以需要翻墙；也可以查看一下 [本地版本](/reference/mysql/aspersa.tar.bz2) 以及 [本地保存文档](/reference/mysql/aspersa) 。
 
 接下来我们看看如何使用这一工具集，不过在此介绍其中的一部分工具的使用，剩余的一部分工具将会在其它文章中继续介绍。
 

@@ -3,7 +3,7 @@ title: HTTPS 协议详解
 layout: post
 comments: true
 language: chinese
-category: [misc]
+category: [linux,webserver,misc]
 keywords: https,ssl,tls
 description: 我们知道 HTTP 采用的是明文传输，而在互联网中，比如要在淘宝买个东西，使用支付宝转个帐，必须要保证这些信息只有客户端和服务器才知道的，也就是通过 HTTPS 协议。接下来，我们就看看 HTTPS 协议是如何实现的。
 ---

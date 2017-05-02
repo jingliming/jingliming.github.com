@@ -932,6 +932,9 @@ http://mysqllover.com/?p=594
 
 在使用GTID之前需要考虑的内容
 http://www.fromdual.ch/things-you-should-consider-before-using-gtid
+
+[MySQL 5.6] GTID内部实现、运维变化及存在的bug
+http://mysqllover.com/?p=594
 -->
 
 {% highlight text %}

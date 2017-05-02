@@ -63,6 +63,11 @@ http://turnoff.us/
 Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通过 C 语言编写；另外，还包括了前端相关的内容。
 
 * [Nginx 入门](/post/nginx-introduce.html)，介绍一些常见的操作，例如安装、启动、设置等。
+* [HTTPS 协议详解](/post/https-introduce.html)，简单介绍下 HTTPS 协议是如何实现的
+
+<!--
+ post/encryption-introduce.html linux-aio.html
+-->
 
 #### Monitor
 
@@ -97,6 +102,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Linux 常用技巧](/post/linux-tips.html)，简单记录了一些在 Linux 中常用的技巧。
 * [TMUX](/post/tmux.html)，一个终端复用工具，类似 screen 但是更加方便使用，更加高端。
 * [Linux 绘图工具](/post/linux-gnuplot.html)，这是一个命令行驱动的绘图工具，支持多个平台。
+* [logrotate 使用方法](/post/logrotate-usage.html)，一个不错的日志切割管理程序。
 * [Linux 后台服务管理](/post/linux-daemon-tools.html)，介绍目前常用的后台服务管理。
 * [你所不知道的定时任务](/post/details-about-cronie.html)，也就是 Linux 中如何使用 crontab，以及常见错误。
 * [Git 分支管理](/post/git-branch-model.html)，主要介绍 git 的分支处理常用操作，以及比较经典的版本分支管理方式。
@@ -148,6 +154,7 @@ Percona 是最接近官方 MySQL Enterprise 发行版的版本，也就是说它
 * [MySQL 半同步复制](/post/mysql-semisync.html)，关于半同步复制的详细解析，包括了源码的实现方式。
 * [MySQL GTID 简介](/post/mysql-gtid.html)，主要介绍下 GTID 配置、实现方式，有那些限制，运维场景等。
 * [MySQL Crash-Safe 复制](/post/mysql-crash-safe-replication.html)，在主备复制时，如何保证数据的一致性，当然主要是备库。
+* [MySQL 主备数据校验](/post/mysql-replication-pt-table-checksum.html)，由于各种原因，主从架构可能会出现数据不一致，简单介绍校验方式。
 * [MySQL 高可用 MHA](/post/mysql-replication-mha.html)，相对成熟的方案，能做到30秒内自动故障切换，且尽可能保证数据一致性。
 * [MySQL 组复制](/post/mysql-group-replication.html)，也就是基于 Paxos 协议变体实现，提供了一种高可用、强一致的实现。
 
@@ -158,6 +165,7 @@ Percona 是最接近官方 MySQL Enterprise 发行版的版本，也就是说它
 * [InnoDB Redo Log](/post/mysql-innodb-redo-log.html)，介绍 redo log 相关。
 * [InnoDB Checkpoint](/post/mysql-innodb-checkpoint.html)，介绍 InnoDB 中与 checkpoint 相关内容，包括如何写入、何时写入。
 * [InnoDB Double Write Buffer](/post/mysql-innodb-double-write-buffer.html)，介绍为什么会有 dblwr 机制，以及 InnoDB 中如何实现。
+* [InnoDB 崩溃恢复](/post/mysql-innodb-crash-recovery.html)，简单介绍下在服务器启动的时候执行崩溃恢复的流程。
 
 
 <!--

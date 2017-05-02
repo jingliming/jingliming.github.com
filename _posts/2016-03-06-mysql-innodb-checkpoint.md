@@ -530,8 +530,12 @@ InnoDB 的 checkpoint 主要有 3 部分信息组成：
 
 http://tech.uc.cn/?p=716
 
+Checkpoint原理
+http://hedengcheng.com/?p=88
+
 关于checkpoint机制
 http://www.cnblogs.com/chenpingzhao/p/5107480.html
+
 -->
 
 

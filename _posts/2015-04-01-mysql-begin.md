@@ -99,6 +99,40 @@ http://cybend.com/html/201602/a35.htm
 https://www.percona.com/blog/2009/05/14/why-mysqls-binlog-do-db-option-is-dangerous/
 
 http://keithlan.github.io/2015/11/02/mysql_replicate_rule/
+
+如果有人问你数据库的原理，叫他看这篇文章
+http://blog.jobbole.com/100349/
+
+
+
+ 
+### In the future
+http://www.cnblogs.com/wyeat/p/mysql_innodb_logs1.html
+http://blog.itpub.net/22664653/viewspace-762668/
+http://dba.stackexchange.com/questions/8011/any-better-way-out-of-mysql-innodb-log-in-the-future
+https://www.percona.com/blog/2013/09/11/how-to-move-the-innodb-log-sequence-number-lsn-forward/
+InnoDB log sequence number NNNNNN is in the future!
+LSN比较重要的是崩溃恢复阶段以及BP的清理控制，正常来说LSN是一直递增的，
+
+1. 逐渐增加innodb_force_recovery参数值，一般最好不要超过4，指导MySQL可以正常启动。
+[mysqld]
+innodb_force_recovery = 1
+2. 将数据导出
+mysqldump -u root -p --all-databases > all-databases.sql
+3. 关闭服务器
+4. 删除掉出错的数据文件
+mv ib_logfile0 ib_logfile0.bak
+mv ib_logfile1 ib_logfile1.bak
+mv ibdata1 ibdata1.bak
+5. 启动mysql，然后从备份文件恢复数据
+sudo service mysql start
+mysql -u root -p < all-databases.sql
+
+### MySQL 密码
+http://cenalulu.github.io/mysql/myall-about-mysql-password/
+https://dev.mysql.com/doc/refman/5.7/en/start-slave.html
+
+
 -->
 
 

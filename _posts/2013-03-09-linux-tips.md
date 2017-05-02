@@ -319,6 +319,40 @@ $TAR -zcPf ~/tmp/$OUT $IN >/dev/null
 {% endhighlight %}
 
 
+## 日志清理脚本
+
+在 Linux 中可以通过 logrotate 对日志进行归档，如下是一个日志清理的脚本。
+
+{% highlight bash %}
+#!/bin/sh
+# log cleaner.
+
+# location of logs lies
+LOGPATH=${1:-"/var/log/appname/"}
+
+# days to expire, logs older than ${EXPIRE} days will be removed
+EXPIRE=${2:-10}
+TMPFILE="/tmp/old_log_files"
+
+echo "log=$LOGPATH, expire=${EXPIRE}"
+find ${LOGPATH} -regextype posix-basic -regex "${LOGPATH}[a-z]\+.log.[0-9]\+" -a -mtime "+${EXPIRE}" > ${TMPFILE}
+if [ $? -ne 0 ];then
+  echo "find older log files failed"
+  exit 1
+fi
+
+for f in `cat ${TMPFILE}`
+do
+  /usr/sbin/lsof|grep -q $f
+  if [ $? -eq 0 ];then
+    echo "$f is still open"
+  else
+    echo "deleteing file:$f"
+    rm -f $f
+  fi
+done
+{% endhighlight %}
+
 ## 杂项
 
 {% highlight text %}
