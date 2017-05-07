@@ -614,6 +614,28 @@ Query OK, 0 rows affected (0.01 sec)
 6.有权限设置relad_only
 7.连接数达到max_connections上限时无法创建连接时，拥有super权限的用户可以创建一个连接
 
+网络设置，包括了如何设置服务端+客户端、广播、多播等。
+https://collectd.org/wiki/index.php/Networking_introduction
+写入RRD文件，包括了Collectd对RRD的优化，以及其中一篇RRD优化介绍的文章
+http://oss.oetiker.ch/rrdtool-trac/wiki/TuningRRD
+https://collectd.org/wiki/index.php/Inside_the_RRDtool_plugin
+惊群问题讨论
+http://www.voidcn.com/blog/liujiyong7/article/p-377809.html
+linux时间相关结构体和函数整理
+http://www.cnblogs.com/zhiranok/archive/2012/01/15/linux_c_time_struct.html
+Heap数据结构(栈)
+http://www.cnblogs.com/gaochundong/p/binary_heap.html
+http://www.cnblogs.com/skywang12345/p/3610187.html
+
+
+AVL数
+https://courses.cs.washington.edu/courses/cse373/06sp/handouts/lecture12.pdf
+https://www.cise.ufl.edu/~nemo/cop3530/AVL-Tree-Rotations.pdf
+http://www.cnblogs.com/zhoujinyi/p/6497231.html
+
+https://dev.mysql.com/doc/refman/5.7/en/backup-policy.html
+https://dev.mysql.com/doc/refman/5.7/en/point-in-time-recovery.html
+
 
 
 

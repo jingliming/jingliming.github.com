@@ -78,7 +78,8 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Linux 监控之 Memory](/post/linux-monitor-memory.html)，简单介绍下 Linux 中与 Memory 监控相关的内容。
 * [Linux 监控之 IO](/post/linux-monitor-io.html)，简单介绍下 Linux 中与 IO 监控、测试相关的内容。
 * [Linux 监控杂项](/post/linux-monitor-misc.html)，简单列举一些常见的监控工具，以及配置方式等。
-* [Collectd](/post/collectd.html)，一个 C 语言编写的多线程监控采集程序，对其进行简单的介绍。
+* [Collectd 简介](/post/collectd-introduce.html)，一个 C 语言编写的多线程监控采集程序，对其进行简单的介绍。
+* [Collectd 源码解析](/post/collectd-source-code.html)，详细介绍 Collectd 的源码实现。
 * [Dstat 使用及其原理](/post/details-about-dstat.html)，一个使用 Python 编写的跨平台监控工具。
 * [Systemtap](/post/linux-systemtap.html)，介绍内核神器 Systemtap 的使用方式，包括了如何使用最新的安全特性。
 
@@ -106,6 +107,8 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Linux 后台服务管理](/post/linux-daemon-tools.html)，介绍目前常用的后台服务管理。
 * [你所不知道的定时任务](/post/details-about-cronie.html)，也就是 Linux 中如何使用 crontab，以及常见错误。
 * [Git 分支管理](/post/git-branch-model.html)，主要介绍 git 的分支处理常用操作，以及比较经典的版本分支管理方式。
+* [Linux 时间同步](/post/linux-sync-time.html)，介绍部分与时间相关的概念，例如时区、闰秒、夏令时、NTP 等。
+* [Linux 时间函数](/post/linux-timer-functions.html)，简单介绍下 Linux 中与时间相关的函数。
 
 <!--
 * [YUM 使用](/post/yum-usage.html)，包括了如何搭建私有镜像、定制 RPM 包等。

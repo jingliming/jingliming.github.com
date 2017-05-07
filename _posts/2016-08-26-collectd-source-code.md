@@ -1,338 +1,19 @@
 ---
-title: Collectd
+title: Collectd 源码解析
 layout: post
 comments: true
 language: chinese
 category: [linux,misc]
 keywords: collectd,monitor,linux
-description: collectd 是一个后台监控程序，用来采集其所运行系统上的系统信息，并提供各种存储方式来存储为不同值的格式，例如 RRD 文件形式、文本格式、MongoDB 等等。在此，简单介绍下 collectd 。
+description: 介绍下 Collectd 中源码的实现。
 ---
 
-collectd 是一个后台监控程序，用来采集其所运行系统上的系统信息，并提供各种存储方式来存储为不同值的格式，例如 RRD 文件形式、文本格式、MongoDB 等等。
-
-在此，简单介绍下 collectd 。
+接下来介绍下 Collectd 中源码的实现。
 
 <!-- more -->
 
-![collectd logo]({{ site.url }}/images/linux/collectd_logo.png "collectd logo"){: .pull-center width="40%" }
 
-## 简介
-
-Collectd 完全由 C 语言编写，故性能很高，可移植性好，它允许运行在系统没有脚本语言支持或者 cron daemon 的系统上，比如嵌入式系统；同时，它包含优化以及处理成百上千种数据集的新特性，目前包含了几十种插件。
-
-其中数据采集和采集数据的写入都可以通过插件进行定义，目前支持的数据采集插件包括了几十种，写入包括了 Graphite、RRDtool、Riemann、MongoDB、HTTP 等。
-
-如下是将采集的数据保存为 rrd 格式文件，并通过 rrdtool 工具绘制出来。
-
-![collectd cpu rrd]({{ site.url }}/images/linux/collectd_cpu_example.png "collectd cpu rrd"){: .pull-center }
-
-### 安装
-
-对于 CentOS 可以直接安装 collectd 对应的 RPM 包，不同的插件可以安装不同的包。
-
-{% highlight text %}
------ 查看当前版本，以及所支持的插件
-$ yum --enablerepo=epel list all | grep collectd
------ 安装
-# yum --enablerepo=epel install collectd
-{% endhighlight %}
-
-### 常见操作
-
-{% highlight text %}
------ 启动服务
-$ collectd -C collectd.conf
------ 检查配置文件
-$ collectd -C collectd.conf -t
------ 测试插件，会调用一次插件
-$ collectd -C collectd.conf -T
------ 刷新，会生成单独线程执行do_flush()操作
-$ kill -SIGUSR1 `pidof collectd`
------ 关闭服务，也可以使用SIGTERM信号
-$ kill -SIGINT `pidof collectd`
------ 采用多线程，可以通过该命令查看当前的线程数
-$ ps -Lp `pidof collectd`
-{% endhighlight %}
-
-#### 状态查看
-
-Collectd 可以通过 unixsock 插件进行通讯、查看状态等，也可以使用 collectdctl 命令；通过如下配置打开 unixsock 。
-
-{% highlight text %}
-LoadPlugin unixsock
-<Plugin unixsock>
-  SocketFile "/tmp/collectd.sock"
-  SocketGroup "collectd"
-  SocketPerms "0660"
-  DeleteSocket true                  # 启动时如果存在sock，是否尝试删除
-</Plugin>
-{% endhighlight %}
-
-在开启了 UnixSock 之后，可以通过如下命令与 Collectd 进行交互。
-
-{% highlight text %}
-$ collectdctl -s /tmp/collectd.sock listval
-$ echo "PUTNOTIF severity=okay time=$(date +%s) message=hello" | \
-    socat - UNIX-CLIENT:/path/to/socket
-{% endhighlight %}
-
-### 日志配置
-
-collectd 支持多种日志格式，包括了 syslog、logstash、本地日志文件等；如果调试，也可以通过 write_log 插件将采集数据写入到日志文件中。
-
-<!--
-另外，可以使用 logrotate 管理日志数据，配置如下。TODO:如何确认logrotate配置有效%%%%%无法自动重新打开,logrotate失效!!!
-
-cat <<- EOF > /etc/logrotate.d/collectd.conf
-var/log/nginx/*.log /var/log/tomcat/*log {   # 可以指定多个路径
-    daily                      # 每天切换一次日志
-    rotate 15                  # 默认保存15天数据，超过的则删除
-    compress                   # 切割后压缩
-    delaycompress              # 切割时对上次的日志文件进行压缩
-    dateext                    # 日志文件切割时添加日期后缀
-    missingok                  # 如果没有日志文件也不报错
-    notifempty                 # 日志为空时不进行切换，默认为ifempty
-    create 644 monitor monitor # 使用该模式创建日志文件
-    postrotate # TODO
-        if [ -f /var/run/nginx.pid ]; then
-            kill -USR1 `cat /var/run/nginx.pid`
-        fi
-    endscript
-}
-
-FIXME: 如果启用logfile，则尝试打开默认文件，没有权限则报错。用于打印 [2017-04-27 13:57:32] plugin_load: plugin "logfile" successfully loaded. 信息。
--->
-
-### 源码编译
-
-编译选项可以直接通过 ```./configure --help``` 命令查看，例如可以通过如下配置开启调试选项，也就是 COLLECT_DEBUG 宏；对于插件会自动检查是否存在头文件，例如 rrdtool 需要 rrd.h 文件，也就是需要安装 rrdtool-devel 包。
-
-{% highlight text %}
-$ ./configure --enable-debug --enable-all-plugins
-{% endhighlight %}
-
-注意，在配置完之后会打印配置项信息，包括了编译、链接参数，以及支持哪些插件等，也可以查看 config.log 文件。
-
-编译完成之后，可以直接通过 ```make check``` 进行检查；对于 RPM 包生成，在 contrib 中有相应的 spec 文件；对于帮助文档可以查看 ```man -l src/collectd.1```；关于支持哪些组件，可以查看源码中的 README 文件，例如测试时，可以直接开启 write_log 写入插件。
-
-另外，编译后的动态库保存在 src/.libs 目录下，如果不想安装，可以直接调整配置文件即可。
-
-
-### 配置文件
-
-源码中有一个 src/collectd.conf 参考配置文件，如下是一些常见的配置项。
-
-{% highlight text %}
-# 指定上报的主机名，可以为IP或者按照规则定义主机名称(service_name.componet_name)
-Hostname    "foobar"
-
-# 是否允许主机名查找，如果DNS配置可能有误，建议不要开启
-FQDNLookup   false
-
-# 对于<Plugin XXX>可以自动加载插件，无需指定LoadPlugin，详见dispatch_block_plugin()
-AutoLoadPlugin false
-
-# 设置日志文件，保存到本地文件中，可以通过logrotate管理
-LoadPlugin logfile
-<Plugin logfile>
-    LogLevel info
-    File "/var/log/collectd/collectd.log"  # 也可以配置为STDOUT，作为标准输出
-    Timestamp true
-    PrintSeverity true
-</Plugin>
-
-# 数据采集的时间间隔，可以在插件中进行覆盖；以及最大采集时间间隔
-Interval                 1
-MaxReadInterval        180
-
-# 用于配置读写线程数
-WriteThreads             5
-ReadThreads              5
-
-# 是否同时上报collectd自身的状态，会通过plugin_register_read()注册读取函数，也即会通过
-# 执行plugin_update_internal_statistics()函数上报当前collectd的状态
-CollectInternalStats false
-
-# 配置缓存的上下限
-WriteQueueLimitLow    8000
-WriteQueueLimitHigh  12000
-
-# 通过write_log插件将采集数据保存到日志中，默认采用的是Graphite格式
-LoadPlugin write_log
-<Plugin write_log>
-  Format JSON
-</Plugin>
-{% endhighlight %}
-
-如下简单列举一些常用的配置。
-
-1\. 数据缓存上下限设置。
-
-其中缓存中配置了上下限，在源码中分别对应了 ```write_limit_high```、```write_limit_low```，如果后者没有配置，则默认为 write_limit_high/2 。
-
-当小于 ```WriteQueueLimitLow``` 时不会丢弃所采集的数据，当大于上述值而小于 ```WriteQueueLimitHigh``` 时会概率性丢弃，而大于 High 则直接丢弃。
-
-2\. 插件采集时间间隔。
-
-如果调用插件读取数据时失败，则会将下次采集时间 double，但是最大值为配置文件中的设置值；当一次读取成功时，则会直接恢复到正常的采集时间间隔。
-
-<!--
-PIDFile     "/var/run/collectd.pid"
-PluginDir   "@libdir@/@PACKAGE_NAME@"
-TypesDB     "@prefix@/share/@PACKAGE_NAME@/types.db"
-BaseDir     "@localstatedir@/lib/@PACKAGE_NAME@"
-Timeout     "@localstatedir@/lib/@PACKAGE_NAME@"
-
-PreCacheChain、PostCacheChain(PreCache,PostCache) 用于配置filter-chain功能
-4.6开始支持filter-chain功能，可用于将某个值发送给特定的输出，其工作模式类似于ip_tables，包括了matches和targets，前者用于匹配一个规则，后者用于执行某个操作。
-
-是否需要配置系统的优先级。
-
-## 优化建议
-
-TODO:
-  1. 每个采集值对应一个value_list_t对象，保存时采用AVL，很多信息会冗余，从而导致浪费内存。
-  2. 每次
-
-SRC-TODO:
-  1. plugin_read_thread()添加线程ID，方便调试。
-  2. 从一个固定整点时间点开始，而非从启动时间开始计时。
-
-注册函数：
-  int plugin_register_config()
-  使用链表: first_callback
-
-  int plugin_register_complex_config()
-  通过一个注册的回调函数进行配置解析，在链表末尾写入。
-  使用链表: complex_callback_head
-
-  int plugin_register_init()<<<1>>>
-  注册初始化函数，正式创建读写线程之前执行。
-  使用链表: list_init
-
-
-  int plugin_register_read()
-  int plugin_register_complex_read()
-  两个函数的区别在于回调函数中是否需要传入参数，详见plugin_read_thread()中的调用。
-
-  int plugin_register_write(const char *name, plugin_write_cb callback,
-
-  int plugin_register_flush()
-  例如network
-  使用链表: list_flush，通过plugin_flush()函数调用
-
-  int plugin_register_missing(const char *name, plugin_missing_cb callback,
-  int plugin_register_shutdown()
-  使用链表：list_shutdown，通过plugin_shutdown_all()函数调用
-
-
-  int plugin_register_data_set(const data_set_t *ds) {
-  int plugin_register_log(const char *name, plugin_log_cb callback,
-  int plugin_register_notification(const char *name,
-
-https://collectd.org/wiki/index.php/Plugin_architecture
-
-
-
-
-网络设置，包括了如何设置服务端+客户端、广播、多播等。
-https://collectd.org/wiki/index.php/Networking_introduction
-写入RRD文件，包括了Collectd对RRD的优化，以及其中一篇RRD优化介绍的文章
-http://oss.oetiker.ch/rrdtool-trac/wiki/TuningRRD
-https://collectd.org/wiki/index.php/Inside_the_RRDtool_plugin
-惊群问题讨论
-http://www.voidcn.com/blog/liujiyong7/article/p-377809.html
-linux时间相关结构体和函数整理
-http://www.cnblogs.com/zhiranok/archive/2012/01/15/linux_c_time_struct.html
-Heap数据结构(栈)
-http://www.cnblogs.com/gaochundong/p/binary_heap.html
-http://www.cnblogs.com/skywang12345/p/3610187.html
-
-
-AVL数
-https://courses.cs.washington.edu/courses/cse373/06sp/handouts/lecture12.pdf
-https://www.cise.ufl.edu/~nemo/cop3530/AVL-Tree-Rotations.pdf
-http://www.cnblogs.com/zhoujinyi/p/6497231.html
-
-https://dev.mysql.com/doc/refman/5.7/en/backup-policy.html
-https://dev.mysql.com/doc/refman/5.7/en/point-in-time-recovery.html
-
-
-通过cdtime()函数获取当前时间，实际上调用clock_gettime()系统函数，统计从1970.1.1开始时间；然后通过nanosleep()休眠。
-
-struct timespec {
-    time_t tv_sec; /* seconds */
-    long tv_nsec;  /* nanoseconds */
-};
-typedef uint64_t cdtime_t;
-#define NS_TO_CDTIME_T(ns)                                                     \
-  (cdtime_t) {                                                                 \
-    ((((cdtime_t)(ns)) / 1000000000) << 30) |                                  \
-        ((((((cdtime_t)(ns)) % 1000000000) << 30) + 500000000) / 1000000000)   \
-  }
-#define TIMESPEC_TO_CDTIME_T(ts)                                               \
-  NS_TO_CDTIME_T(1000000000ULL * (ts)->tv_sec + (ts)->tv_nsec)
-
-在内部维护了list以及heap两个结构，分别用于保存当前的插件，以及下个周期需要调用那个插件。
-
-
-##### 指定日志文件
-PluginDir   "src/.libs"
-TypesDB     "src/types.db"
-WriteQueueLimitHigh
-LoadPlugin logfile
-LoadPlugin network
-LoadPlugin rrdtool
-对于rrdtool插件，会在DataDir目录下创建 {hostname}/{measurement} 目录保存采集数据。
--->
-
-## 通讯协议
-
-Collectd 提供了两种协议 [Plain text protocol](https://collectd.org/wiki/index.php/Plain_text_protocol) 以及 [Binary protocol](https://collectd.org/wiki/index.php/Binary_protocol) 。
-
-### Plain text protocol
-
-这一协议目前可以在使用 Exec 执行脚本时使用，或者通过 UnixSock 查看当前 Collectd 服务的状态时使用。注意：一行的请求需要小于 1024 字节，否则报 "Parsing options failed" 错误。
-
-#### LISTVAL
-
-语法是 ```LISTVAL``` ，用于查看当前监控项，会打印出上次采集的时间点。
-
-{% highlight text %}
-$ collectdctl -s /tmp/collectd.sock listval
-$ echo "LISTVAL" | nc -U /tmp/collectd.sock
-$ echo "LISTVAL" | socat - UNIX-CLIENT:/tmp/collectd.sock
-{% endhighlight %}
-
-#### GETVAL
-
-语法是 ```GETVAL Identifier``` ，获取某个指标的采集值，指标通过上述的标示符 (Identifier) 定义。
-
-{% highlight text %}
-$ echo 'GETVAL "localhost/memory/memory-buffered"' | nc -U /tmp/collectd.sock
-{% endhighlight %}
-
-#### PUTVAL
-
-语法是 ```PUTVAL Identifier [OptionList] Valuelist``` ，用于将某个监控项提交给 Collectd 服务，会自动转给写插件。
-
-* OptionList: 选项列表，每项通过 KV 表示，目前只支持 interval=seconds 这一模式。
-* Valuelist: 通过冒号分割的时间戳以及值，支持的数据类型有 uint(COUNTER+ABSOLUTE), int(DERIVE), double(GAUGE)；对于 GAUGE 可以使用 "U" 标示未定义值，但是不能对 COUNTER 使用 "U"；时间戳采用 UNIX epoch，也可以使用 "N" 表示使用当前时间。
-
-{% highlight text %}
-$ echo 'PUTVAL "localhost/load/load" interval=10 N:13:456:5000' | nc -U /tmp/collectd.sock
-{% endhighlight %}
-
-<!--
-##### PUTNOTIF
-
-echo "PUTNOTIF severity=okay time=$(date +%s) message=hello" | \
-  socat - UNIX-CLIENT:/path/to/socket
--->
-
-
-
-## 源码解析
+## 常用概念
 
 在介绍源码的实现前，首先看下一些常见的概念。
 
@@ -359,7 +40,10 @@ wanda/disk-hdc1/disk_octets
 leeloo/load/load
 {% endhighlight %}
 
-常见的在 global cache 中会使用，用于保存最近保存的一次数据。
+常见的在 global cache 中会使用，用于保存最近保存的一次数据，与 notification 相关的参数。
+
+个人建议使用 Plugin + Plugin Instance + types.db 这种方式定义 Identifier 。
+
 
 ### 采集值类型
 
@@ -374,11 +58,74 @@ Collectd 中总共有四种类型，简单介绍如下：
 
 <!-- 详见: https://collectd.org/wiki/index.php/Data_source -->
 
-### 插件实现
+## 插件实现
 
 首先，简单说下插件是如何加载的。
 
 有个配置项 ```AutoLoadPlugin false``` 用于控制是否会自动加载插件，默认需要先通过 LoadPlugin 指令加载插件，然后再在 ```<Plugin XXX>``` 中进行配置，否则会报错；当然也可以将该参数修改为 true ，然后在遇到 ```<Plugin XXX>``` 时自动加载。
+
+源码中有一个示例插件，可查看 ```contrib/examples``` 目录下的文件；当然，也可以参考 [官方文档](https://collectd.org/wiki/index.php/Plugin_architecture) 。
+
+插件的实现实际上主要是通过将回调函数注册到链表上。
+
+{% highlight text %}
+int plugin_register_init()<<<1>>>
+注册初始化函数，正式创建读写线程之前执行。
+使用链表: list_init
+
+int plugin_register_config()<<<2>>>
+简单的配置处理，只含有配置项以及回调函数。
+使用链表: first_callback
+
+int plugin_register_complex_config()<<<2>>>
+通过一个注册的回调函数进行配置解析，在链表末尾写入；该函数会对配置项进行检测，包括了一些复杂的逻辑处理。
+使用链表: complex_callback_head
+
+int plugin_register_flush()<<<3>>>
+有部分插件会缓存数据，例如network、rrdtool等，通过函数注册到链表，在执行 flush 命令时会调用链表上的各个函数。
+使用链表: list_flush，通过plugin_flush()函数调用
+
+int plugin_register_read()<<<3>>>
+int plugin_register_complex_read()
+两个函数的区别在于回调函数中是否需要传入参数，详见plugin_read_thread()中的调用。
+使用链表：read_list
+
+int plugin_register_write()<<<3>>>
+写入插件的回调函数注册。
+使用链表：list_write
+
+int plugin_register_missing()<<<3>>>
+会在每次的时间间隔检查是否有数据丢失，当发现有数据丢失时会调用注册的函数。
+使用链表：list_missing
+
+int plugin_register_shutdown()<<<4>>>
+通过plugin_shutdown_all()函数调用。
+使用链表：list_shutdown
+{% endhighlight %}
+
+<!--
+int plugin_register_data_set()
+int plugin_register_log()
+int plugin_register_notification()
+https://collectd.org/wiki/index.php/Plugin_architecture
+-->
+
+
+## 源码详解
+
+介绍下调用流程。
+
+### 内存管理
+
+这里以 load 插件为例。
+
+1. 通过 ```plugin_register_read()``` 函数注册到链表中，调用回调函数采集指标；
+2. 回调函数，load 通过 ```VALUE_LIST_INIT``` 宏初始化，也就是初始化一个本地的临时变量，然后通过 ```plugin_dispatch_values()``` 函数发送给 collectd 核心；
+3. 在 ```plugin_write_enqueue()``` 函数中主要的内存分配函数，包括了 ```malloc(sizeof(write_queue_t)) + malloc(sizeof(value_list_t)) + calloc(len,sizeof(values)) + calloc(1,sizeof(meta_data_t))```，如果中间有内存分配失败则释放；
+4. 而写线程插件会阻塞在 ```plugin_write_dequeue()``` 中，该函数会释放 ```sfree(write_queue_t)``` ，然后返回 ```value_list_t``` 指针；
+5. 线程的主循环 ```plugin_write_thread()``` 函数中，在执行完分发后会调用 ```plugin_value_list_free()``` 释放之前申请的主要内存。
+
+calloc() 会将申请的缓存初始化为 0 ，而 malloc() 不会初始化内存。
 
 ### 调用流程
 
@@ -453,7 +200,7 @@ main()
  |   |-start_write_threads()                  ← 开启写线程
  |   | |-plugin_write_thread()                ← 启动写线程，真正的线程执行函数
  |   | | | ###BEGIN###while循环调用，判断write_loop是否可用
- |   | | |-plugin_write_dequeue()             ← 从write_queue链表的首部获取一个对象
+ |   | | |-plugin_write_dequeue()             ← 从write_queue链表的首部获取一个对象，队列递减
  |   | | | |-pthread_cond_wait()              ← 等待write_cond条件变量，使用write_lock锁
  |   | | |-plugin_dispatch_values_internal()  ← 入参是value_list_t类型
  |   | | | |-c_avl_get()                      ← 从data_sets中获取对应的数据类型，也就是types.db中
@@ -641,60 +388,11 @@ static void *plugin_read_thread(void __attribute__((unused)) * args) {
 
 实际上，在 contrib/examples 目录下有个插件的示例程序；在此选一个比较简单的插件 load，一般最终会通过 ```plugin_dispatch_values()``` 函数提交。该函数主要是将数据添加到 write_queue_head 列表中，并发送 write_cond。
 
-## 其它
+## FAQ
 
-### FAQ
-
-1\. 如何编写插件？
-
-源码中有一个示例插件，可查看 ```contrib/examples``` 目录下的文件；当然，也可以参考 [官方文档](https://collectd.org/wiki/index.php/Plugin_architecture) 。
-
-2\. 网络中断时可以缓存多少数据？
-
-可以通过 ```WriteQueueLimitHigh```、```WriteQueueLimitLow``` 参数可以配置缓存队列的大小，在源码中对应了 ```write_limit_high```、```write_limit_low``` 变量。
-
-当小于 ```WriteQueueLimitLow``` 时不会丢弃所采集的数据，当大于上述值而小于 ```WriteQueueLimitHigh``` 时会概率性丢弃，而大于 High 则直接丢弃。
-
-3\. 运维查看当前状态？
-
-可通过 collectdctl 命令查看，此时需要开启 unixsock 插件，可直接通过 ```man -l src/collectdctl.1``` 查看帮助。
-
-{% highlight text %}
-LoadPlugin unixsock
-<Plugin unixsock>
-  SocketFile "/tmp/collectd-unixsock"
-  SocketGroup "collectd"
-  SocketPerms "0660"
-  DeleteSocket false
-</Plugin>
-{% endhighlight %}
-
-4\. types.db 如何使用？
-
-type.db 每行由两个字段组成，由空格或者 tab 分隔，分别表示：A) 数据集名称；B) 数据源说明的列表，对列表单元都以逗号分隔。
-
-每个数据源通过冒号分为 4 部分：数据源名、类型、最小值和最大值 ```ds-name:ds-type:min:max```；其中 ds-type 包含 4 种类型 (ABSOULUTE, COUNTER, DERIVE, GAUSE)，其中，mix 和 max 定义了固定值范围，U 表示范围未知或者不限定。
-
-每行数据对应了一个 ```value_list_t```，可以通过 ```format_values()``` 函数进行格式化。
-
-5\. 如何查看 collectd 的状态？
-
-自身状态查看，可以在配置文件中添加 ```CollectInternalStats true``` 选项，或者开启 unixsocket，然后通过 collectdctl 命令进行查看。
-
-显然，一个是可以远程采集数据的，一个是只能本地访问的。
-
-6\. meta data 的作用是？
+1\. meta data 的作用是？
 
 meta data (meta_data_t) 用于将一些数据附加到已经存在的结构体上，如 values_list_t，对应的是 KV 结构，其中一个使用场景是 network 插件，用于标示从哪个插件采集来的，防止出现循环，也用于该插件的 Forward 选项。
-
-
-## 参考
-
-一些与 collectd 相关的工具，可以参考 [Related sites](http://collectd.org/related.shtml) 。
-
-
-
-
 
 
 <!--
@@ -779,6 +477,8 @@ Synopsis
   Severity "WARNING"
 </Target>
 
+
+
 Placeholders
 
 The following placeholders will be replaces by their respective values in the Message option:
@@ -799,32 +499,12 @@ The following placeholders will be replaces by their respective values in the Me
 
 
 
-
-### 插件
-
-Bash脚本
-
-https://collectd.org/wiki/index.php/Plugin:Exec
-
-
-
-
-## 消息
-
-从 4.3 版本开始支持该功能，
-
-
 http://en.proft.me/2014/05/6/monitoring-cpu-ram-network-collectd/
 
-https://collectd.org/wiki/index.php/Target:Notification
 
 https://collectd.org/wiki/index.php/Chains
 
 https://mailman.verplant.org/pipermail/collectd/2017-April/thread.html
-
-https://collectd.org/wiki/index.php/Notifications_and_thresholds
-
-thresholds解析
 
 
 collectd 数据类型详解
@@ -838,8 +518,151 @@ https://collectd.org/wiki/index.php/High_resolution_time_format
 https://collectd.org/wiki/index.php/Release_process
 
 
-https://www.netways.de/fileadmin/images/Events_Trainings/Events/OSMC/2015/Slides_2015/collectd_Thresholds_Plugin_and_Icinga_-_Florian_Forster.pdf
+
+plugin_dispatch_multivalue() memory
+
+
+
+
+complex 主要是会在检查配置文件读取配置项时，判断是否需要注册各种回调函数。
+
+
+
+
+
+## threshold 实现
+
+
+plugin_register_complex_config()
+ |-cf_register_complex() 会添加到complex_callback_head链表的尾部
+
+在配置初始化函数 ut_config() 函数中，会注册两个主要的回调函数 ut_missing() 以及 ut_check_threshold() 两个函数；其插件规则保存在threshold_tree，一个自平衡二叉树(AVL)结构体。
+
+
+
+ut_check_threshold()
+ |-threshold_search()
+ |-uc_get_rate()
+ |-ut_check_one_threshold()
+ |-ut_report_state()
+
+
+
+thresholds解析
+
+
+
+
+
+
+
+## 插件实现
+
+SRC-TODO:
+  1. plugin_read_thread()添加线程ID，方便调试。
+  2. 从一个固定整点时间点开始，而非从启动时间开始计时。
+
+
+https://collectd.org/wiki/index.php/Plugin_architecture
+InnoDB: Error: page 570 log sequence number 7289495
+InnoDB: is in the future! Current system log sequence number 5574939.
+InnoDB: Your database may be corrupt or you may have copied the InnoDB
+InnoDB: tablespace but not the InnoDB log files. See
+InnoDB: http://dev.mysql.com/doc/refman/5.6/en/forcing-innodb-recovery.html
+InnoDB: for more information.
+
+日志显示是数据文件的 LSN 比 Redo Log 的 LSN 要大，当系统尝试使用 Redo Log 去修复数据页面的时候，发现 Redo Log LSN 比数据页面还小，所以导致错误。数据页的 LSN 在一般情况下，都是小于 Redo Log 的，因为在事物提交时先顺序写入 Redo Log ，然后后台线程将脏页刷新到数据文件中，所以，数据页的 LSN 正常情况下永远会比 Redo Log 的 LSN 小。
+
+可能场景：
+1. 如果有批量更新未提交，然后 kill 进程之后执行回滚操作，但是未等回滚执行完毕就 kill -9 mysql 导致回滚崩溃。
+
+buf_page_io_complete() BP的异步读写完成
+ |-buf_page_is_corrupted() 直接报错函数
+   |-memcmp() 非压缩页，则检查页头部与尾部的LSN是否相同
+   |-log_peek_lsn() 获取当前的log_sys->lsn，TODO如何获取？？？
+   | <<<IMPORTANT>>> 如果当前LSN小于页面保存的FIL_PAGE_LSN那么则报错"in the future"
+   |-buf_page_is_checksum_valid_crc32() 根据不同的页校验算法进行校验
+
+页是否损坏判断：
+1. 非压缩页校验 FIL_PAGE_LSN 和 FIL_PAGE_END_LSN_OLD_CHKSUM 所在的低 4 Bytes 是否相同，LSN是8Bytes为什么只校验低4Bytes？？？
+2. 如果是
+
+InnoDB 恢复流程
+https://forums.cpanel.net/threads/innodb-corruption-repair-guide.418722/
+https://boknowsit.wordpress.com/2012/12/22/mysql-log-is-in-the-future/
+
+
+FIXME:
+mysql-innodb-crash-recovery.html
+recv_recovery_from_checkpoint_start() 函数末尾设置recv_lsn_checks_on为TRUE
+ |-recv_find_max_checkpoint() 从redolog中...
+ |-log_group_read_checkpoint_info()
+collectd.html
+
+增加 History 配置项，用于保存历史数据。
+
+
+typedef unsigned long long counter_t;
+typedef double gauge_t;
+typedef int64_t derive_t;
+typedef uint64_t absolute_t;
+
+global cache
+
+如果没有则通过 uc_insert() 写入，
+
+
+
+Programs must be written for people to read, and only incidentally for machines to execute.
+
+I'm not that familiar with automake, but I am pretty sure there is some way to solve this dilemma. Can anybody here give me a hint
+
+
+?int uc_get_history(const data_set_t *ds, const value_list_t *vl, gauge_t *ret_history, size_t num_steps, size_t num_ds);
+
+ds+vl 为调用 write 回调函数时的入参，
+
+
+
+什么情况下会阻塞？？
+
+fc_register_target()  添加到target_list_head链表的末尾
+
+fc_configure()
+ |-fc_init_once() 初始化内置target，包括了jump、stop、return、write
+ |-fc_config_add_chain() 如果使用Chain参数
+   |-fc_config_add_target()
+
+fc_process_chain() 流程的处理
+
+https://collectd.org/wiki/index.php/Target:Notification
+
+
+fc_register_match() 添加到match_list_head链表的末尾
 -->
+
+## BUG-FIX
+
+### 日志输出
+
+如果将日志输出到文件时，可能会报如下的错误。
+
+{% highlight text %}
+collectd -C collectd.conf -t
+logfile plugin: fopen (/opt/collectd/var/log/collectd.log) failed: No such file or directory
+{% endhighlight %}
+
+修改 logfile.c 中的默认文件，设置为标准错误输出 ```STDERR``` 。
+
+{% highlight c %}
+//#define DEFAULT_LOGFILE LOCALSTATEDIR "/log/collectd.log"
+#define DEFAULT_LOGFILE "stderr"
+{% endhighlight %}
+
+
+## 参考
+
+一些与 collectd 相关的工具，可以参考 [Related sites](http://collectd.org/related.shtml) 。
 
 {% highlight text %}
 {% endhighlight %}

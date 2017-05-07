@@ -152,26 +152,19 @@ Automake 支持三种目录层次： “flat”、“shallow”和“deep”。�
 用于通过 autoconf 命令生成 configure 脚本，如下是一个 configure.ac 的示例：
 
 {% highlight text %}
-AC_PREREQ([2.63])
-AC_INIT([st], [1.0], [zhoupingtkbjb@163.com])
+AC_PREREQ([2.69])
+AM_INIT_AUTOMAKE(hello, 1.0)
+AC_INIT([hello], [1.0], [www.douniwan.com])
 AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_HEADERS([src/config.h])
-
-AM_INIT_AUTOMAKE([foreign])
-
 
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_LIBTOOL
-
 # Checks for libraries.
-
 # Checks for header files.
-
 # Checks for typedefs, structures, and compiler characteristics.
-
 # Checks for library functions.
-
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/a/Makefile
@@ -179,9 +172,9 @@ AC_CONFIG_FILES([Makefile
 AC_OUTPUT
 {% endhighlight %}
 
-以 ```AC_``` 开头的是一些宏调用，与 C 中的宏概念类似，会被替换展开；而 m4 是一个经典的宏工具，autoconf 正是构建在 m4 之上，可以简单理解为 autoconf 预先实现了大量用于检测系统可移植性的宏，这些宏在展开后就是大量的 shell 脚本。
+以 ```AC_``` 开头的是一些宏调用，与 C 中的宏概念类似，会被替换展开；很多以 AC_PROG_XXX 开头的宏用于检查所需要的程序是否存在，详细可以查看 [Particular Program Checks](https://www.gnu.org/software/autoconf/manual/autoconf-2.69/html_node/Particular-Programs.html)；对于一些特殊的函数或者文件则可以通过 [Generic Program and File Checks](https://www.gnu.org/software/autoconf/manual/autoconf-2.69/html_node/Generic-Programs.html) 中定义的宏进行检查。
 
-所以编写 configure.ac 需要对这些宏熟练掌握，并且合理调用，有时，甚至可以自己实现自己的宏。
+而 m4 是一个经典的宏工具，autoconf 正是构建在 m4 之上，可以简单理解为 autoconf 预先实现了大量用于检测系统可移植性的宏，这些宏在展开后就是大量的 shell 脚本。所以编写 configure.ac 需要对这些宏熟练掌握，并且合理调用，有时，甚至可以自己实现自己的宏。
 
 #### configure.scan
 
