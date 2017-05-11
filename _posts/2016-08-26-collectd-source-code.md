@@ -12,6 +12,64 @@ description: 介绍下 Collectd 中源码的实现。
 
 <!-- more -->
 
+## 简介
+
+在编译源码前，需要先安装部分依赖库。
+
+{% highlight text %}
+# yum install libtool-ltdl-devel flex bison
+{% endhighlight %}
+
+<!--
+libtool-ltdl-devel
+ibtoolize: `COPYING.LIB' not found in `/usr/share/libtool/libltdl'
+-->
+
+接着介绍下源码编译时常用的命令。
+
+{% highlight text %}
+----- 如果修改了configure.ac
+$ autoreconf -ivf
+
+----- 修改Makefile.am
+$ automake --add-missing --copy
+
+----- 编译测试##默认关闭所有插件，指定需要编译的插件
+$ mkdir build && cd build
+$ ../configure --enable-debug --enable-all-plugins=no \
+    --enable-logfile --enable-unixsock --enable-write-log \
+    --enable-cpu --enable-load --enable-contextswitch \
+    --enable-memory
+$ make
+$ make distclean
+
+----- 单元测试##
+$ make check
+
+----- 压测工具，会随机生成host、plugin、values，尽量模拟正常的采集流量
+$ collectd-tg
+
+----- 源码发布打包
+$ make distcheck
+{% endhighlight %}
+
+与测试相关的宏定义在 testing.h 文件中，执行 ```make check``` 需要定义 TESTS 变量，可以指定多个，如果返回非零则表示失败，详细可以查看 [Support for test suites](https://www.gnu.org/software/automake/manual/html_node/Tests.html) 。
+
+对于 man 文档，通过 man_MANS 变量定义，然后会根据后缀名自动安装到相应的系统目录。
+
+<!--
+* tries to do a VPATH build (see VPATH Builds), with the srcdir and all its content made read-only;
+* runs the test suite (with make check) on this fresh build;
+* installs the package in a temporary directory (with make install), and tries runs the test suite on the resulting installation (with make installcheck);
+* checks that the package can be correctly uninstalled (by make uninstall) and cleaned (by make distclean);
+* finally, makes another tarball to ensure the distribution is self-contained.
+-->
+
+打包时可以通过 EXTRA_DIST 变量指定比较特殊的一些文件。
+
+
+
+
 
 ## 常用概念
 
@@ -109,6 +167,42 @@ int plugin_register_log()
 int plugin_register_notification()
 https://collectd.org/wiki/index.php/Plugin_architecture
 -->
+
+### 新增插件
+
+首先，新增 autoconf 的配置。
+
+需要通过自定义的宏 ```AC_PLUGIN()``` 添加插件编译，其中第一个参数为 ```--enable-XXX``` 使用，第二个表示是否需要编译 (例如是否依赖的库存在，如果出了C99/POSIX不依赖其它则设置为 "yes" 即可)，第三个参数为注释，用于 ```./configure --help``` 。
+
+如下是简单的示例。
+
+{% highlight text %}
+AC_PLUGIN([name],                $with_dependency,          [description])
+AC_PLUGIN([xencpu],              [$plugin_xencpu],          [Xen Host CPU usage])
+AC_PLUGIN([xmms],                [$with_libxmms],           [XMMS statistics])
+AC_PLUGIN([zookeeper],           [yes],                     [Zookeeper statistics])
+{% endhighlight %}
+
+添加上述的宏之后，会增加如下功能：
+ * 使用 configure 命令配置时，可以通过 ```--enable-XXX``` 或者 ```--disable-XXX``` 参数配置是否需要编译该模块；
+ * 在 Makefile.am 中可以通过 ```if BUILD_PLUGIN_XXX``` 判断是否需要编译生成动态库；
+ * 最终生成的配置头文件 src/config.h 中含有 ```HAVE_PLUGIN_XXX``` 定义宏。
+
+接着增加 automake 配置。
+
+在如上的 ```AC_PLUGIN()``` 宏中，会通过 ```AM_CONDITIONAL()``` 定义一个 ```BUILD_PLUGIN_XXX```，不同的目录下都有相应的 Makefile.am 文件；例如，要增加一个插件，可以使用类似如下配置。
+
+{% highlight text %}
+if BUILD_PLUGIN_FOOBAR
+    pkglib_LTLIBRARIES += foobar.la
+    foobar_la_SOURCES = foobar.c
+    foobar_la_LDFLAGS = -module -avoid-version
+    collectd_LDADD += "-dlopen" foobar.la
+    collectd_DEPENDENCIES += foobar.la
+endif
+{% endhighlight %}
+
+然后就可以通过 autoreconf + automake 重新生成。
 
 
 ## 源码详解
@@ -663,6 +757,25 @@ logfile plugin: fopen (/opt/collectd/var/log/collectd.log) failed: No such file 
 ## 参考
 
 一些与 collectd 相关的工具，可以参考 [Related sites](http://collectd.org/related.shtml) 。
+
+
+
+
+
+
+<!--
+Collectd Python 示例
+https://pypi.python.org/pypi/collectd
+https://github.com/deniszh/collectd-iostat-python/blob/master/collectd_iostat_python.py
+
+### 配置文件解析
+http://www.cppblog.com/woaidongmao/archive/2008/11/23/67637.html
+https://www2.cs.arizona.edu/~debray/Teaching/CSc453/DOCS/lex%20tutorial.ppt
+http://web.eecs.utk.edu/~bvz/teaching/cs461Sp11/notes/flex/
+通过 flex+bison 解析，源码保存在 src/liboconfig 目录下；正常源码编译时需要通过 flex+bison 生成源码文件，这里实际在发布前已经转换，所以在编译时就免去了这一步骤。
+-->
+
+
 
 {% highlight text %}
 {% endhighlight %}

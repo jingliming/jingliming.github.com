@@ -89,6 +89,176 @@ Used(Mem) = Used(-/+ buffers/cache) + buffers(Mem) + Cached(Mem)
 /proc/self/statm               // 当前进程的信息
 {% endhighlight %}
 
+### Swap对性能的影响
+
+当内存不足的时候把磁盘的部分空间当作虚拟内存来使用，而实际上并非是在内存不足的时候才使用，有个参数叫做 swappiness，是用来控制 swap 分区使用的，可以直接查看 ```/proc/sys/vm/swappiness``` 文件。
+
+默认值是 60，范围是 [0, 100]；为 0 表示会最大限度使用物理内存，然后才是 swap；为 100 时，表示尽量使用 swap 分区，把内存上的数据及时的搬运到 swap 空间里面。
+
+分配太多的 Swap 空间会浪费磁盘空间，而 Swap 空间太少，则系统有可能会发生错误。当系统的物理内存用光了，系统就会跑得很慢，但仍能运行；但是如果 Swap 空间也用光了，那么系统就会发生错误。
+
+通常情况下，Swap 空间是物理内存的 2~2.5 倍，最小为 64M；这也根据不同的应用，有不同的配置：如果是桌面系统，则只需要较小的 Swap 空间；而大的服务器则视情况不同需要不同大小的 Swap 空间，一般来说对于 4G 以下的物理内存，配置 2 倍的 swap ，4G 以上配置 1 倍。
+
+另外， Swap 分区的数量对性能也有很大的影响。因为 Swap 交换的操作是磁盘 IO 的操作，如果有多个 Swap 交换区， Swap 空间的分配会以轮流的方式操作于所有的 Swap ，这样会大大均衡 IO 的负载，加快 Swap 交换的速度。
+
+实际上，当空闲物理内存不多时，不一定表示系统运行状态很差，因为内存的 cache 及 buffer 部分可以随时被重用。**只有 swap 被频繁调用，才是内存资源是否紧张的依据，可以通过 vmstat 查看**。
+
+#### 状态查看
+
+可以使用 [getswapused1.sh](/reference/linux/monitor/getswapused1.sh) 和 [getswapused2.sh](/reference/linux/monitor/getswapused2.sh) 查看 swap 的使用情况，如果不使用 root 用户则只会显示当前用户的 swap，其它用户显示为 0。
+
+可以通过如下的命令排序，查看使用最多的进程，```./getswap.sh | egrep -v "Swap used: 0" | sort -n -k 5``` 。
+
+
+<!--
+<br><br><h2>测试</h2><p>
+通过执行 dd 查看缓存的变化。
+<pre style="font-size:0.8em; face:arial;">
+# free -w && dd if=/dev/zero of=foobar bs=4k count=40960 && free -w          // 写入168M
+</pre>
+可以看到 cache 增长的数目与文件大小基本相符，而且 buffers 同样由所增长；然后，通过 linux-ftools 中的工具查看。
+<pre style="font-size:0.8em; face:arial;">
+# linux-fincore foobar                    // cached_perc为100%
+</pre>
+该命令的执行过程大致如下。
+<pre style="font-size:0.8em; face:arial;">
+main()
+  |-getpagesize()                         // 获取系统中页的大小
+  |-open(path, O_RDONLY)                  // 只读方式打开
+  |-fstat(fd, &file_stat)                 // 查看文件属性，主要是大小
+    ....
+    file_mmap = mmap((void *)0, file_stat.st_size, PROT_NONE, MAP_SHARED, fd, 0 );
+    size_t calloc_size = (file_stat.st_size+page_size-1)/page_size;
+    mincore_vec = calloc(1, calloc_size);
+    if ( mincore(file_mmap, file_stat.st_size, mincore_vec) != 0 )
+    ....
+    if (mincore_vec[page_index]&1) {
+
+            ++cached;
+</pre>
+页面的大小是4K ，有了长度，我们就知道了，我们需要多少个int来存放结果。mmap建立映射关系，mincore获取文件页面的驻留情况，从起始地址开始，长度是filesize，结果保存在mincore_vec数组里。如果mincore[page_index]&1 == 1,那么表示该页面驻留在内存中，否则没有对应缓存。
+-->
+
+## 常用命令
+
+介绍下与内存相关的命令。
+
+### vmstat
+
+vmstat 不会将自己作为一个有效的进程。
+
+{% highlight text %}
+$ vmstat [options] [delay [count]]
+
+常用选项：
+  delay: 每多少秒显示一次。
+  count: 显示多少次，默认为一次。
+  -a: 显示活跃和非活跃内存。
+  -f: 显示从系统启动之后 forks 的数量；包括了 fork, vfork, clone 的系统调用，等价于创建的全部任务数。
+  -m,--slabs: 显示 slabinfo 。
+  -n,--one-header: 只显示一次，而不是周期性的显示。
+  -s,--stats: 显示内存统计以及各种活动信息。
+  -d,--disk: 显示磁盘的相关统计。
+  -D,--disk-sum: 显示硬盘统计信息的摘要。
+  -p,--partition device: 显示某个磁盘的统计信息。
+  -S,--unit char: 显示输出时的单位，1000(k),1024(K),1000*1000(m),1024*1024(M)，默认是 K，不会改变 swap 和 block 。
+
+----- 每秒刷新一次
+$ vmstat -S M 1
+procs -----------memory---------- ---swap-- -----io---- --system-- ----cpu----
+r  b   swpd   free   buff  cache   si   so    bi    bo   in    cs us sy id wa
+3  0      0   1963    607   2359    0    0     0     0    0     1 32  0 68  0
+{% endhighlight %}
+
+
+<!--
+各个段的含义为：
+	<ol type='A'><li>
+		procs 进程<br>
+		<ul><li>
+			r: 等待运行的进程数，如果运行队列过大，表示CPU很忙，一般会造成CPU使用率很高。</li><li>
+			b: 不可中断睡眠(uninterruptible sleep)的进程数，也就是被阻塞的进程，通常为IO。
+		</li></ul></li><br><li>
+
+		Memory 内存<br>
+		<ul><li>
+			swpd: 虚拟内存(Virtual Memory)的使用量，应该是交换区。</li><li>
+			free: 空闲内存数，同free命令中的free(Mem)。</li><li>
+			buff: 同free命令，已分配未使用的内存大小。</li><li>
+			cache: 同free命令，已分配未使用的内存大小。</li><li>
+			inact: 非活跃(inactive)内存的大小，使用 -a 选项????。</li><li>
+			active: 活跃(active)内存的大小，使用 -a 选项????。
+		</li></ul></li><br><li>
+
+		Swap 交换区<br>
+		<ul><li>
+			si: 每秒从交换区(磁盘)写到内存的大小。</li><li>
+            so: 每秒写入交换区(磁盘)的大小。</li></ul>
+        如果这两个值长期大于0，系统性能会受到影响，即我们平常所说的Thrashing(颠簸)；如果虽然free很少，但是si和so也很少（大多时候是0），也不用担心，系统性能这时不会受到影响的。
+        </li><br><li>
+
+		IO<br>
+		<ul><li>
+			bi: 每秒读取的块数(blocks/s)。</li><li>
+			bo: 每秒写入的块数(blocks/s)。
+		</li></ul></li><br><li>
+
+		System 系统<br>
+		<ul><li>
+			in: 每秒的中断数，包括时钟中断。</li><li>
+			cs: 每秒上线文的交换数。
+		</li></ul></li><br><li>
+
+		CPU<br>
+		<ul><li>
+			us: 用户进程执行时间。</li><li>
+			sy: 系统进程执行时间。</li><li>
+			id: 空闲进程执行时间，2.5.41 之后含有 IO-wait 的时间。</li><li>
+			wa: 等待 IO 的时间，2.5.41 之后含有空闲任务。
+		</li></ul>
+	</li></ol>
+
+<br><br><h2>源码分析</h2><p>
+通过 vmstat -a 命令能看到 active memory 和 inactive memory，这两个选项的解释也不太清楚，可以通过源码查看。vmstat 实际会从 /proc/meminfo 读取，其源码实现在 fs/proc/meminfo.c。
+<pre style="font-size:0.8em; face:arial;">
+$ grep -i active /proc/meminfo
+
+$ cat fs/proc/meminfo.c
+... ...
+static int meminfo_proc_show(struct seq_file *m, void *v)
+{
+    ... ...
+    for (lru = LRU_BASE; lru < NR_LRU_LISTS; lru++)
+        pages[lru] = global_page_state(NR_LRU_BASE + lru);
+
+
+        "Active:         %8lu kB\n"
+        "Inactive:       %8lu kB\n"
+        "Active(anon):   %8lu kB\n"
+        "Inactive(anon): %8lu kB\n"
+        "Active(file):   %8lu kB\n"
+        "Inactive(file): %8lu kB\n"
+
+
+        K(pages[LRU_ACTIVE_ANON]   + pages[LRU_ACTIVE_FILE]),
+        K(pages[LRU_INACTIVE_ANON] + pages[LRU_INACTIVE_FILE]),
+        K(pages[LRU_ACTIVE_ANON]),
+        K(pages[LRU_INACTIVE_ANON]),
+        K(pages[LRU_ACTIVE_FILE]),
+        K(pages[LRU_INACTIVE_FILE]),
+
+}
+</pre>
+这段代码是统计所有的 LRU list，为了可以达到“回收的页面应该是最近使用得最少的”效果，最理想的情况是每个页面都有一个年龄项，用于记录最近一次访问页面的时间，可惜 x86 CPU 硬件并不支持这个特性，x86 CPU 只能做到在访问页面时设置一个标志位 Access Bit，无法记录时间。<br><br>
+
+所以 Linux 内核使用了一个折衷的方法：它采用了 LRU list 列表，把刚访问过的页面放在列首，越接近列尾的就是越长时间未访问过的页面，这样，虽然不能记录访问时间，但利用页面在 LRU list 中的相对位置也可以轻松找到年龄最长的页面。<br><br>
+
+Linux 内核设计了两种 LRU list: active list 和 inactive list，刚访问过的页面放进 active list，长时间未访问过的页面放进 inactive list，这样从 inactive list 回收页面就变得简单了。<br><br>
+
+内核线程 kswapd 会周期性地把 active list 中符合条件的页面移到 inactive list 中，这项转移工作是由 refill_inactive_zone() 完成的。
+</P>
+
+
 
 ## 其它
 
@@ -168,16 +338,25 @@ Cache 的核心作用是加快取用的速度。比如你一个很复杂的计�
 不过仔细想一下，你说拿cache做buffer用行不行？当然行，只要能控制cache淘汰逻辑就没有任何问题。那么拿buffer做cache用呢？貌似在很特殊的情况下，能确定访问顺序的时候，也是可以的。简单想一下就明白——buffer根据定义，需要随机存储吗？一般是不需要的。但cache一定要。所以大多数时候用cache代替buffer可以，反之就比较局限。这也是技术上说cache和buffer的关键区别。
 
 https://www.zhihu.com/question/26190832/answer/146259979
-
-
-# 参考
-
-memtester 内存测试工具。
-
-
-
 -->
 
+
+## 参考
+
+查看那个进程在使用交换空间可以参考 [Find Out What Process Are Using Swap Space](http://www.cyberciti.biz/faq/linux-which-process-is-using-swap/)，或者 [本地文档](/reference/linux/monitor/Find Out What Process Are Using Swap Space.maff) 。
+
+通过 [vmtouch offical site](http://hoytech.com/vmtouch/) 可以查看文件在内存中的占比，可以下载 [本地源码](/reference/linux/monitor/vmtouch.c) 。
+
+<!--memtester 内存测试工具。-->
+
+<!--
+可用内存计算方法
+http://www.cnblogs.com/feisky/archive/2012/04/14/2447503.html
+内存监控相关
+https://linux-audit.com/understanding-memory-information-on-linux-systems/
+一次高内存使用率的告警处理
+http://farll.com/2016/10/high-memory-usage-alarm/
+-->
 
 
 {% highlight text %}

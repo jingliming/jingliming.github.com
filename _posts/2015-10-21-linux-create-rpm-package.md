@@ -113,7 +113,7 @@ License:        GPLv2+ and BSD                      
 
 Group:          Applications/Databases              ← 程序组名，从/usr/share/doc/rpm-VER/GROUPS选择
 URL:            http://kidding.com                  ← 一般为官网
-Source0:        %{name}-boost-%{version}.tar.gz     ← 使用的源码包名称，可以用SourceN指定多个，如配置文件
+Source0:        %{name}-boost-%{version}.tar.gz     ← 源码包名称(可以使用URL)，可以用SourceN指定多个，如配置文件
 #Patch0:         some-bugs.patch                    ← 如果需要打补丁，则依次填写
 BuildRequires:  gcc,make                            ← 制作过程中用到的软件包
 Requires:       pcre,pcre-devel,openssl,chkconfig   ← 安装时所需软件包，可使用bash >= 1.1.1
@@ -137,7 +137,7 @@ It is a MySQL from FooBar.
 make %{?_smp_mflags}                                ← 多核则并行编译
 
 #--- 4.Install section              ← ###安装阶段
- %install
+%install
 if [-d %{buildroot}]; then
    rm -rf %{buildroot}                              ← 清空下安装目录，实际会自动清除
 fi
@@ -331,6 +331,40 @@ define 定义的变量类似于局部变量，只在 ```%{!?foo: ... }``` 区�
 #--- 接下来，通过如下方式使用上述定义的变量
 %{?ssl_option}
 {% endhighlight %}
+
+在 RPM 中，问号 ```?``` 用于条件检测，默认如果对应的变量值不存在，那么 RPM 会原样保留字符串，通过问号表示，如果不存在则移除。
+
+{% highlight text %}
+$ rpm --eval='foo:%{foo}'$'\n''bar:%{?bar}'
+foo:%{foo}
+bar:
+
+$ rpm --define='foo foov' --eval='foo:%{foo}'$'\n''bar:%{?bar}'
+foo:foov
+bar:
+
+$ rpm --define='foo foov' --define='bar barv' --eval='foo:%{foo}'$'\n''bar:%{?bar}'
+foo:foov
+bar:barv
+{% endhighlight %}
+
+除了上述的表示方法外，还可以使用如下内容：
+
+{% highlight text %}
+%define _without_foobar            1
+# enabled by default
+%define with_foobar 0%{!?_without_foobar:1}
+{% endhighlight %}
+
+如果 ```_without_foobar``` 变量不存在，那么默认 ```with_foobar``` 为 01 也就是 true，否则就是 0 也就是 false；可以通过如下命令行进行测试。
+
+{% highlight text %}
+$ rpm --define='with_foobar 0%{!?_without_foobar:1}' --eval='foobar:%{with_foobar}'
+foobar:01
+$ rpm --define='_without_foobar 1' --define='with_foobar 0%{!?_without_foobar:1}' --eval='foobar:%{with_foobar}'
+foobar:0
+{% endhighlight %}
+
 
 ### 其它
 

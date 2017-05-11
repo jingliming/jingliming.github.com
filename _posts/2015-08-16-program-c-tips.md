@@ -77,6 +77,33 @@ int main(int argc, char *argv[])
 }
 {% endhighlight %}
 
+## Clang
+
+![clang logo]({{ site.url }}/images/programs/clang_logo.png "clang logo"){: .pull-center }
+
+Clang 是一个 C++ 编写，基于 LLVM 的 C/C++、Objective-C 语言的轻量级编译器，在 2013.04 开始，已经全面支持 C++11 标准。
+
+### pragma
+
+```#pragma``` 宏定义在本质上是声明，常用的功能就是注释，尤其是给 Code 分段注释；另外，还支持处理编译器警告。
+
+{% highlight c %}
+#pragma clang diagnostic push
+
+//----- 方法弃用告警
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+//----- 不兼容指针类型
+#pragma clang diagnostic ignored "-Wincompatible-pointer-types"
+//----- 未使用变量
+#pragma clang diagnostic ignored "-Wunused-variable"
+//----- 无返回值
+#pragma clang diagnostic ignored "-Wmissing-noreturn"
+//... ...
+
+#pragma clang diagnostic pop
+{% endhighlight %}
+
+
 
 {% highlight text %}
 {% endhighlight %}

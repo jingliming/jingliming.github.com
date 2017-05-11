@@ -226,7 +226,9 @@ Linux 上的 manpage 是用 groff 语法编写的，实际上可以通过如下�
 zcat man.1.gz | groff -man -Tascii | more
 {% endhighlight %}
 
-其查找路径可以通过 ```man -w``` 命令查看，或者查看配置文件 /etc/man.config；如下是常见的查看命令：
+其查找路径可以通过 ```man -w``` 命令查看，或者查看配置文件 /etc/man.config；很多帮助文档保存在 /usr/share/man/ 目录下，又按照不同类型保存不同的子目录下，例如 /usr/share/man/man1/mysqlshow.1.gz 。
+
+如下是常见的查看命令：
 
 {% highlight text %}
 ----- 查看搜索路径

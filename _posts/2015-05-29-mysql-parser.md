@@ -87,7 +87,7 @@ S -> ab
 关于上下文相关、无关语法可以参考 WiKi <a href="https://en.wikipedia.org/wiki/Context-free_grammar">Context-free grammar</a>、<a href="https://en.wikipedia.org/wiki/Context-sensitive_grammar">Context-sensitive grammar</a>，以及 <a href="http://cs.union.edu/~striegnk/courses/nlp-with-prolog/html/node37.html">Context Free Grammars</a>，也可以参考本地文档。
 -->
 
-### Lex 词法分析
+## Lex 词法分析
 
 Flex 采用的是状态机，通过分析输入流 (字符流)，只要发现一段字符能够匹配一个关键字 (正则表达式)，就会采取对应的动作。
 
@@ -153,6 +153,71 @@ COMMON WORD
 在处理时，flex 采用两个原则：A) 只匹配一次；B) 执行当前输入的最长可能匹配值。也就是对与 island 不会匹配 is 和 land 。当然，我们可以使用一个文件作为关键字列表，而非每次都需要编译。
 
 通过 flex 处理文件后，会将匹配转化为指定的符号，然后供 yacc 处理。
+
+### 常用函数
+
+简单列举常用函数。
+
+#### yyterminate()
+
+可在一个动作中代替 return 使用，用于结束扫描并向扫描器的调用者返回 0；可以通过如下方式自定义。
+
+{% highlight c %}
+#ifdef yyterminate
+# undef yyterminate
+#endif
+#define yyterminate() \
+    do { free (foobar); foobar = NULL; pos = 0; len = 0; \
+        return YY_NULL; } while (0)
+{% endhighlight %}
+
+#### 配置选项
+
+{% highlight text %}
+%option yylineno    提供当前的行信息，通常用于后续打印错误行信息
+%option noyywrap    不生成yywrap()声明
+%option noinput     会生成#define YY_NO_INPUT 1定义
+%option nounput     会生成#define YY_NO_UNPUT 1定义
+{% endhighlight %}
+
+flex 会声明一个 ```int yywarp(void);``` 函数，但是不会自动定义，所以通常会在最后的 section 实现该函数。该函数的作用是将多个输入文件打包成一个输入，也就是当 ```yylex()``` 读取到一个文件结束 (EOF) 时，会调用 ```yywrap()``` ，如果返回 1 则表示后面没有其它输入文件了，此时 ```yylex()``` 函数结束；当然，```yywrap()``` 也可以打开下一个输入文件，再向 ```yylex()``` 函数返回 0 ，告诉它后面还有别的输入文件。
+
+如果只有一个文件，那么可以通过 ```%option noyywrap``` 不声明该函数，也就不需要再实现。
+
+
+### 其它
+
+
+#### 值传递
+
+在通过 flex 进行扫描时，会将值保存在 yylval 变量中，而 bison 则读取 yylval 中的值，该变量默认是 int 类型，如果要使用字符串类型，那么可以在 .l+.y 的头部第一句加入 ```#define YYSTYPE char*``` 即可。
+
+{% highlight text %}
+// 在.l赋值的时候，要特别注意，需要拷贝字符串
+yylval = strdup(yytext);  return WORD;
+// 在.y取用的时候，直接强转就可以了
+(char*)$1
+{% endhighlight %}
+
+关于更优雅的实现方式，当然是用 union 啦，仿照上面，很容易写出来的。
+
+
+#### 标准格式
+
+{% highlight text %}
+%{
+/* C语言定义，包括了头文件、宏定义、全局变量定义、函数声明等 */
+}%
+%option noinput       /* 常见的配置选项 */
+WHITE_SPACE [\ \t\b]  /* 正则表达式的定义，如下section时可以直接使用这里定义的宏 */
+COMMENT #.*
+%%
+{WHITE_SPACE}           |
+{COMMENT}               {/* ignore */}  /* 规则定义处理 */
+%%
+/* C语言，函数实现等 */
+{% endhighlight %}
+
 
 
 ### YACC 语法分析
@@ -448,6 +513,8 @@ http://blog.csdn.net/lidan3959/article/details/8237914
 http://www.tuicool.com/articles/3aMVzi
 http://blog.csdn.net/sfifei/article/details/9449629
 -->
+
+
 
 
 {% highlight text %}

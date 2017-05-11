@@ -636,6 +636,7 @@ http://www.cnblogs.com/zhoujinyi/p/6497231.html
 https://dev.mysql.com/doc/refman/5.7/en/backup-policy.html
 https://dev.mysql.com/doc/refman/5.7/en/point-in-time-recovery.html
 
+https://www.unixhot.com/page/ops
 
 
 

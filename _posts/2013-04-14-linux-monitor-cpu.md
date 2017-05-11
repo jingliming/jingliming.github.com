@@ -115,12 +115,14 @@ cache_alignment : 64
 * Size，大小。
 coherency_line_size * physical_line_partition * ways_of_associativity * number_of_sets = size 。
 shared_cpu_map，标示被那些 CPU 共享。
+-->
 
 
 ## CPU Usage VS. LOAD
 
 Linux 系统的 CPU 使用率就是 CPU 的使用状况，也就是一段时间之中，CPU 用于执行任务占用的时间与总的时间的比率。
 
+<!--
 {% highlight text %}
 %user Percentage of CPU utilization that occurred while executing at the user level (application). Note that this field includes time spent running virtual processors. （未标志nice值的）用户态程序的CPU占用率。
 %nice Percentage of CPU utilization that occurred while executing at the user level with nice priority. 标志了nice值的用户态程序的CPU占用率。
@@ -129,12 +131,13 @@ Linux 系统的 CPU 使用率就是 CPU 的使用状况，也就是一段时间�
 %steal Percentage of time spent in involuntary wait by the virtual CPU or CPUs while the hypervisor was servicing another virtual processor. 这个一般是在虚拟机中才能看到数值，比如：我的VPS供应商CPU overcommitment很严重，故我偶尔能看到%steal值有点高。
 %idle Percentage of time that the CPU or CPUs were idle and the system did not have an outstanding disk I/O request. %idle越高，说明CPU越空闲。
 {% endhighlight %}
+-->
 
 ### 相关文件
 
 CPU 的全局性能指标保存在 ```/proc/stat``` 文件中，大部分监控都是读取该文件，如 dstat 。对于文件的解读可以参考 man 5 proc 中的 ```/proc/stat``` 部分，也可以参考 [online man  5 proc](http://man7.org/linux/man-pages/man5/proc.5.html) 。
 
-进程和线程的统计可参考 ```/proc/<pid>/stat``` 和 ```/proc/<pid>/task/<tid>/stat```；对于 ```/proc/stat``` 内容如下：
+进程和线程的统计可参考 ```/proc/<pid>/stat``` 和 ```/proc/<pid>/task/<tid>/stat```；需要注意的是，对于不同的内核版本， ```/proc/stat``` 内容会有所区别：```steal (since Linux 2.6.11)```、```guest (since Linux 2.6.24)```、```guest_nice (since Linux 2.6.33)``` 。
 
 {% highlight text %}
 cpu  3816877 11951 424208 1254811 21564 0 2153 0 0 0
@@ -155,33 +158,29 @@ softirq 76359224 43 47319594 111 58877 726684 9 63206 16513537 0 11677163
 
 {% highlight text %}
 cpu cpuN
-    CPU使用情况，都是从系统启动到当前的值，单位是节拍(USER_HZ)，总计分为10列；
+    CPU使用情况，都是从系统启动到当前的值，单位是节拍 (Jiffies)，总计分为10列；
   **user
-    处于用户态的运行时间，不包括nice为负的进程消耗时间。
+    普通进程处于用户态的运行时间，不包括nice为负的进程消耗时间。
   **nice
-    nice值为负的进程所占用的时间。
+    nice值为负的进程所占用的用户态时间。
   **system
-    处于核心态的运行时间，包括 IRQ 和 softirq 时间。
+    处于核心态的运行时间，也包括 IRQ 和 softirq 时间。
     如果系统CPU占用率高，表明系统某部分存在瓶颈，通常值越低越好。
   **idle
-    空闲时间，不包含IO等待时间。
+    空闲时间，不包含 IO 等待时间。
   **iowait
-    等待IO响应的时间(since 2.5.41)。
+    等待 IO 响应的时间(since 2.5.41)。
     如果系统花费大量时间等待 IO ，说明存在 IO 瓶颈。
   **irq
     处理硬中断的时间(since 2.6.0-test4)。
   **softirq
     处理软中断的时间(since 2.6.0-test4)。
-
-steal<br>
-当采用虚拟环境时，运行在其它操作系统上的时间，此时hypervisor在为另一个虚拟处理器服务。</li><li>
-guest
-与虚拟机相关，忽略。
-guest_nice
-同上。
-
-
-
+  **steal
+    当采用虚拟环境时，运行在其它操作系统上的时间，此时hypervisor在为另一个虚拟处理器服务，具体监控指标详见后面。
+  **guest
+    内核运行在虚拟机上的时间。
+  **guest_nice
+    同上。
 intr
     中断信息，首列为系统启动以来，发生的所有的中断的次数；接着的每个数对应特定中断自系统启动以来所发生的次数。
 ctxt
@@ -195,7 +194,6 @@ procs_running
 procs_blocked
     当前被阻塞的任务的数目。
 {% endhighlight %}
-
 
 PS: 如果 iowait 的值过高，表示硬盘存在 I/O 瓶颈。如果 idle 值高但系统响应慢时，有可能是 CPU 等待分配内存，此时应加大内存容量。
 
@@ -323,6 +321,8 @@ static int show_stat(struct seq_file *p, void *v)
 
 在上述的函数中，会依次统计 cpu 的各个参数，下面以 user 为例。
 
+
+<!--
 {% highlight text %}
 user = kcpustat_cpu(i).cpustat[CPUTIME_USER];
 user = per_cpu(kernel_cpustat, i).cpustat[CPUTIME_USER];
@@ -420,6 +420,19 @@ LIKWID 工具介绍可参考 [Lightweight performance tools](http://tools.zih.tu
 https://linux.cn/article-6201-1.html    *****非常经典：关于现代 CPU，程序员应当更新的知识
 
 http://www.cnblogs.com/yjf512/archive/2012/12/10/2811823.html
+
+/proc/stat的CPU负载信息说明
+http://myssh.igigo.net/post/xiao-za-sui/-proc-statde-cpufu-zai-xin-xi-shuo-ming
+
+Understanding CPU Steal Time - when should you be worried
+?http://blog.scoutapp.com/articles/2013/07/25/understanding-cpu-steal-time-when-should-you-be-worried
+
+Linux CPU利用率计算原理及内核实现
+http://ilinuxkernel.com/?p=333
+
+https://github.com/Leo-G/DevopsWiki/wiki/How-Linux-CPU-Usage-Time-and-Percentage-is-calculated
+http://www.samirchen.com/linux-cpu-performance/
+
 -->
 
 {% highlight text %}

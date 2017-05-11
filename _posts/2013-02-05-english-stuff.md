@@ -59,5 +59,9 @@ Rain Check 这句话后来有了引伸意思，日常生活中普遍应用。比
 上句是很客气的委婉讲法，如果约你的外国朋友已经是很熟的了，你大可直接说 ```I will take a rain check.```，还有，```Can I take a rain check on it? ``` 里的 rain check 意思自然一目了然了。
 
 
+<!--
+This is by no means a complete or highly detailed guide but simply gives an overview of what I’ve learnt so far
+-->
+
 {% highlight text %}
 {% endhighlight %}

@@ -66,6 +66,62 @@ sar [interval [count]]
 
 ![monitor sar]({{ site.url }}/images/linux/monitor-misc-sar.png "monitor sar"){: .pull-center width="80%" }
 
+
+## TOP
+
+top 是查看资源最常用的方式。
+
+### 常用场景
+
+简单列举下经常使用的场景。
+
+#### Batch Mode
+
+默认是交互模式，也就是循环执行，并接收用户的按键，这样对于一些采集的程序就不方便使用，这里可以使用 Batch Mode 。
+
+{% highlight text %}
+----- 使用Batch Mode打印指标，此时仍是无限循环
+$ top -b
+
+----- 通过-n参数指定只打印一次
+$ top -b -n 1
+
+----- 指定时间点运行，需要注意TERM环境变量，top命令需要但是at并没有获取该参数
+$ cat ./test.at
+TERM=linux top -b -n 1 >/tmp/top-report.txt
+$ at -f ./test.at now+1minutes
+{% endhighlight %}
+
+#### 监听特定进程
+
+可以通过如下方式指定只监控特定进程或者用户。
+
+{% highlight text %}
+----- 指定多个进程
+$ top -p 4360,4358
+$ top -p 4360 -p 4358
+
+----- 指定用户
+$ top -u johndoe
+$ top -u 500
+$ top -U johndoe
+{% endhighlight %}
+
+<!--
+The conclusion is, you can either use the plain user name or the numeric UID. "-u, -U? Those two are different?" Yes. Like almost any other GNU tools, options are case sensitive. -U means top will find matching effective, real, saved and filesystem UIDs, while -u just find matching effective user id. Just for reminder, every *nix process runs using effective UID and sometimes it isn't equal with real user ID. Most likely, one is interested in effective UID as filesystem permission and operating system capability are checked against it, not real UID.
+
+While -p is just command-line option only, both -U and -u can be used inside interactive mode. Like you guess, press 'U' or 'u' to filter the processes based on their user name. Same rule is applied, 'u' for effective UID and 'U' for real/effective/saved/filesystem user name. You will be asked to enter the user name or the numeric UID. '
+
+A 显示多个窗口。
+
+
+-->
+
+
+
+
+
+
 ## 多线程
 
 在 Linux 下可以通过如下程序查看多线程。
@@ -89,15 +145,6 @@ $ pstree -p `pidof mysqld`
 手册中说：m Show threads after processes
 这样可以查看一个进程起的线程数。
 -->
-
-
-
-
-
-
-
-
-
 
 
 

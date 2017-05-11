@@ -379,6 +379,41 @@ Makefile<br>
 
 ### 其它
 
+在正式执行 configure 之前，会调用 ```AC_DEFUN()``` 执行一些函数的扩展，然后调用 ```AC_INIT()``` 执行初始化操作；在 ```AC_INIT()``` 宏中，会初始化一些变量参数值，包括 ```AC_PACKAGE_NAME```、```PACKAGE_NAME``` 等。
+
+{% highlight text %}
+AC_INIT (package, version, [bug-report], [tarname], [url])
+AC_INIT ([collectd], [m4_esyscmd(./version-gen.sh)])
+{% endhighlight %}
+
+<!--
+AC_PACKAGE_NAME, PACKAGE_NAME
+  Exactly package.
+AC_PACKAGE_TARNAME, PACKAGE_TARNAME
+  Exactly tarname, possibly generated from package.
+AC_PACKAGE_VERSION, PACKAGE_VERSION
+  Exactly version.
+AC_PACKAGE_STRING, PACKAGE_STRING
+  Exactly ‘package version’.
+AC_PACKAGE_BUGREPORT, PACKAGE_BUGREPORT
+  Exactly bug-report, if one was provided.
+AC_PACKAGE_URL, PACKAGE_URL
+  Exactly url, if one was provided. If url was empty, but package begins with ‘GNU ’, then this defaults to ‘http://www.gnu.org/software/tarname/’, otherwise, no URL is assumed.
+-->
+
+
+
+#### 修改configure.ac
+
+需要执行 ```autoreconf -ivf``` 命令来更新 configure 脚本文件，autoreconf 可以看做是 autoconf、autoheader、acloacl、automake、libtoolize、autopoint 的组合体，而且会以合适的顺序来执行。
+
+注意，在修改了 acinclude.m4、configure.ac 之后，就需要通过 aclocal 重新生成 aclocal.m4 文件；如果直接通过 autoconf 配置，部分库会报 ```aclocal-1.14: command not found``` 错误。据说 [是由于时间戳导致](http://stackoverflow.com/questions/33278928/how-to-overcome-aclocal-1-15-is-missing-on-your-system-warning-when-compilin) 的，不过安装了 automake、autoconf 工具后，最简单的方式是执行 autoreconf 命令。
+
+#### 修改Makefile.am
+
+需要在源码的跟目录下执行 automake 命令更新，然后在 build 目录下直接重新执行 make 命令即可。
+
+
 #### 非标准库
 
 如果有些库没有安装在标准路径下，或者需要使用不同的版本库，那么就需要通过参数指定；以使用 MySQL 库为例，通常可以通过 ```--with-libmysql=/opt/mysql/lib``` 参数指定特定库路径。
