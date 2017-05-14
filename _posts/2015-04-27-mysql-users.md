@@ -146,6 +146,75 @@ mysql> GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
 
 Plan C 是免密码登陆。
 
+## 加固插件
+
+
+
+### 密码复杂度检查
+
+提供了一个插件，可以用于密码的加固，可以采用如下的其中一个方式加载。
+
+1. 参数启动时指定 ```--plugin-load='validate_password.so'``` ；
+
+2. 在配置文件 my.cnf 中的 mysqld 段添加 ```plugin-load=validate_password.so``` ，同时为了防止插件在 mysql 运行时的时候被卸载可以同时添加 ```validate-password=FORCE_PLUS_PERMANENT``` ；
+
+3. 登陆 mysql，在命令行模式下直接安装/卸载插件插件 ```INSTALL PLUGIN validate_password SONAME 'validate_password.so';``` 以及 ```UNINSTALL PLUGIN validate_password;``` 。
+
+注意：安装和卸载语句是不记录 binlog 的如果是复制环境，需要在主备库分别进行操作才可。
+
+#### 使用简介
+
+当修改 MySQL 的账号密码时，会检查当前的是密码策略如果不符合预定义的策略，不符合则返回 ```ER_NOT_VALID_PASSWORD``` 错误，相关的语句有 ```CREATE USER```、```GRANT```、```SET PASSWORD``` 。
+
+可以通过 ```VALIDATE_PASSWORD_STRENGTH()``` 函数对密码强度进行检查，从 0 到 100 依次表示从弱到强；当然，需要提前加载插件，否则只会返回 0 。
+
+{% highlight text %}
+mysql> SELECT VALIDATE_PASSWORD_STRENGTH('123');
+mysql> SELECT VALIDATE_PASSWORD_STRENGTH('123_abc');
+mysql> SELECT VALIDATE_PASSWORD_STRENGTH('123_abc_ABC');
+
+mysql> SHOW VARIABLES LIKE 'validate_password%';
++--------------------------------------+--------+
+| Variable_name                        | Value  |
++--------------------------------------+--------+
+| validate_password_dictionary_file    |        |  验证密码的目录路径
+| validate_password_length             | 8      |  密码的最小长度
+| validate_password_mixed_case_count   | 1      |  至少有一个大写和小写的字符
+| validate_password_number_count       | 1      |  至少要有一个数字字符
+| validate_password_policy             | MEDIUM |  密码安全策略LOW,MEDIUM,STRONG
+| validate_password_special_char_count | 1      |  至少包含一个特殊字符
++--------------------------------------+--------+
+6 rows in set (0.02 sec)
+{% endhighlight %}
+
+其中 LOW 表示只限制长度；MEDIUM 则为长度，字符，数字，大小写，特殊字符；STRONG 则在之前的基础上增加字典目录。
+
+
+### 使用密码插件登陆
+
+MySQL 提供了一个 ```mysql_config_editor``` 命令，用于加密用户密码，提供免密码登陆，适用于 mysql、mysqladmin、mysqldump 等。
+
+如下简单介绍其使用方法：
+
+{% highlight text %}
+----- 1. 创建MySQL测试账号密码
+mysql> CREATE USER 'mysqldba'@'localhost' IDENTIFIED BY 'NEW-123_password';
+mysql> DROP USER 'mysqldba'@'localhost';
+
+----- 2. 创建/删除/查看加密文件，此时会生成一个~/.mylogin.cnf加密二进制文件
+$ mysql_config_editor set --login-path=mysqldba --host=192.30.16.136 \
+  --user=mysqldba --password='NEW-123_password'
+$ mysql_config_editor print --all
+$ mysql_config_editor print --login-path=mysqldba
+$ mysql_config_editor remove --login-path=mysqldba
+
+$ mysql --login-path=mysqldba
+{% endhighlight %}
+
+<!--
+可以参考如下内容，解密
+http://www.kikikoo.com/uid-20708886-id-5599401.html
+-->
 
 
 ## 其它
@@ -212,6 +281,10 @@ mysql> SELECT PASSWORD('password'),UPPER(CONCAT('*',SHA1(UNHEX(SHA1('password'))
 其实 MySQL 在 5.6 以前，对安全性的重视度非常低，甚至可以从 binlog 中直接通过 mysqlbinlog 将密码解密出来；5.7 之后在 binlog 中对密码进行了加密处理。
 
 不过 ```CHANGE MASTER TO``` 命令仍会将密码明文保存在 master.info 文件中。
+
+### Tips
+
+1. 创建 MySQL 账号密码时，如果在配置文件中使用了 bind-address 选项，而且有多个 IP 地址，那么需要注意绑定的 IP 地址，否则会报 ```ERROR 2003 (HY000): Can't connect to MySQL server on 'IP' (111)``` 。
 
 
 ## 参考

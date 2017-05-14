@@ -168,56 +168,37 @@ $ vmstat -S M 1
 procs -----------memory---------- ---swap-- -----io---- --system-- ----cpu----
 r  b   swpd   free   buff  cache   si   so    bi    bo   in    cs us sy id wa
 3  0      0   1963    607   2359    0    0     0     0    0     1 32  0 68  0
+
+各个段的含义为：
+  procs 进程
+    r: 等待运行的进程数，如果运行队列过大，表示CPU很忙，一般会造成CPU使用率很高。
+    b: 不可中断睡眠(uninterruptible sleep)的进程数，也就是被阻塞的进程，通常为IO。
+  memory 内存
+    swpd: 虚拟内存(Virtual Memory)的使用量，应该是交换区。</li><li>
+    free: 空闲内存数，同free命令中的free(Mem)。</li><li>
+    buff: 同free命令，已分配未使用的内存大小。</li><li>
+    cache: 同free命令，已分配未使用的内存大小。</li><li>
+    inact: 非活跃(inactive)内存的大小，使用 -a 选项????。</li><li>
+    active: 活跃(active)内存的大小，使用 -a 选项????。
+  swap 交换区
+    si: 每秒从交换区(磁盘)写到内存的大小。
+    so: 每秒写入交换区(磁盘)的大小。
+        如果这两个值长期大于0，系统性能会受到影响，即我们平常所说的Thrashing(颠簸)。
+  IO
+    bi: 每秒读取的块数(blocks/s)。
+    bo: 每秒写入的块数(blocks/s)。
+  system 系统
+    in: 每秒的中断数，包括时钟中断。
+    cs: 每秒上线文的交换数。
+  CPU
+    us: 用户进程执行时间。
+    sy: 系统进程执行时间。
+    id: 空闲进程执行时间，2.5.41 之后含有 IO-wait 的时间。
+    wa: 等待 IO 的时间，2.5.41 之后含有空闲任务。
 {% endhighlight %}
 
 
 <!--
-各个段的含义为：
-	<ol type='A'><li>
-		procs 进程<br>
-		<ul><li>
-			r: 等待运行的进程数，如果运行队列过大，表示CPU很忙，一般会造成CPU使用率很高。</li><li>
-			b: 不可中断睡眠(uninterruptible sleep)的进程数，也就是被阻塞的进程，通常为IO。
-		</li></ul></li><br><li>
-
-		Memory 内存<br>
-		<ul><li>
-			swpd: 虚拟内存(Virtual Memory)的使用量，应该是交换区。</li><li>
-			free: 空闲内存数，同free命令中的free(Mem)。</li><li>
-			buff: 同free命令，已分配未使用的内存大小。</li><li>
-			cache: 同free命令，已分配未使用的内存大小。</li><li>
-			inact: 非活跃(inactive)内存的大小，使用 -a 选项????。</li><li>
-			active: 活跃(active)内存的大小，使用 -a 选项????。
-		</li></ul></li><br><li>
-
-		Swap 交换区<br>
-		<ul><li>
-			si: 每秒从交换区(磁盘)写到内存的大小。</li><li>
-            so: 每秒写入交换区(磁盘)的大小。</li></ul>
-        如果这两个值长期大于0，系统性能会受到影响，即我们平常所说的Thrashing(颠簸)；如果虽然free很少，但是si和so也很少（大多时候是0），也不用担心，系统性能这时不会受到影响的。
-        </li><br><li>
-
-		IO<br>
-		<ul><li>
-			bi: 每秒读取的块数(blocks/s)。</li><li>
-			bo: 每秒写入的块数(blocks/s)。
-		</li></ul></li><br><li>
-
-		System 系统<br>
-		<ul><li>
-			in: 每秒的中断数，包括时钟中断。</li><li>
-			cs: 每秒上线文的交换数。
-		</li></ul></li><br><li>
-
-		CPU<br>
-		<ul><li>
-			us: 用户进程执行时间。</li><li>
-			sy: 系统进程执行时间。</li><li>
-			id: 空闲进程执行时间，2.5.41 之后含有 IO-wait 的时间。</li><li>
-			wa: 等待 IO 的时间，2.5.41 之后含有空闲任务。
-		</li></ul>
-	</li></ol>
-
 <br><br><h2>源码分析</h2><p>
 通过 vmstat -a 命令能看到 active memory 和 inactive memory，这两个选项的解释也不太清楚，可以通过源码查看。vmstat 实际会从 /proc/meminfo 读取，其源码实现在 fs/proc/meminfo.c。
 <pre style="font-size:0.8em; face:arial;">
@@ -256,7 +237,103 @@ static int meminfo_proc_show(struct seq_file *m, void *v)
 Linux 内核设计了两种 LRU list: active list 和 inactive list，刚访问过的页面放进 active list，长时间未访问过的页面放进 inactive list，这样从 inactive list 回收页面就变得简单了。<br><br>
 
 内核线程 kswapd 会周期性地把 active list 中符合条件的页面移到 inactive list 中，这项转移工作是由 refill_inactive_zone() 完成的。
-</P>
+-->
+
+### vmtouch
+
+通过 [vmtouch offical site](http://hoytech.com/vmtouch/) 可以查看文件在内存中的占比，可以下载 [本地源码](/reference/linux/monitor/vmtouch.c) 。
+
+使用参数可以直接通过 ```vmtouch -h``` 查看，如下是简单的示例：
+
+{% highlight text %}
+----- 查看/etc目录下有多少在缓存中
+$ vmtouch /etc/
+           Files: 2844
+     Directories: 790
+  Resident Pages: 274/9971  1M/38M  2.75%
+         Elapsed: 0.15243 seconds
+
+----- 查看一个大文件在缓存中的比例
+$ vmtouch -v big-dataset.txt
+big-dataset.txt
+[                                                            ] 0/169321
+
+           Files: 1
+     Directories: 0
+  Resident Pages: 0/169321  0/661M  0%
+         Elapsed: 0.011822 seconds
+
+----- 缓存部分内容到内存中，分别对应了文本和二进制文件
+$ tail -n 10000 big-dataset.txt > /dev/null
+$ hexdump -n 102400 big-dataset.txt > /dev/null
+
+----- 再次查看缓存的文件，也就是62页在内存中
+$ vmtouch -v big-dataset.txt
+big-dataset.txt
+[o                                                           ] 62/169321
+
+           Files: 1
+     Directories: 0
+  Resident Pages: 62/169321  248K/661M  0.0366%
+         Elapsed: 0.003463 seconds
+
+----- 将文件加载到内存中
+$ vmtouch -vt big-dataset.txt
+big-dataset.txt
+[OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO] 169321/169321
+           Files: 1
+     Directories: 0
+   Touched Pages: 169321 (661M)
+         Elapsed: 1.7372 seconds
+
+----- 手动从内存中删除
+$ vmtouch -ve big-dataset.txt
+Evicting big-dataset.txt
+           Files: 1
+     Directories: 0
+   Evicted Pages: 42116 (164M)
+         Elapsed: 0.076824 seconds
+
+----- 将目录下的所有文件锁定到内存中
+$ vmtouch -dl /var/www/htdocs/critical/
+{% endhighlight %}
+
+在 Linux 中，主要是通过 posix_fadvise() 来清除缓存；通过 mincore() 判断页是否存在于缓存中。
+
+
+<!---
+Linux 内核模式使用 Buffer IO，以充分使用操作系统的 Page Cache；读取时先检查页缓存里面是否有需要的数据，没有就从设备读取，返回给用户的同时，加到缓存一份；写时，写到缓存后返回系统调用，再由后台的进程定期涮到磁盘去。
+
+但是如果你的IO非常密集，就会出现问题。首先由于pagesize是4K，内存的利用效率比较低。其次缓存的淘汰算法很简单，由操作系统自主进行，用户不大好参与。当你的写很多，超过系统内存的某个上限的时候，后台的进程(swapd)要出来回收页面，而且一旦回收的速度小于写入的速度，就会出现不可预期的行为。
+
+这里面最大的问题是：当你使用的内存包括缓存，没超过操作系统规定的上限的时候，操作系统选择不作为，让用户充分使用缓存，从它的角度来看这样效率最高。但是正是由于这种策略在实践中会导致问题。
+
+比如说MYSQL服务器，我们可以把数据直接走direct IO,但是它的日志是走bufferio的。因为走directio需要对写入文件的偏移和大小都要扇区对全，这对日志系统来讲太麻烦了。由于MYSQL是基于事务的，会涉及到大量的日志动作，频繁的写入，然后fsync. 日志一旦写入磁盘，buffer page就没用了，但是一直会在内存呆着，直到达到内存上限，引起操作系统突然大量回收
+页面，出现IO柱塞或者内存交换等负面问题。
+
+那么我们知道了困境在哪里，我们可以主动避免这个现象的发生。有二种方法：
+1. 日志也走direct io,需要规模的修改MYSQL代码，如percona就这么做了，提供相应的patch。
+2. 日志还是走buffer io, 但是定期清除无用page cache.
+
+第一张方法不是我们要讨论的，我们重点讨论第二种如何做：
+
+我们在程序里知道文件的句柄，是不是就可以很轻松的用：
+
+    int posix_fadvise(int fd, off_t offset, off_t len, int advice);
+    POSIX_FADV_DONTNEED The specified data will not be accessed in the near future.
+
+来解决问题呢？
+比如写类似 posix_fadvise(fd, 0, len_of_file, POSIX_FADV_DONTNEED)；这样的代码来清掉文件所属的缓存。
+
+前面介绍的vmtouch就有这样的功能，清某个文件的缓存。
+vmtouch -ve logfile 就可以试验，但是你会发现内存根本就没下来，原因呢？
+-->
+
+
+
+
+
+
 
 
 
@@ -308,10 +385,19 @@ $ ps -e -o 'pid,comm,args,pcpu,rsz,vsz,stime,user,uid' | sort -nrk5
 
 #### pmap
 
-可以根据进程查看进程相关信息占用的内存情况，实际是整个内存的映射关系。
+可以根据进程查看进程相关信息占用的内存情况，可以通过 ```-x```、```-X```、```-XX``` 查看详细信息。
 
 {% highlight text %}
 $ pmap -d 14596
+输出：
+  address :  映像起始地址；
+  kbytes  :  映像大小；
+  RSS     :  (Resident Set Size)驻留集大小，单位是K；
+  dirty   :  脏页大小，包括了共享和私有，单位是K；
+  mode    :  映像权限(r=read, w=write, x=execute, s=shared, p=private)；
+  mapping :  映像支持文件，[anon]为分配的内存，[stack]为程序堆栈；
+  offset  :  文件偏移；
+  device  :  设备名。
 {% endhighlight %}
 
 ## 小结
@@ -345,17 +431,23 @@ https://www.zhihu.com/question/26190832/answer/146259979
 
 查看那个进程在使用交换空间可以参考 [Find Out What Process Are Using Swap Space](http://www.cyberciti.biz/faq/linux-which-process-is-using-swap/)，或者 [本地文档](/reference/linux/monitor/Find Out What Process Are Using Swap Space.maff) 。
 
-通过 [vmtouch offical site](http://hoytech.com/vmtouch/) 可以查看文件在内存中的占比，可以下载 [本地源码](/reference/linux/monitor/vmtouch.c) 。
+[What every programmer should know about memory](https://www.akkadia.org/drepper/cpumemory.pdf)
 
-<!--memtester 内存测试工具。-->
+
+<!-- memtester 内存测试工具。-->
 
 <!--
 可用内存计算方法
 http://www.cnblogs.com/feisky/archive/2012/04/14/2447503.html
+
 内存监控相关
 https://linux-audit.com/understanding-memory-information-on-linux-systems/
+
 一次高内存使用率的告警处理
 http://farll.com/2016/10/high-memory-usage-alarm/
+
+http://marek.vavrusa.com/c/memory/2015/02/20/memory/
+http://careers.directi.com/display/tu/Understanding+and+optimizing+Memory+utilization
 -->
 
 

@@ -641,6 +641,14 @@ https://www.unixhot.com/page/ops
 
 
 
+对于GROUP BY、ORDER BY、DISTINCT类似的SQL，可能会用到临时表，通常在内存中使用MEMORY存储引擎，或者磁盘上使用MyISAM存储引擎。一般，当超过了tmp_table_size大小之后，会在磁盘上创建，另外，对于
+https://www.percona.com/blog/2007/08/16/how-much-overhead-is-caused-by-on-disk-temporary-tables/
+https://www.percona.com/blog/2007/08/18/how-fast-can-you-sort-data-with-mysql/
+
+
+
+
+
 
 
 ←
