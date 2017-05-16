@@ -83,15 +83,20 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Collectd 简介](/post/collectd-introduce.html)，一个 C 语言编写的多线程监控采集程序，对其进行简单的介绍。
 * [Collectd 源码解析](/post/collectd-source-code.html)，详细介绍 Collectd 的源码实现。
 
+
+#### Kernel
+
+介绍下 Linux 内核相关的内容。
+
+
 #### SSH
 
 主要介绍 SSH 一些常见的操作。
 
-<!-- * [SSH 简介](/post/ssh-introduce.html)，简单介绍 OpenSSH 相关的内容。-->
+* [SSH 简介](/post/ssh-introduce.html)，简单介绍 OpenSSH 相关的内容。
 * [SSH 代理设置](/post/ssh-proxy.html)，关于一些常见代理设置，如本地转发、远程转发、动态转发等。
 * [SSH Simplify Your Life](/post/ssh-simplify-your-life.html)，用来配置一些常见的设置，简化登陆方式。
 * [SSH 杂项](/post/ssh-tips.html)，记录一些常见的示例。
-
 
 
 #### Miscellaneous

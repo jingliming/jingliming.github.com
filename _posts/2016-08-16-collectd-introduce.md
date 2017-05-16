@@ -270,13 +270,13 @@ Chain 规则，目前只支持 Pre-Chain 和 Post-Chain 两种，在配置文件
 There are four ways to control which way a value takes through the filter mechanism:
 
 jump
-    The built-in jump target can be used to ``call'' another chain, i. e. process the value with another chain. When the called chain finishes, usually the next target or rule after the jump is executed. 
+    The built-in jump target can be used to ``call'' another chain, i. e. process the value with another chain. When the called chain finishes, usually the next target or rule after the jump is executed.
 stop
-    The stop condition, signaled for example by the built-in target stop, causes all processing of the value to be stopped immediately. 
+    The stop condition, signaled for example by the built-in target stop, causes all processing of the value to be stopped immediately.
 return
-    Causes processing in the current chain to be aborted, but processing of the value generally will continue. This means that if the chain was called via Jump, the next target or rule after the jump will be executed. If the chain was not called by another chain, control will be returned to the daemon and it may pass the value to another chain. 
+    Causes processing in the current chain to be aborted, but processing of the value generally will continue. This means that if the chain was called via Jump, the next target or rule after the jump will be executed. If the chain was not called by another chain, control will be returned to the daemon and it may pass the value to another chain.
 continue
-    Most targets will signal the continue condition, meaning that processing should continue normally. There is no special built-in target for this condition. 
+    Most targets will signal the continue condition, meaning that processing should continue normally. There is no special built-in target for this condition.
 -->
 
 ### 示例
@@ -298,7 +298,7 @@ PostCacheChain "PostCache"
   <Target "write">
     Plugin "rrdtool"
   </Target>
-</Chain> 
+</Chain>
 {% endhighlight %}
 
 上述的配置中，会忽略 ```plugin=mysql + type=mysql_command + type_instance=show_``` 采集的值，不过需要注意的是，这个操作是在 ```PostCache``` 链表中，所以仍然可以通过 unixsock 插件查看采集值。
@@ -472,12 +472,175 @@ https://collectd.org/wiki/index.php/Notifications_and_thresholds
 https://collectd.org/wiki/index.php/Plugin:Exec
 -->
 
+## RRDTool
+
+Round Robin Database, RRD 适用于存储和时间序列相关的数据，是一种循环使用存储空间的数据库，也就是创建之后其大小已经固定，不再需要维护。
+
+可以通过 rrdtool 保存数据，此时磁盘 IO 可能会成为瓶颈，为此可以使用 RRDCacheD 后台进程。
+
+
+### 简介
+
+首先介绍下常见概念。
+
+Primary Data Point, PDP：正常情况下每个周期都会收到一个采集值，然后根据不同的类型计算出一个值，这个计算出的值就是 PDP ；注意，除非是 GAUGE，否则改值不是收到的值。
+
+Consolidation Data Point, CPD：通过定义的 CF 函数，使用多个 PDP 计算出一个 CDP 值并保存在 RRA 中，绘图时就使用这些数据。
+
+### 创建文件
+
+其中 filename 、DS 部分和 RRA 部分是必须的，其它两个参数可选。
+
+{% highlight text %}
+rrdtool create filename [--start|-b start time] [--step|-s step]
+    [DS:variable_name:DST:heartbeat:min:max]
+    [RRA:CF:xff:step:rows]
+
+参数解析：
+  --step NUM
+    预计多久收到一个值，默认是5分钟，与MRTG中的interval相同；
+  --start TIMESTAMP
+    给出第一个记录的起始时间，小于等于该时间的数据不保存，例如指定为一天前--start $(date -d '1 days ago' +%s)；
+  DS:variable_name:DST:heartbeat:min:max
+    用于定义 Data Soure Name，常见有eth0_in, eth0_out，一般为1-19个字符，必须是0-9,a-z,A-Z；
+    以及数据类型(Data Source Type, DST)，包括了COUNTER、GUAGE、DERIVE、ABSOLUTE、COMPUTE 5 种：
+      COUNTER
+        必须是递增的，除非是计数器溢出 (overflows) 此时会自动修改收到的值；这也是最常见的类型，例如网络接口流量。
+      DERIVE
+        和 COUNTER 类似，但可以是递增，也可以递减，例如数据库的链接数。
+      ABSOLUTE
+        会计算斜率，每次都会假设其前一个值是 0，类似于每次读取监控数据后统计值自动清零。
+      GAUGE
+        没有上述的平均值概念，收到后原样保存。
+      COMPUTE
+        这一类型比较特殊，它并不接受输入，而是定义一个表达式，通过引用其它 DS 并自动计算出值。
+  RRA:CF:xff:step:rows
+    RRA定义了数据如何存放，可以把一个 RRA 看成一个表，各保存不同 interval 的统计结果。
+    Consolidation Function, CF 也就是指定的合并功能函数，有 AVERAGE、MAX、MIN、LAST 四种，分别表
+    示对多个PDP取平均、最大值、最小值、当前值四种类型。
+    xfile factor 取值范围是 0~1 ，表示一个范围内采样值为 UNKNOWN 值比率超过多少就会将聚合值设置为UNKNOWN；
+    例如 RRA:AVERAGE:0.5:24:600 ，当 PDP 中有超过 12 值为 UNKNOWN 时该聚合的值就是 UNKNOWN 。
+
+----- 创建文件
+$ rrdtool create eth0.rrd \
+    --start $(date –d '1 days ago' +%s) \    # 保存一天的数据
+    --step 300 \                             # 采集时间间隔为5min
+    DS:eth0_in:COUNTER:600:0:12500000 \      # 600 是 heartbeat；0 是最小值；12500000 表示最大值；
+    DS:eth0_out:COUNER:600:0:12500000 \      # 如果没有最小值/最大值，可以用 U 代替，例如 U:U
+    RRA:AVERAGE:0.5:1:600 \                  # 1表示对1个PDP取平均，实际上就等于PDP的值
+    RRA:AVERAGE:0.5:4:600 \                  # 4表示每4个PDP合成为一个CDP，也就是20分钟，方法是对4个PDP取平均
+    RRA:AVERAGE:0.5:24:600 \                 # 同上，也就是24*5=120分钟=2小时
+    RRA:AVERAGE:0.5:288:730                  # 同上，也就是 288*5=1440分钟=1天
+
+----- 查看文件信息，主要包括了创建时的信息，例如DS、RRA等
+$ rrdtool info eth0.rrd
+
+----- 查看最近一次，第一次更新时间
+$ rrdtool last eth0.rrd |xargs -i date -d '1970-01-01 {} sec utc'
+$ rrdtool first eth0.rrd |xargs -i date -d '1970-01-01 {} sec utc'
+
+{% endhighlight %}
+
+关于 heartbeat ，如上，如果在 300 秒内没有收到数据，那么就再等待 ```heartbeat-step=300``` 秒，如果还没有收到则设置为 UNKNOWN 。
+
+### 更新数据
+
+{% highlight text %}
+$ rrdtool {update | updatev} filename
+    [--template|-t ds-name[:ds-name]...]
+    N|timestamp:value[:value...]
+    at-timestamp@value[:value...]
+    [timestamp:value[:value...] ...]
+
+----- 更新一个值，需要注意时间戳要大于最近更新的时间，DS数目要保持一致
+$ rrdtool update eth0.rrd 1479477014:1:15
+
+----- 两个命令类似，不过会回显写入的结果，类似upate verbose
+$ rrdtool updatev eth0.rrd 1479477014:1:15
+{% endhighlight %}
+
+时间定义比较灵活，可以是 ```N(date +%s)``` ```AT(man 1 at)``` 两种格式，可以通过 ```date -d '2016-11-18 21:50:14' +%s``` 获取时间戳。
+
+### 获取数据
+
+{% highlight text %}
+rrdtool fetch filename CF [--resolution|-r resolution] [--start|-s start] [--end|-e end]
+
+----- 最简单方式
+$ rrdtool fetch eth0.rrd AVERAGE
+----- 指定范围，可以用AT方式
+$ rrdtool fetch eth0.rrd AVERAGE --start end-1day --end 1164553800
+----- 指定resolution，如果不存在则使用>=该值的最小值，不过需要保证改值为resolution的整数倍
+$ rrdtool fetch eth0.rrd AVERAGE -r 1200 --end $((($(date +%s)/1200)*1200))
+{% endhighlight %}
+
+默认 ```--end``` 是 now ，```--start``` 是 end-1day ，也就是 1 天前；指定的 CF 类型需要保证建库时有该 CF 类型的 RRA 才可以。通常一个文件中包含了多个 RRA ，那么其选择条件如下：
+
+1. 该 RRA 必须要满足所请求时间范围，例如，查看两天的数据，如果一个 RRA 保存了一天，那么肯定不会选择该 RRA 。
+2. 如果多个 RRA 满足，除非指定 resolution ，否者会选择 resolution 最小的一个。
+
+<!--
+http://bbs.chinaunix.net/thread-864861-1-1.html
+
+http://www.yunweipai.com/archives/4220.html
+-->
+
+### RRDTool 插件
+
+在 RRDTool 插件中，比较核心的配置分为了两部分：A) 如何创建文件；B) 如何写文件。
+
+{% highlight text %}
+LoadPlugin rrdtool
+<Plugin rrdtool>
+  DataDir Directory            # 指定数据保存目录，默认会保存在BaseDir目录下
+  CreateFilesAsync false|true  # 如果需要创建几百个文件可以设置为异步，此时在文件创建完成前的数据将会丢弃；如果同步则会阻塞
+  StepSize Seconds             # 设置RRD文件的step，默认会从上报的数据中选择step，建议不要设置
+  HeartBeat Seconds            # 一般设置为step的两倍，同样不建议设置
+  RRARows NumRows              # 默认是1200，一般保存15个RRA，是MIN, AVERAGE, MAX与hour, day, week, month, year的组合，
+                               # 计算方式为PDPs=timespan/(stepsize*rrarows)
+  RRATimespan Seconds          # 手动设置范围，可以配置多次，单位是秒；如果没有配置默认是(3600, 86400, 604800, 2678400, 31622400)
+  XFF Factor                   # 设置XFiles Factor参数，默认是0.1，范围是[0.0-1.0)
+
+  CacheFlush Seconds           # 当设置了缓存时，每次接收到新值时，如果超过了这里设置的时间，就会检查所有的采集值；适用于部分指标由于
+                               # 异常一直没有更新，导致始终保存在缓存中，因为消耗资源比较大，建议设置为较大的值，如900、7200秒。
+  CacheTimeout Seconds         # 大于0时会将值缓存到内存中，如果缓存的时间差超过改值，则放入到update queue队列中
+  WritesPerSecond Updates      # 如果采集的指标比较多，可能会一直在刷新，那么如果此时有 IO 操作，那么可能会导致阻塞。为此，可以通过
+                               # 该参数限制每秒更新的次数，从而不会造成过大的磁盘压力，建议设置为 25~80；此时也可以根据 RRD 文件数，
+                               # 大致评估一次刷新锁消耗的时间。
+  RandomTimeout Seconds        # 选择随机的时间，其范围是 CacheTimeout-RandomTimeout ~ CacheTimeout+RandomTimeout ，用于防止
+                               # 由于同一间隔导致峰值。
+</Plugin>
+{% endhighlight %}
+
+关于 RRDTool 插件，可以参考 [Inside the RRDtool plugin](https://collectd.org/wiki/index.php/Inside_the_RRDtool_plugin) 。
+
+简言之，如果有很多个监控指标，那么直接更新到磁盘时，就会导致大量的小文件+随机写，将严重影响到 HDD 甚至 SSD 的写入性能。
+
+![collectd rrdtool plugin]({{ site.url }}/images/linux/collectd_rrdtool_plugin.png "collectd rrdtool plugin"){: .pull-center width="70%" }
+
+更新一个值时，一般为 8 Bytes，为了更新该值需要读取 512B(HDD)、16KB(SSD) 字节，在内存中修改对应的值，然后再写入内存，显然这将严重影响到磁盘 IO 性能，为此需要将多个指标合并写入磁盘。
+
+通过一个平衡二叉树，每个节点是采集值或者 RRD 文件，每次收到一个采集值后会与最老的值比较时间戳，如果超过了设置的超时时间，那么该节点就被放 update queue 中。如果一个新写入的值已经在 update queue 队列中了，那么新值会直接写入到 update queue 中相应的节点。
+
+
+
+
+### collectd-web
+
+直接从 [github collectd-web](https://github.com/httpdss/collectd-web) 上下载即可，在配置文件 ```/etc/collectd/collection.conf``` 中指定 ```datadir``` 目录，也就是 rrd 保存的目录。
+
+然后，通过如下方式运行即可。
+
+{% highlight text %}
+./runserver.py 0.0.0.0 8989
+{% endhighlight %}
+
+
 ## 常用插件
 
 ### tail
 
 主要用于日志文件。
-
 
 
 ## 参考
@@ -488,6 +651,10 @@ https://collectd.org/wiki/index.php/Plugin:Exec
 http://www.linuxhowtos.org/manpages/5/collectd.conf.htm
 https://collectd.org/wiki/index.php/Chains
 -->
+
+
+
+
 
 
 {% highlight text %}

@@ -184,7 +184,7 @@ AC_PLUGIN([zookeeper],           [yes],                     [Zookeeper statistic
 {% endhighlight %}
 
 添加上述的宏之后，会增加如下功能：
- * 使用 configure 命令配置时，可以通过 ```--enable-XXX``` 或者 ```--disable-XXX``` 参数配置是否需要编译该模块；
+ * 使用 configure 命令配置时，可以通过 ```--enable-XXX``` ```--disable-XXX``` 或者 ```--enable-XXX=force``` 参数配置是否需要编译
  * 在 Makefile.am 中可以通过 ```if BUILD_PLUGIN_XXX``` 判断是否需要编译生成动态库；
  * 最终生成的配置头文件 src/config.h 中含有 ```HAVE_PLUGIN_XXX``` 定义宏。
 

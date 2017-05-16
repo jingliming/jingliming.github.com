@@ -104,6 +104,40 @@ Clang 是一个 C++ 编写，基于 LLVM 的 C/C++、Objective-C 语言的轻量
 {% endhighlight %}
 
 
+## 字符串操作
+
+对于字符串操作，可以通过 ```#define _FORTIFY_SOURCE 2``` 宏定义，对一些常见内存以及字符串处理函数 (memcpy, strcpy, stpcpy, gets 等) 的安全检查，详细可以查看 ```man 7 feature_test_macros``` 。
+
+### 字符串拼接
+
+{% highlight c %}
+#inclue <string.h>
+char * strncat(char *dest, const char *src, size_t n);
+{% endhighlight %}
+
+将 src 中开始的 n 个字符复制到 dest 的结尾，也就是将 dest 字符串最后的 ```'\0'``` 覆盖掉，字符追加完成后，再追加 ```'\0'```；所以需要保证 dest 最小为 ```strlen(dest)+n+1``` 。
+
+<!--
+BAD: strncat(buffer,charptr,sizeof(buffer))
+GOOD: strncat(buffer,charptr,sizeof(buffer)-strlen(buffer)-1)
+-->
+
+{% highlight c %}
+#include <stdio.h>
+#include <string.h>
+
+int main(){
+  char site[100] = "http://www.douniwai.com";
+  char uri[300] = "/c/strncatiii";
+  strncat(site, uri, 1000);  // BAD, 1000远远超过path的长度，那么可能会导致segment fault
+  strncat(site, uri, sizeof(site)-strlen(site)-1); // GOOD
+  puts(site);
+  return  0;
+}
+{% endhighlight %}
+
+可以通过 ```gcc -Wall -D_FORTIFY_SOURCE=2 -O2 main.c``` 命令编译测试。
+
 
 {% highlight text %}
 {% endhighlight %}
