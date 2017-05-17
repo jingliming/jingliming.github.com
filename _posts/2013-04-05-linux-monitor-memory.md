@@ -89,6 +89,28 @@ Used(Mem) = Used(-/+ buffers/cache) + buffers(Mem) + Cached(Mem)
 /proc/self/statm               // 当前进程的信息
 {% endhighlight %}
 
+#### 新版
+
+如上所述，新版的命令行输入如下。
+
+{% highlight text %}
+$ free -w 
+              total        used        free      shared     buffers       cache   available
+Mem:        8070604     2928928      495012     1162676      104156     4542508     3624840
+Swap:       8127484      232388     7895096
+
+total     (MemTotal     @ /proc/meminfo)
+free      (MemFree      @ /proc/meminfo)
+shared    (Shmem        @ /proc/meminfo)  主要是tmpfs使用
+buffers   (Buffers      @ /proc/meminfo)
+cache     (Cached+Slab  @ /proc/meminfo)
+available (MemAvailable @ /proc/meminfo)
+used = total - free - buffers - cache     (注意，没有去除shared)
+{% endhighlight %}
+
+可以通过 ```free -k -w && cat /proc/meminfo``` 命令进行测试。
+
+
 ### Swap对性能的影响
 
 当内存不足的时候把磁盘的部分空间当作虚拟内存来使用，而实际上并非是在内存不足的时候才使用，有个参数叫做 swappiness，是用来控制 swap 分区使用的，可以直接查看 ```/proc/sys/vm/swappiness``` 文件。
@@ -431,7 +453,7 @@ https://www.zhihu.com/question/26190832/answer/146259979
 
 查看那个进程在使用交换空间可以参考 [Find Out What Process Are Using Swap Space](http://www.cyberciti.biz/faq/linux-which-process-is-using-swap/)，或者 [本地文档](/reference/linux/monitor/Find Out What Process Are Using Swap Space.maff) 。
 
-[What every programmer should know about memory](https://www.akkadia.org/drepper/cpumemory.pdf)
+关于内存的介绍可以参考 [What every programmer should know about memory](https://www.akkadia.org/drepper/cpumemory.pdf)，包括了从硬件到软件的详细介绍，内容非常详细。
 
 
 <!-- memtester 内存测试工具。-->
@@ -447,7 +469,67 @@ https://linux-audit.com/understanding-memory-information-on-linux-systems/
 http://farll.com/2016/10/high-memory-usage-alarm/
 
 http://marek.vavrusa.com/c/memory/2015/02/20/memory/
+
 http://careers.directi.com/display/tu/Understanding+and+optimizing+Memory+utilization
+
+
+MemTotal:        3844344 kB
+MemFree:          128712 kB   当前未使用的内存，注意，这里不包括内核中可回收内存，包括了HighFree+LowFree，需要内核配置CONFIG_HIGHMEM选项
+MemAvailable:    1373376 kB   在不发生swap时的最大可用内存
+
+Shmem:            197092 kB   一般是tmpfs使用，如/dev/shm,/run等，另外还有内核中的SysV
+
+
+在计算可用内存时，最早一般使用 free+cached，而实际上 cached 中包含了
+
+
+CONFIG_HIGHMEM
+  部分 CPU (如ARM) 只能映射 4G 的内存管理空间，这 4G 空间包括了用户空间、内核空间、IO 空间，如果物理内存大于 4G ，那么必定有部分内存在这种情况下是无法管理的，这部分内存也就被称为 "high memory" 。
+
+  简单来说，之所以有 high memory 是因为物理内存超过了虚拟内存，导致内核无法一次映射所有物理内存，为此就需要有临时的映射。注意，创建临时映射的成本很高，需要修改内核的 page table 以及 TLB/MMU 。
+
+  [Kenel-doc HIGH MEMORY HANDLING](https://www.kernel.org/doc/Documentation/vm/highmem.txt)
+
+[浅析Linux的共享内存与tmpfs文件系统](http://hustcat.github.io/shared-memory-tmpfs/)
+
+Documentation/filesystems/proc.txt
+fs/proc/meminfo.c
+
+
+共享内存主要用于进程间通信，Linux 有两种方式的共享内存 (Shared Memory) 机制：A) System V shared memory(shmget/shmat/shmdt)，B)POSIX shared memory(shm_open/shm_unlink)；两者提供功能基本类似 (semaphores, shared memory, message queues)，前者由于历史原因更广泛：
+
+
+### SYSV 共享内存
+
+----- 查看以及调整支持的最大内存，shmmax shmall shmmni
+$ cat /proc/sys/kernel/shmmax
+33554432
+----- 修改为32M
+# echo 33554432 > /proc/sys/kernel/shmmax
+----- 尝试创建65M的system V共享内存时失败
+$ ipcmk -M 68157440
+ipcmk: create share memory failed: Invalid argument
+
+
+http://www.linuxatemyram.com/
+
+http://www.361way.com/ipcs-shared-memory/5144.html
+
+http://rubenlaguna.com/wp/2015/02/22/posix-slash-system-v-shared-memory-vs-threads-shared-memory/
+https://www.ibm.com/developerworks/cn/aix/library/au-ipc/
+http://blog.jqian.net/post/linux-shm.html
+https://www.ibm.com/developerworks/cn/linux/l-cn-slub/
+http://blog.csdn.net/bullbat/article/details/7194794
+http://blog.scoutapp.com/articles/2009/07/31/understanding-load-averages
+https://engineering.linkedin.com/performance/optimizing-linux-memory-management-low-latency-high-throughput-databases
+http://kernel.taobao.org/index.php?title=Kernel_Documents/mm_sysctl
+https://lwn.net/Articles/422291/
+http://linuxperf.com/?p=142
+http://blog.csdn.net/ctthuangcheng/article/details/8916065
+https://www.kernel.org/doc/gorman/html/understand/understand015.html
+http://blog.csdn.net/kickxxx/article/details/8618451
+https://www.kernel.org/doc/gorman/html/understand/understand005.html
+
 -->
 
 

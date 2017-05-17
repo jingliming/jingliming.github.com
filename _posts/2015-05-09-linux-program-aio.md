@@ -18,9 +18,9 @@ AIO 是 Linux 下的异步读写模型，它是 2.6 内核提供的一个标准�
 
 下图给出了同步和异步，以及阻塞和非阻塞的模型。简单来说，一个系统调用 (read, select) 立即返回表示非阻塞；在一个时间点只能去处理一个请求表示同步。
 
-![io brief]({{ site.url }}/images/linux/aio-bries.gif "io brier"){: .pull-center }
+![io brief]({{ site.url }}/images/linux/aio-brief.gif "io brier"){: .pull-center }
 
-每个 I/O 模型都有自己的使用模式，它们对于特定的应用程序都有自己的优点。<ol><li>
+每个 I/O 模型都有自己的使用模式，它们对于特定的应用程序都有自己的优点。
 
 ### 同步阻塞IO
 
