@@ -77,6 +77,410 @@ int main(int argc, char *argv[])
 }
 {% endhighlight %}
 
+
+## do-while
+
+如果通过 ```define``` 定义一个含有多个语句的宏，通常我们使用 ```do{...} while(0);``` 进行定义，具体原因，如下详细介绍。
+
+如果想在宏中包含多个语句，可能会如下这样写。
+
+{% highlight c %}
+#define do_something() \
+   do_a(); \
+   do_b();
+{% endhighlight %}
+
+通常，这样就可以用 ```do_somethin()``` 来执行一系列操作，但这样会有个问题：如果通过如下的方式用这个宏，将会出错。
+
+{% highlight c %}
+if (...)
+   do_something();
+
+// 宏被展开后
+if (...)
+   do_a();
+   do_b();
+{% endhighlight %}
+
+原代码的目的是想在 if 为真的时候执行 ```do_a()``` 和 ```do_b()```, 但现在，实际上只有 ```do_a()``` 在条件语句中，而 ```do_b()``` 任何时候都会执行。
+
+当然这时可以通过如下的方式将那个宏改进一下。
+
+{% highlight c %}
+#define do_something() { \
+   do_a(); \
+   do_b(); \
+}
+{% endhighlight %}
+
+然而，即使是这样，仍然有错。假设有一个宏是这个样子的，
+
+{% highlight c %}
+#define do_something() { \
+   if (a)     \
+      do_a(); \
+   else       \
+      do_b(); \
+{% endhighlight %}
+
+在使用如下情况时，仍会出错。
+
+{% highlight c %}
+if (...)
+   do_something();
+else {
+   ...
+}
+
+// 宏展开后
+if (...)
+{
+   if (a)
+      do_a();
+   else
+      do_b();
+}; else {
+   ...
+}
+{% endhighlight %}
+
+此时第二个 else 前边会有一个分号，那么编译时就会出错。
+
+因此对于含有多条语句的宏我们使用 ```do{...} while(0);``` ，do-while 语句是需要分号来结束的，另外，现代编译器的优化模块能够足够聪明地注意到这个循环只会执行一次而将其优化掉。
+
+综上所述，```do{...} while(0);``` 这个技术就是为了类似的宏可以在任何时候使用。
+
+
+## 指针
+
+指针或许是 C 语言中最复杂的东西了。
+
+### 指针常量 VS. 常量指针
+
+前面是一个修饰词，后面的是中心词。
+
+#### 常量指针
+
+**常量指针** 首先是一个指针，指向的是常量，即指向常量的指针；可以通过如下的方式定义：
+
+{% highlight c %}
+const int a = 7;
+const int *p = &a;
+{% endhighlight %}
+
+对于常量，我们不能对其内容进行修改；指针的内容本身是一个地址，通过常量指针指向一个常量，为的就是防止我们写程序过程中对指针误操作出现了修改常量这样的错误，如果我们修改常量指针的所指向的空间的时候，编译系统就会提示我们出错信息。
+
+在 C 语言中，通常定义的字符串会返回一个常量指针，因此字符串不能赋值给字符数组，只能赋值到指针。
+
+总结一下，<font color="red">常量指针就是指向常量的指针，指针所指向的地址的内容是不可修改的，指针本身的内容是可以修改的</font> 。
+
+
+#### 指针常量
+
+**指针常量**  首先是一个常量，再才是一个指针；可以通过如下的方式定义：
+
+{% highlight c %}
+int a = 7;
+int * const p = &a; // OR int const *p = &a;
+{% endhighlight %}
+
+常量的性质是不能修改，指针的内容实际是一个地址，那么指针常量就是内容不能修改的常量，即内容不能修改的指针，指针的内容是什么呀？指针的内容是地址，所以，说到底，就是不能修改这个指针所指向的地址，一开始初始化，指向哪儿，它就只能指向哪儿了，不能指向其他的地方了，就像一个数组的数组名一样，是一个固定的指针，不能对它移动操作。
+
+它只是不能修改它指向的地方，但这个指向的地方里的内容是可以替换的，这和上面说的常量指针是完全不同的概念。
+
+作一下总结，<font color="red">指针常量就是是指针的常量，它是不可改变地址的指针，但是可以对它所指向的内容进行修改</font> 。
+
+### 与一维数组
+
+假设有如下数组，
+
+{% highlight c %}
+int Array[] = {1, 2, 3, 4};
+int *ptr = Array;
+{% endhighlight %}
+
+其中 Array 为指针常量，而 ptr 为指针变量，且 ```ptr = &Array[0]```，那么如下的操作相同 ```ptr[i] <=> *(ptr+i)``` 以及 ```Array[i] <=> *(Array + i)``` 。
+
+如下，简单介绍下常见操作。
+
+#### *ptr++
+
+由于 ```*``` 和 ```++``` 优先级相同，结合性为由右至左，即 ```*ptr++``` 等价于 ```*(ptr++)``` ，由于 ```++``` 为后继加，所以当得到 ```*ptr``` 后再处理 ```++```；所以 ```*ptr++``` 等于 1，进行此项操作后 ```*ptr``` 等于 2。
+
+执行的步骤为 1) ```++``` 操作符产生 ptr 的一份拷贝；2) ```++``` 操作符增加 ptr 的值；3) 在 ptr 上执行间接访问操作。
+
+#### ++*ptr
+
+利用优先级和结合性可得，```++*ptr``` 等价于 ```++(*ptr)``` ，此时 ```Array[0]``` 为 2，返回 2 。
+
+#### *ptr++
+
+利用优先级和结合性可得，```*ptr++``` 等价于 ```*(ptr++)``` ，返回 1，ptr 值加 1 。
+
+源码可以参考 [github const_pointer.c]({{ site.example_repository }}/c_cpp/c/const_pointer.c) 。
+
+## atexit()
+
+很多时候我们需要在程序退出的时候做一些诸如释放资源的操作，但程序退出的方式有很多种，比如 main() 函数运行结束、在程序的某个地方用 exit() 结束程序、用户通过 Ctrl+C 或 Ctrl+break 操作来终止程序等等，因此需要有一种与程序退出方式无关的方法来进行程序退出时的必要处理。
+
+方法就是用 atexit() 函数来注册程序正常终止时要被调用的函数。
+
+{% highlight c %}
+#include <stdlib.h>
+int atexit(void(*func)(void));
+{% endhighlight %}
+
+成功时返回零，失败时返回非零。
+
+在一个程序中至少可以用 atexit() 注册 32 个处理函数，依赖于编译器。这些处理函数的调用顺序与其注册的顺序相反，也即最先注册的最后调用，最后注册的最先调用。
+
+{% highlight c %}
+void fnExit1 (void) { puts ("Exit function 1."); }
+void fnExit2 (void) { puts ("Exit function 2."); }
+
+int main ()
+{
+    atexit (fnExit1);
+    atexit (fnExit2);
+    puts ("Main function.");
+    return 0;
+}
+{% endhighlight %}
+
+## 大小端
+
+当数据类型大于一个字节时，其所占用的字节在内存中的顺序存在两种模式：小端模式 (little endian) 和大端模式 (big endian)，其中 MSB(Most Significant Bit) 最高有效位，LSB(Least Significant Bit) 最低有效位.
+
+{% highlight text %}
+小端模式
+MSB                             LSB
++-------------------------------+
+|   1   |   2   |   3   |   4   | int 0x1234
++-------------------------------+
+  0x03    0x02    0x01    0x00   Address
+
+大端模式
+MSB                             LSB
++-------------------------------+
+|   1   |   2   |   3   |   4   | int 0x1234
++-------------------------------+
+  0x00    0x01    0x02    0x03   Address
+{% endhighlight %}
+
+如下是一个测试程序。
+
+{% highlight c %}
+#include <stdio.h>
+
+void main(void)
+{
+   int test = 0x41424344;
+   char* pAddress = (char*)&test;
+
+#ifdef DEBUG
+   printf("int  Address:%x Value:%x\n", (unsigned int)&test, test);
+   printf("\n------------------------------------\n");
+
+   int j;
+   for(j=0; j<=3; j++){
+      printf("char Address:%x Value:%c\n", (unsigned int)pAddress, *pAddress);
+      pAddress++;
+   }
+   printf("------------------------------------\n\n");
+   pAddress = (char*)&test;
+#endif
+   if(*pAddress == 0x44)
+      printf("Little-Endian\n");
+   else if(*pAddress == 0x41)
+      printf("Big-Endian\n");
+   else
+      printf("Something Error!\n");
+}
+{% endhighlight %}
+
+如果采用大端模式，则在向某一个函数通过向下类型装换来传递参数时可能会出错。如一个变量为 ```int i=1;``` 经过函数 ```void foo(short *j);``` 的调用，即 ```foo((short*)&i);```，在 foo() 中将 i 修改为 3 则最后得到的 i 为 0x301 。
+
+大端模式规定 MSB 在存储时放在低地址，在传输时 MSB 放在流的开始；小段模式反之。
+
+
+## \_\_attribute\_\_((constructor))
+
+这是 GCC 的扩展机制，通过上述的属性，可以使程序在开始执行或停止时调用指定的函数。
+
+```__attribute__((constructor))``` 在 main() 之前执行，```__attribute__((destructor))``` 在 main() 执行结束之后执行。
+
+{% highlight c %}
+#include <stdio.h>
+#include <stdlib.h>
+
+static  __attribute__((constructor)) void before()
+{
+    printf("Hello World\n");
+}
+
+static  __attribute__((destructor)) void after()
+{
+    printf("Bye World!\n");
+}
+
+int main(int args,char ** argv)
+{
+    printf("Live...\n");
+    return EXIT_SUCCESS;
+}
+{% endhighlight %}
+
+如果有多个函数，可以指定优先级，其中 0~100 (含100)系统保留。在 main 之前顺序为有小到大，退出时顺序为由大到小。
+
+{% highlight c %}
+#include <stdio.h>
+#include <stdlib.h>
+
+static  __attribute__((constructor(102))) void before102()
+{
+    printf("Hello World 102\n");
+}
+
+static  __attribute__((destructor(102))) void after102()
+{
+    printf("Bye World! 102\n");
+}
+
+static  __attribute__((constructor(101))) void before101()
+{
+    printf("Hello World 101\n");
+}
+
+static  __attribute__((destructor(101))) void after101()
+{
+    printf("Bye World! 101\n");
+}
+
+int main(int args,char ** argv)
+{
+    printf("Live...\n");
+    return EXIT_SUCCESS;
+}
+{% endhighlight %}
+
+在使用时也可以先声明然再定义
+
+
+{% highlight c %}
+#include <stdio.h>
+#include <stdlib.h>
+
+void before() __attribute__((constructor));
+void after() __attribute__((destructor));
+
+void before()
+{
+    printf("Hello World\n");
+}
+
+void after()
+{
+    printf("Bye World!\n");
+}
+
+int main(int args,char ** argv)
+{
+    printf("Live...\n");
+    return EXIT_SUCCESS;
+}
+{% endhighlight %}
+
+
+
+
+## 调试
+
+当调试时定义 DEBUG 输出信息，通常有如下的几种方式。
+
+{% highlight c %}
+// 常用格式
+#ifdef DEBUG
+   #define debug(fmt, args...) printf(fmt, ##args) // OR
+   #define debug(fmt, ...) printf("sth: " fmt, ## __VA_ARGS__);
+#else
+   #define debug(fmt,args...)
+#endif
+
+// 输出文件名、函数名、行数
+#ifdef DEBUG
+   #define debug(fmt, args...) printf("%s, %s, %d: " fmt , __FILE__, __FUNCTION__, __LINE__, ##args)
+#else
+   #define debug(fmt, args...)
+#endif
+
+// 输出信息含有彩色
+#ifdef DEBUG
+   #define debug(fmt,args...)    \
+      do{                        \
+         printf("\033[32;40m");  \
+         printf(fmt, ##args);    \
+         printf("\033[0m");      \
+      } while(0);
+#else
+   #define debug(fmt,args...)
+#endif
+{% endhighlight %}
+
+
+
+
+
+
+
+## 整型溢出
+
+以 8-bits 的数据为例，unsigned 取值范围为 0~255，signed 的取值范围为 -128~127。在计算机中数据以补码（正数原码与补码相同，原码=除符号位的补码求反+1）的形式存在，且规定 0x80 为-128 。
+
+### 无符号整数
+
+对于无符号整数，当超过 255 后将会溢出，常见的是 Linux 内核中的 jiffies 变量，jiffies 以及相关的宏保存在 linux/jiffies.h 中，如果 a 发生在 b 之后则返回真，即 a>b 返回真，无论是否有溢出。
+
+{% highlight c %}
+#define time_after(a,b)     \
+    (typecheck(unsigned long, a) && \
+     typecheck(unsigned long, b) && \
+     ((long)((b) - (a)) < 0))
+{% endhighlight %}
+
+<!--
+	下面以8-bit数据进行讲解，在 0x00~0x7F 范围内，表示 0~127；在 0x80~0xFF 范围内表示 -128~-1，对于可能出现的数据有四种情况：<ol><li>
+		都位于0x00~0x7F<br>
+		如果a发生在b之后，则a > b。(char)b - (char)a < 0，100 - 125 = -25 < 0。</li><br><li>
+
+		都位于0x80~0xFF<br>
+		如果a发生在b之后，则a > b。(char)b - (char)a < 0，150 - 180 = -106 - (-76) = -30 < 0。</li><br><li>
+
+		b位于0x00~0x7F，a位于0x80~0xFF<br>
+		如果a发生在b之后，则a > b。(char)b - (char)a < 0，100 - 150 = 100 - (-106) = 206 = -50 < 0。<br><strong>注意，此时在a-b<=128时有效。</strong></li><br><li>
+
+		a位于0x00~0x7F，b位于0x80~0xFF<br>
+	如果a发生在b之后，此时有溢出。(char)b - (char)a < 0，150 - 10 = -106 - 10 = -116 < 0。<br><strong>注意，此时在a-b<=128时有效。</strong></li></ol>
+
+	<div style="padding: 10pt 0pt 10pt 0pt ;" align="right">
+	<table frame="void" width="90%">
+		<tbody><tr><td><b>Tips:</b><br><span style="color : #009000"><font size="-1">typecheck位于相同文件夹下的typecheck.h文件中，当两个参数不是同一个类型是将会产生警告，提醒用户注意，只是提醒。</font></span></td>
+	<td><img src="src/info.png" width="80" heigh="80"></td></tr></tbody></table></div>
+	</p>
+-->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## Clang
 
 ![clang logo]({{ site.url }}/images/programs/clang_logo.png "clang logo"){: .pull-center }
@@ -102,41 +506,6 @@ Clang 是一个 C++ 编写，基于 LLVM 的 C/C++、Objective-C 语言的轻量
 
 #pragma clang diagnostic pop
 {% endhighlight %}
-
-
-## 字符串操作
-
-对于字符串操作，可以通过 ```#define _FORTIFY_SOURCE 2``` 宏定义，对一些常见内存以及字符串处理函数 (memcpy, strcpy, stpcpy, gets 等) 的安全检查，详细可以查看 ```man 7 feature_test_macros``` 。
-
-### 字符串拼接
-
-{% highlight c %}
-#inclue <string.h>
-char * strncat(char *dest, const char *src, size_t n);
-{% endhighlight %}
-
-将 src 中开始的 n 个字符复制到 dest 的结尾，也就是将 dest 字符串最后的 ```'\0'``` 覆盖掉，字符追加完成后，再追加 ```'\0'```；所以需要保证 dest 最小为 ```strlen(dest)+n+1``` 。
-
-<!--
-BAD: strncat(buffer,charptr,sizeof(buffer))
-GOOD: strncat(buffer,charptr,sizeof(buffer)-strlen(buffer)-1)
--->
-
-{% highlight c %}
-#include <stdio.h>
-#include <string.h>
-
-int main(){
-  char site[100] = "http://www.douniwai.com";
-  char uri[300] = "/c/strncatiii";
-  strncat(site, uri, 1000);  // BAD, 1000远远超过path的长度，那么可能会导致segment fault
-  strncat(site, uri, sizeof(site)-strlen(site)-1); // GOOD
-  puts(site);
-  return  0;
-}
-{% endhighlight %}
-
-可以通过 ```gcc -Wall -D_FORTIFY_SOURCE=2 -O2 main.c``` 命令编译测试。
 
 
 {% highlight text %}

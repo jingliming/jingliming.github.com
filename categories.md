@@ -88,6 +88,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 
 介绍下 Linux 内核相关的内容。
 
+* [Linux 内核模块](/post/kernel-modules.html)，简单介绍下 Linux 中的内核模块编写，包括了内核签名机制的配置。
 
 #### SSH
 
