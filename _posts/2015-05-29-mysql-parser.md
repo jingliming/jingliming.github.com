@@ -152,11 +152,90 @@ COMMON WORD
 
 在处理时，flex 采用两个原则：A) 只匹配一次；B) 执行当前输入的最长可能匹配值。也就是对与 island 不会匹配 is 和 land 。当然，我们可以使用一个文件作为关键字列表，而非每次都需要编译。
 
+解析时会通过 yyin 读取，如果需要在 yacc 或者其它文件中设置，那么可以通过如下方式修改。
+
+{% highlight c %}
+extern FILE *yyin;
+yyin = fopen("filename","r");
+{% endhighlight %}
+
 通过 flex 处理文件后，会将匹配转化为指定的符号，然后供 yacc 处理。
 
-### 常用函数
+### 常用功能
 
 简单列举常用函数。
+
+
+#### 正则表达式
+
+flex 常用正则表达式：
+
+1. 格式与 grep 相似；
+2. ```<<EOF>>``` 标示文件结束；
+3. 常用字符集，如 ```[:alpha:]```, ```[:digit:]```, ```[:alnum:]```, ```[:space:]``` 等；
+4. ```{name}``` 使用预定义的 name 。
+
+简单示例，计算平均值。
+
+{% highlight text %}
+%{
+#include <stdio.h>
+#include <stdlib.h>
+%}
+dgt    [0-9] // 通过name方式定义
+%%
+{dgt}+   return atoi(yytext);
+%%
+void main()
+{
+   int val, total = 0, n = 0;
+   while ( (val = yylex()) > 0 ) { // 到文件结束时返回0
+      total += val;
+      n++;
+   }
+   if (n > 0) printf(“ave = %d\n”, total/n);
+}
+{% endhighlight %}
+
+如上如果在编译时使用 ```-Wall``` 参数，会报 ```warning: `yyunput’ defined but not used``` 之类的异常，如下介绍可以通过如下选项关闭。
+
+{% highlight text %}
+%option nounput
+%option noinput
+{% endhighlight %}
+
+#### 多规则匹配
+
+如果有多个值匹配，那么 flex 会按照如下的规则选取。
+
+1. 贪婪匹配，选择最大的匹配值；
+2. 多个规则匹配，选择第一个；
+3. 没有规则匹配则会选择默认规则。
+
+例如，通过 ```"/*"(.|\n)*"*/"``` 规则匹配 C 语言中的注释，那么如下场景可能出错。
+
+{% highlight c %}
+#include <stdio.h>  /* definitions */
+int main(int argc, char * argv[ ]) {
+   if (argc <= 1) {
+       printf("Error!\n");  /* no arguments */
+   }
+   printf("%d args given\n", argc);
+   return 0;
+}
+{% endhighlight %}
+
+贪婪匹配，会从 ```/* def``` 到 ```nts */``` 之间的内容都作为注释，此时就需要使用条件 (Condition) 规则。例如，以 ```<S>``` 开始的规则，只有在条件 S 时才会进行匹配，可以在 definition section 段通过如下方式定义条件。
+
+{% highlight text %}
+%x S exclusive start conditions
+%s S inclusive start conditions
+{% endhighlight %}
+
+然后，通过 ```BEGIN(S)``` 进入条件，另外，flex 有个初始条件，可以通过 ```BEGIN(INITIAL)``` 返回；如果使用多个状态，那么实际上可以实现一个状态机，详见 [lex tutorial.ppt](https://www2.cs.arizona.edu/~debray/Teaching/CSc453/DOCS/lex tutorial.ppt) 或者 [本地文档](/reference/databases/mysql/lex_tutorial.ppt) 。
+
+关于上述内容，也可以参考 [Start conditions](http://dinosaur.compilertools.net/flex/flex_11.html) 中的介绍。
+
 
 #### yyterminate()
 
@@ -220,7 +299,7 @@ COMMENT #.*
 
 
 
-### YACC 语法分析
+## YACC 语法分析
 
 bison 读入一个 CFG 文法的文件，在程序内经过计算，输出一个 parser generator 的 c 文件；也就是说 Bison 适合上下文无关文法，采用 LALR Parser (LALR语法分析器)。
 
@@ -231,7 +310,11 @@ bison 读入一个 CFG 文法的文件，在程序内经过计算，输出一个
 如果可以将 bison+flex 混合使用，当语法分析需要输入标记 (token) 时，就会调用 yylex() ，然后匹配规则，如果找到则返回。
 
 
+
+
 <!--
+
+
 <br><br><h2>预读</h2><p>
 Bison 分析器并不总是当 N 个终结符与组匹配某一规则时立即进行归约，这种策略对于大部分语言来说并不合适。相反，当可以进行归约时，分析器有时会“预读” (looks ahead) 下一个终结符来决定做什么。<br><br>
 
@@ -251,6 +334,8 @@ Bison 分析器并不总是当 N 个终结符与组匹配某一规则时立即�
     6. 如果第 5 步中有 s/r, r/r 冲突, 则解决冲突.
     7. 输出及别的收尾工作. 一般略去不细述了.
 -->
+
+### 语法定义
 
 同 flex 相似，仍然通过 ```%%``` 将文件分为三部分：
 
@@ -305,6 +390,96 @@ $ bison -d frame.y
 $ gcc frame.tab.c lex.yy.c
 {% endhighlight %}
 
+### 常用功能
+
+yacc 中定义了很多的符号，详细的可以查看 [Bison Symbols](http://dinosaur.compilertools.net/bison/bison_13.html) 中的介绍，如下简单介绍常见的符号定义：
+
+{% highlight text %}
+%start foobar
+  修改默认的开始规则，例如从foobar规则开始解析，默认从第一条规则开始
+{% endhighlight %}
+
+
+#### 高级yylval
+
+YACC 的 yylval 类型取决于 YYSTYPE 定义 (一般通过 typedef 定义)，可以通过定义 YYSTYPE 为联合体，在 YACC 中，也可以使用 ```%union``` 语句，此时会自动定义该类型的变量。
+
+{% highlight text %}
+%token TOKHEATER TOKHEAT TOKTARGET TOKTEMPERATURE
+%union {
+    int number;
+    char *string;
+}
+%token <number> STATE
+%token <number> NUMBER
+%token <string> WORD
+{% endhighlight %}
+
+定义了我们的联合体，它仅包含数字和字体串，然后使用一个扩展的%token语法，告诉YACC应该取联合体的哪一个部分。
+
+
+<!--
+这个例子中，我们定义STATE 为一个整数，这点跟前面一样，NUMBER符号用于读取温度值。
+
+不过新的WORD被定义为一个字符串。
+
+分词器文件也有很多改变：
+
+%{
+#include <stdio.h>
+#include <string.h>
+#include "y.tab.h"
+%}
+%%
+[0−9]+             yylval.number=atoi(yytext); return NUMBER;
+heater             return TOKHEATER;
+heat               return TOKHEATER;
+on|off             yylval.number=!strcmp(yytext,"on"); return STATE;
+target             return TOKTARGET;
+temperature        return TOKTEMPERATURE;
+[a−z0−9]+          yylval.string=strdup(yytext);return WORD;
+\n                 /* ignore end of line */;
+[ \t]+             /* ignore whitespace */;
+%%
+
+如你所见，我们不再直接获取yylval的值，而是添加一个后缀指示想取得哪个部分的值。不过在YACC语法中，我们无须这样做，因为YACC为我们做了神奇的这些：
+
+heater_select:
+        TOKHEATER WORD
+        {
+            printf("\tSelected heater '%s'\n",$2);
+            heater=$2;
+        }
+        ;
+
+由于上面的%token定义，YACC自动从联合体中挑选string成员。同时也请注意，我们保存了一份$2的副本，它在后面被用于告诉用户是哪一个加热器发出的命令：
+
+target_set:
+        TOKTARGET TOKTEMPERATURE NUMBER
+        {
+            printf("\tHeater '%s' temperature set to %d\n",heater,$3);
+        }
+        ;
+-->
+
+#### 杂项
+
+简单介绍其它功能。
+
+##### 变量
+
+```$$ $1 $2 ...``` 定义了默认的参数，示例如下：
+
+{% highlight text %}
+exp:
+| exp '+' exp     { $$ = $1 + $3; }
+
+exp[result]:
+| exp[left] '+' exp[right]  { $result = $left + $right; }
+{% endhighlight %}
+
+
+
 <!--
 上述函数的作用为<ul><li>
     yywrap<br>
@@ -339,7 +514,6 @@ $ gcc frame.tab.c lex.yy.c
 
 <br><br><h2>调试</h2><p>
 通常来说 bison 生成 *.tab.{c,h} 两个文件，如果通过 --report=state 或者 --verbose 生成 *.output 输出。
-
 -->
 
 
@@ -508,6 +682,14 @@ Bison 和词法分析的函数接口是 yylex()，在需要的时候掉用 yylex
 
 
 <!--
+自己动手写编译器
+http://pandolia.net/tinyc/
+https://bellard.org/tcc/
+计算器
+http://good-ed.blogspot.tw/2010/04/lexyacc.html
+编写自己的编译器
+http://coolshell.cn/articles/1547.html
+
 http://blog.csdn.net/huyansoft/article/details/8860224
 http://blog.csdn.net/lidan3959/article/details/8237914
 http://www.tuicool.com/articles/3aMVzi

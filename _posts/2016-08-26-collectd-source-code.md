@@ -231,12 +231,19 @@ main()
  |-plugin_init_ctx()
  |-cf_read()                                  ← 读取配置文件
  | |-cf_read_generic()                        ← 判断文件是否存在
+ | | |-wordexp()                              ← 文件扩展，确保文件存在
+ | | |-stat()                                 ← 判断是文件夹还是文件
  | | |-cf_read_file()                         ← 读取配置文件内容
- | | |-oconfig_parse_file()                   ← 解析配置项
- | |   |-fopen()
- | |   |-oconfig_parse_fh()
- | |   | |-yyparse()                          ← 使用LEX+YACC进行词法+语法解析
- | |   |-fclose()
+ | | | |-oconfig_parse_file()                 ← 解析配置项
+ | | | | |-fopen()
+ | | | | |-oconfig_parse_fh()
+ | | | | | |-yyset_in()                       ← 入参是FILE*类型
+ | | | | | |-yyparse()                        ← 使用LEX+YACC进行词法+语法解析
+ | | | | | |-yyset_in()                       ← 处理完成，修改为NULL值
+ | | | | |-fclose()
+ | | | |-cf_include_all()
+ | | |-cf_read_dir()                          ← 如果是目录，会递归调用cf_read_generic()
+ | | |-cf_ci_append_children()                ← 添加到root中
  | |
  | |-dispatch_value()                         ← 没有子配置项，一般为全局配置
  | | |-dispatch_global_option()               ← 全局配置，也就是cf_global_options变量中的定义
@@ -250,24 +257,27 @@ main()
  | |     |   |-plugin_register_data_set()     ← 注册data_set_t类型，通过avl保存在data_sets全局变量中
  | |     |-fclose()
  | |
- | |-dispatch_block()                         ← 如果是配置块
- |   |-dispatch_loadplugin()                  ← LoadPlugin，会调用plugin_load()
- |   | |-plugin_load()
- |   |   |-plugin_load_file()
- |   |     |-lt_dlsym()                       ← 调用各个插件的module_register()函数
- |   |       |-plugin_register_complex_read() ← 会生成read_func_t对象
- |   |         |-plugin_insert_read()         ← 写入到list以及heap
- |   |
- |   |-dispatch_block_plugin()                ← Plugin，会调用plugin_load()
- |   | |-plugin_load()                        ← 需要配置AutoLoadPlugin(true)参数
- |   | | ### 调用complex_callback_head链表
- |   | |-dispatch_value_plugin()
- |   |   |-cf_dispatch()
- |   |     |-cf_search()                      ← 查找first_callback链表中的回调函数
- |   |
- |   |-fc_configure()                         ← Chain，模块
- |     |-fc_init_once()
- |     |-fc_config_add_chain()
+ | |-dispatch_block()                         ← 有子配置项时，也就是配置块
+ | | |-dispatch_loadplugin()                  ← LoadPlugin，会调用plugin_load()
+ | | | |-plugin_load()
+ | | |   |-plugin_load_file()
+ | | |     |-lt_dlsym()                       ← 调用各个插件的module_register()函数
+ | | |       |-plugin_register_complex_read() ← 会生成read_func_t对象
+ | | |         |-plugin_insert_read()         ← 写入到list以及heap
+ | | |
+ | | |-dispatch_block_plugin()                ← Plugin，会调用plugin_load()
+ | | | |-plugin_load()                        ← 需要配置AutoLoadPlugin(true)参数
+ | | | | ### 调用complex_callback_head链表
+ | | | |-dispatch_value_plugin()
+ | | |   |-cf_dispatch()
+ | | |     |-cf_search()                      ← 查找first_callback链表中的回调函数
+ | | |
+ | | |-fc_configure()                         ← Chain，模块
+ | |   |-fc_init_once()
+ | |   |-fc_config_add_chain()
+ | |-oconfig_free()                           ← 释放配置项
+ | | |-oconfig_free_all()                     ← 释放配置，会递归调用
+ | |-read_types_list()                        ← 如果配置文件中没有指定types.db，则加载默认
  |
  | <<<<<<<<<========= 系统初始化
  |-change_basedir()                           ← 如果设置了basedir，则尝试切换
@@ -275,10 +285,12 @@ main()
  |-init_global_variables()                    ← 初始化全局变量，如interval_g、timeout_g、hostname
  | |-cf_get_default_interval()                ← 设置全局的时间间隔
  | |-init_hostname()                          ← 获取主机名
- |   |-global_option_get()                    ← 尝试从配置文件中通过Hostname选项获取主机名
- |   |-gethostname()                          ← 没有配置则尝试通过该系统调用获取
- |   |-global_option_get()                    ← 通过FQDNLookup确认是否需要查找主机名
- |   |-getaddrinfo()                          ← 如果上述配置为true
+ | | |-global_option_get()                    ← 尝试从配置文件中通过Hostname选项获取主机名
+ | | |-gethostname()                          ← 没有配置则尝试通过该系统调用获取
+ | | |-global_option_get()                    ← 通过FQDNLookup确认是否需要查找主机名
+ | | |-getaddrinfo()                          ← 如果上述配置为true
+ | |-return()                                 ← 如果使用了-t参数
+ | |-fork()                                   ← daemonize
  |-sigaction()                                ← 注册信号处理函数，包括了SIGINT、SIGTERM、SIGUSR1
  |
  | <<<<<<<<<========= 创建工作线程

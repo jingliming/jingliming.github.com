@@ -127,10 +127,7 @@ used = total - free - buffers - cache     (注意，没有去除shared)
 
 #### 状态查看
 
-可以使用 [getswapused1.sh](/reference/linux/monitor/getswapused1.sh) 和 [getswapused2.sh](/reference/linux/monitor/getswapused2.sh) 查看 swap 的使用情况，如果不使用 root 用户则只会显示当前用户的 swap，其它用户显示为 0。
-
-可以通过如下的命令排序，查看使用最多的进程，```./getswap.sh | egrep -v "Swap used: 0" | sort -n -k 5``` 。
-
+可以使用 [getswapused.sh]({{ site.example_repository }}/linux/memory/getswapused.sh) 查看 swap 的使用情况，如果不使用 root 用户则只会显示当前用户的 swap，其它用户显示为 0。
 
 <!--
 <br><br><h2>测试</h2><p>
@@ -351,6 +348,38 @@ Linux 内核模式使用 Buffer IO，以充分使用操作系统的 Page Cache�
 vmtouch -ve logfile 就可以试验，但是你会发现内存根本就没下来，原因呢？
 -->
 
+### smem
+
+Linux 使用的是虚拟内存 (virtual memory)，因此要准确的计算一个进程实际使用的物理内存就比较麻烦，如下是在计算内存使用率时比较重要的指标：
+
+* RSS (Resident Set Size) 表示进程占用的物理内存大小，可以使用 top 命令查询；不过将各进程的 RSS 值相加，通常会超出整个系统的内存消耗，这是因为 RSS 中包含了各进程间共享的内存。
+* PSS (Proportional Set Size) 它将共享内存的大小进行平均后，再分摊到各进程上去，相比来说更准确。
+* USS (Unique Set Size) 也就是 PSS 中只属于本进程的部分，只计算了进程独自占用的内存大小，不包含任何共享的部分。
+
+可以通过 [smem](https://www.selenic.com/smem/) 查看，这是一个 Python 写的程序，该程序也可以通过 matplotlib 输出图片，另外，提供了一个 smemcap.c 程序，可以打包嵌入式的相关数据，然后通过 ```-S/--source``` 指定打包文件。
+
+在 CentOS 中，可以通过如下命令安装。
+
+{% highlight text %}
+# yum --enablerepo=epel install smem python-matplotlib
+{% endhighlight %}
+
+<!--
+{% highlight text %}
+Show basic process information  smem
+Show library-oriented view  smem -m
+Show user-oriented view     smem -u
+Show system view    smem -R 4G -K /path/to/vmlinux -w
+Show totals and percentages     smem -t -p
+Show different columns  smem -c "name user pss"
+Sort by reverse RSS     smem -s rss -r
+Show processes filtered by mapping  smem -M libxml
+Show mappings filtered by process   smem -m -P [e]volution
+Read data from capture tarball  smem --source capture.tar.gz
+Show a bar chart labeled by pid     smem --bar pid -c "pss uss"
+Show a pie chart of RSS labeled by name     smem --pie name -s rss 
+{% endhighlight %}
+-->
 
 
 
@@ -421,12 +450,6 @@ $ pmap -d 14596
   offset  :  文件偏移；
   device  :  设备名。
 {% endhighlight %}
-
-## 小结
-
-可以通过 free 查看整个系统内存的使用情况，free(Mem) 过小不会对系统的性能产生影响，实际剩余的内存数为 free(-/+ buffers/cache)。
-
-通过 vmstat 1 3 输出的 swap(si/so) 可以查看交换区的切入/出情况，如果长期不为 0，则可能是因为内存不足，此时应该查看那个进程占用内存较多。
 
 
 ## Cache VS. Buffer
@@ -722,16 +745,6 @@ Swap:       8127484      300172     7827312
 free 命令所显示的 “buffers” 表示块设备(block device)所占用的缓存页，包括直接读写块设备、以及文件系统元数据(metadata)如SuperBlock所使用的缓存页；
 而 “cached” 表示普通文件所占用的缓存页。
 -->
-
-
-## 参考
-
-查看那个进程在使用交换空间可以参考 [Find Out What Process Are Using Swap Space](http://www.cyberciti.biz/faq/linux-which-process-is-using-swap/)，或者 [本地文档](/reference/linux/monitor/Find Out What Process Are Using Swap Space.maff) 。
-
-关于内存的介绍可以参考 [What every programmer should know about memory](https://www.akkadia.org/drepper/cpumemory.pdf)，包括了从硬件到软件的详细介绍，内容非常详细。
-
-
-<!-- memtester 内存测试工具。-->
 
 <!--
 可用内存计算方法
@@ -1268,6 +1281,25 @@ https://www.halobates.de/memory.pdf
 https://bhsc881114.github.io/2015/04/19/%E4%B8%80%E6%AC%A1linux%E5%86%85%E5%AD%98%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5-slab/
 http://linuxperf.com/?p=148
 -->
+
+
+
+## 小结
+
+可以通过 free 查看整个系统内存的使用情况，free(Mem) 过小不会对系统的性能产生影响，实际剩余的内存数为 free(-/+ buffers/cache)。
+
+通过 vmstat 1 3 输出的 swap(si/so) 可以查看交换区的切入/出情况，如果长期不为 0，则可能是因为内存不足，此时应该查看那个进程占用内存较多。
+
+
+## 参考
+
+关于内存的介绍可以参考 [What every programmer should know about memory](https://www.akkadia.org/drepper/cpumemory.pdf)，包括了从硬件到软件的详细介绍，内容非常详细。
+
+关于 Linux 内存的介绍可以参考 [Linux ate my ram!](http://www.linuxatemyram.com/) 。
+
+<!-- memtester 内存测试工具。-->
+
+
 
 {% highlight text %}
 {% endhighlight %}

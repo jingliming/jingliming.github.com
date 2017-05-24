@@ -303,6 +303,56 @@ void main(void)
 大端模式规定 MSB 在存储时放在低地址，在传输时 MSB 放在流的开始；小段模式反之。
 
 
+## \_\_attribute\_\_((format))
+
+该属性用于自实现的字符串格式化参数添加类似 printf() 的格式化参数的校验，判断需要格式化的参数与入参是否相同。
+
+{% highlight text %}
+format (archetype, string-index, first-to-check)
+
+__attribute__((format(printf,m,n)))
+__attribute__((format(scanf,m,n)))
+  m : 第m个参数为格式化字符串(从1开始)；
+  n : 变长参数(也即"...")的第一个参数排在总参数的第几个；
+{% endhighlight %}
+
+如下是使用示例。
+
+{% highlight text %}
+void myprint(const char *format,...) __attribute__((format(printf,1,2)));
+void myprint(int l，const char *format,...) __attribute__((format(printf,2,3)));
+{% endhighlight %}
+
+如下是一个简单的使用示例。
+
+{% highlight c %}
+#include <stdio.h>
+
+extern void myprint(const char *format,...) __attribute__((format(printf,1,2)));
+
+int myprint(char *fmt, ...)
+{
+    int result;
+    va_list args;
+    va_start(args, fmt);
+    fputs("foobar: ", stderr);
+    result = vfprintf(stderr, fmt, args);
+    va_end(args);
+    return result;
+}
+int main(int argc, char **argv)
+{
+    myprint("i=%d\n",6);
+    myprint("i=%s\n",6);
+    myprint("i=%s\n","abc");
+    myprint("%s,%d,%d\n",1,2);
+ return 0;
+}
+{% endhighlight %}
+
+编译时添加 -Wall 就会打印 Warning 信息，如果去除，实际上不会显示任何信息，通常可以提前发现常见的问题。
+
+
 ## \_\_attribute\_\_((constructor))
 
 这是 GCC 的扩展机制，通过上述的属性，可以使程序在开始执行或停止时调用指定的函数。
@@ -470,14 +520,31 @@ int main(int args,char ** argv)
 
 
 
+<!--
+<br id="Error_handling"><br><br>
+<h1>错误处理_OK</h1>
+<p>
+	需要包含的头文件及函数原型，<pre>
+#include &lt;stdio.h&gt;
+void perror(const char *s);
+
+#include &lt;errno.h&gt;
+const char *sys_errlist[];
+int sys_nerr;  // 前两个变量是参考了BSD，glibc中保存在&lt;stdio.h&gt;
+int errno;</pre>
+	
+	如果s不为NULL且*s != '\0'则输出s并加上": "+错误信息+换行，否则只输出错误信息+换行。通常s应该为出错的函数名称，此函数需要调用errno。如果函数调用错误后没有直接调用<tt>perror()</tt>，则为防止其他错误将其覆盖，需要保存errno。<br><br>
 
 
+sys_errlist保存了所有的错误信息，errno(注意出现错误时进行了设置，但是正确调用时可能没有清除)为索引，最大的索引为<tt>(sys_nerr - 1)</tt>。当直接调用sys_errlist时可能错误信息还没有添加。
+</p>
 
+## errno
 
+http://www.bo56.com/linux%E4%B8%ADc%E8%AF%AD%E8%A8%80errno%E7%9A%84%E4%BD%BF%E7%94%A8/
+https://www.ibm.com/developerworks/cn/aix/library/au-errnovariable/
 
-
-
-
+-->
 
 
 

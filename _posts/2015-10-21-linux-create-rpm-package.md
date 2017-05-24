@@ -384,6 +384,44 @@ BuildRequires:  sysv
 
 另外，可以生成 GPG 签名，在此不再赘述。
 
+#### 添加用户
+
+可以在 ```%pre``` 段中添加如下内容。
+
+{% highlight text %}
+/usr/sbin/groupadd -g 66 -o -r monitor >/dev/null 2>&1 || :
+
+参数：
+  --gid/-g
+    指定group id；
+  --non-unique/-o
+    group id可以不唯一，此时相当于指定了一个 alias；
+  --system/-r
+    创建系统分组；
+
+/usr/sbin/useradd -M %{!?el5:-N} -g monitor -o -r -d %{_libdir}/%{name} -s /bin/false \
+    -c "Uagent Server" -u 66 monitor >/dev/null 2>&1 || :
+参数：
+  --no-create-home/-M
+    不创建HOME目录；
+  --no-user-group/-N
+    不创建相同用户名的分组；
+  --non-unique/-o
+    user id可以不唯一，此时相当于指定了一个 alias；
+  --system/-r
+    创建系统用户；
+  --home-dir/-d HOME_DIR
+    指定HOME目录，如果不存在则会创建；
+  --shell/-s SHELL
+    指定默认的shell；
+{% endhighlight %}
+
+
+#### 初始宏定义
+
+很多的宏，是在 ```/etc/rpm``` 目录下定义的，如上面的 ```dist``` 在 ```/etc/rpm/macros.dist``` 文件中定义。
+
+
 #### RPM包查看
 
 对于生成的 RPM 包，只能查看头部信息和脚本内容，指令分别如下。

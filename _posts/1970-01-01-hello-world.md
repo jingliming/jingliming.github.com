@@ -649,6 +649,200 @@ https://www.percona.com/blog/2007/08/18/how-fast-can-you-sort-data-with-mysql/
 
 
 
+http://halobates.de/memorywaste.pdf
+
+BuildBot
+
+
+shell的通配符介绍
+http://www.cnblogs.com/chengmo/archive/2010/10/17/1853344.html
+
+### fnmatch()
+
+就是判断字符串是不是符合 pattern 所指的结构，这里的 pattern 是 shell wildcard pattern，其中部分匹配行为可以通过 flags 配置，详见 man 3 fnmatch。
+
+int fnmatch(const char *pattern, const char *string, int flags);
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <fnmatch.h>
+#include <sys/types.h>
+#include <dirent.h>
+
+int main(int argc, char *argv[])
+{
+    int ret;
+    char *pattern = "*.c";
+    DIR *dir;
+    struct dirent *entry;
+
+    if ((dir = opendir("/tmp")) == NULL) {
+        perror("opendir()");
+        exit(EXIT_FAILURE);
+    }
+    while ((entry = readdir(dir)) != NULL) { // 逐个获取文件夹中文件
+        ret = fnmatch(pattern, entry->d_name, FNM_PATHNAME|FNM_PERIOD);
+        if (ret == 0) {         //符合pattern的结构
+            printf("%s\n", entry->d_name);
+        } else if (ret == FNM_NOMATCH){
+            continue ;
+        } else {
+            printf("error file=%s\n", entry->d_name);
+        }
+    }
+    closedir(dir);
+    return 0;
+}
+
+wordexp()
+
+按照 Shell-Style Word Expansion 扩展将输入字符串拆分，返回的格式为 wordexp_t 变量，其中包括了三个变量，两个比较重要的是：A) we_wordc 成员数；B) we_wodv 数组。
+
+注意，在解析时会动态分配内存，所以在执行完 wordexp() 后，需要执行 wordfree()；另外，如果遇到内存不足会返回 WRDE_NOSPACE 错误，此时可能已经分配了部分地址，所以仍需要执行 wordfree() 。
+
+1) 按照空格解析；2) 正则表达式；3) 环境变量。
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <wordexp.h>
+
+int main(int argc, char **argv)
+{
+    int i, ret;
+    wordexp_t p;
+
+    ret = wordexp("foo bar $SHELL *[0-9].c *.c", &p, 0);
+    if (ret == WRDE_NOSPACE) {
+        wordfree(&p);
+        exit(EXIT_FAILURE);
+    } else if (ret != 0) {
+        exit(EXIT_FAILURE);
+    }
+    for (i = 0; i < p.we_wordc; i++)
+        printf("%s\n", p.we_wordv[i]);
+    wordfree(&p);
+    exit(EXIT_SUCCESS);
+}
+
+http://www.gnu.org/software/libc/manual/html_node/Word-Expansion.html
+
+
+### qsort()
+
+只用于数组的排序，对于链表等无效。
+
+void qsort(void *base, size_t nitems, size_t size, int (*compar)(const void *, const void*));
+
+base  : 数组的基地址
+nitems: 数组包含的元素；
+size  : 每个元素的大小；
+compar: 比较函数；
+
+#include <stdio.h>
+#include <stdlib.h>
+
+int cmpfunc (const void *a, const void *b)
+{
+   return ( *(int*)a - *(int*)b );
+}
+
+int main()
+{
+   int n;
+   int values[] = { 88, 56, 100, 2, 25 };
+
+   printf("Before sorting the list is: \n");
+   for( n = 0 ; n < 5; n++ ) {
+      printf("%d ", values[n]);
+   }
+   putchar('\n');
+   qsort(values, 5, sizeof(int), cmpfunc);
+   printf("After sorting the list is: \n");
+   for( n = 0 ; n < 5; n++ ) {
+      printf("%d ", values[n]);
+   }
+   putchar('\n');
+
+   return(0);
+}
+
+
+非常经典的《Linux平台下的漏洞分析入门 》
+https://github.com/1u4nx/Exploit-Exercises-Nebula
+原文在这里
+https://www.mattandreko.com/
+
+http://hustcat.github.io/iostats/
+http://ykrocku.github.io/blog/2014/04/11/diskstats/
+http://www.udpwork.com/item/12931.html
+
+FIXME:
+  linux-monitor-io.html
+/proc/diskstats 中包括了主设备号、次设备号和设备名称，剩余的各个字段的含义简单列举如下，详细可以查看内核文档 [I/O statistics fields](https://www.kernel.org/doc/Documentation/iostats.txt) 。
+
+可以通过 grep diskstats 找到对应内核源码实现在 diskstats_show()@block/genhd.c 中。
+
+获取源码 diskstats_show() + struct disk_stats 。
+
+可以看到是通过 part_round_stats() 函数获取每个磁盘的最新统计信息，通过 struct hd_struct 中的 struct disk_stats *dkstats 结构体保存，然后利用 part_stat_read() 函数统计各个 CPU 的值 (如果是多核)。
+
+
+在 Bash 编程时，经常需要切换目录，可以通过 pushd、popd、dirs 命令切换目录。
+
+pushd  切换到参数指定的目录，并把原目录和当前目录压入到一个虚拟的堆栈中，不加参数则在最近两个目录间切换；
+popd   弹出堆栈中最近的目录；
+dirs   列出当前堆栈中保存的目录列表；
+  -v 在目录前添加编号，每行显示一个目录；
+  -c 清空栈；
+
+切换目录时，会将上次目录保存在 $OLDPWD 变量中，与 "-" 相同，可以通过 cd - 切换回上次的目录。
+
+
+
+set -o history 开启bash的历史功能
+
+判断目录是否存在，如果目录名中有'-'则需要进行转义。
+
+dir="/tmp/0\-test"
+if [ ! -d "${dir}" ]; then
+  mkdir /myfolder
+fi
+
+
+c_avl_tree_t *c_avl_create(int (*compare)(const void *, const void *));
+入参：
+  比较函数，类似strcmp()；
+实现：
+  1. 保证 compare 有效，非 NULL；
+  2. 申请内存，部分结构体初始化。
+返回：
+  成功返回结构体指针；参数异常或者没有内存，返回 NULL；
+
+int c_avl_insert(c_avl_tree_t *t, void *key, void *value);
+返回：
+  -1：内存不足；
+  0： 节点写入正常；
+  1:  节点已经存在；
+
+int c_avl_get(c_avl_tree_t *t, const void *key, void **value);
+调用者保证 t 存在 (非NULL)。
+返回：
+  -1：对象不存在；
+  0： 查找成功，对应的值保存在value中；
+
+int c_avl_remove(c_avl_tree_t *t, const void *key, void **rkey, void **rvalue);
+返回：
+  -1：对象不存在；
+
+
+_remove()
+search()
+rebalance()
+verify_tree()
+
+
+
 
 
 ←

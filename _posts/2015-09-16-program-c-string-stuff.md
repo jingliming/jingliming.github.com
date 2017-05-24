@@ -119,7 +119,7 @@ void *calloc(size_t nmemb, size_t size);
 void *realloc(void *ptr, size_t size);
 {% endhighlight %}
 
-malloc() 申请 size 字节大小大内存，内存空间未初始化，如果 size 是 0 可能会返回 NULL 或者一个后续可以 free 的指针；分配内存失败则返回 NULL 。calloc() 类似申请数组空间，会自动初始化为 0 。
+malloc() 申请 size 字节大小大内存，内存空间未初始化，如果 size 是 0 可能会返回 NULL 或者一个后续可以 free 的指针；分配内存失败则返回 NULL；calloc() 为申请数组空间，会自动初始化为 0 。
 
 realloc() 的功能比较复杂，可以实现内存分配、释放，会将 ptr 所指向的内存块的大小修改为 size，并将新的内存指针返回，注意，不会保证返回的指针不变，会保证内存地址连续。注意，使用 malloc() 替换 realloc() 。
 
@@ -128,6 +128,23 @@ realloc() 的功能比较复杂，可以实现内存分配、释放，会将 ptr
 * 如果 size = 0，那么相当于调用 free(ptr)。
 
 一般来说，一个函数只提供一个功能，如上的函数却赋予了好几个功能，这并不是良好的函数设计，估计也是为了兼容性，才容忍这个函数一直在 C 库中。
+
+另外，根据 C 的标准 [ISO-IEC 9899 7.20.3.2/2](http://www.open-std.org/JTC1/SC22/wg14/www/docs/n1124.pdf)：
+
+{% highlight text %}
+void free(void *ptr);
+  If ptr is a null pointer, no action occurs.
+{% endhighlight %}
+
+所以，在执行 free() 时，不需要检查是否为 NULL，因此可以实现一个 sfree() 宏。
+
+{% highlight c %}
+#define sfree(m) do { \
+    free(m);          \
+    m = NULL;         \
+} while(0);
+{% endhighlight %}
+
 
 ### 注意事项
 

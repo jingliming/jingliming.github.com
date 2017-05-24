@@ -90,6 +90,17 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 
 * [Linux 内核模块](/post/kernel-modules.html)，简单介绍下 Linux 中的内核模块编写，包括了内核签名机制的配置。
 
+#### C Program
+
+简单介绍下与 C 语言相关的内容。
+
+* [libev 事件库](/post/linux-libev.html)，一个 C 编写的高性能事件循环库，类似库还有 libevent、libubox 等。
+* [C 语言的字符串](/post/program-c-string-stuff.html)，简单介绍下 C 语言中与字符串、内存操作相关的函数。
+* [C 语言的奇技淫巧](/post/program-c-tips.html)，整理下 C 语言中常用的技巧。
+* [Linux 时间函数](/post/linux-timer-functions.html)，简单介绍下 Linux 中与时间相关的函数。
+* [Linux AIO](/post/linux-program-aio.html)，简单介绍下 Linux 平台下的异步读写模型。
+
+
 #### SSH
 
 主要介绍 SSH 一些常见的操作。
@@ -120,6 +131,10 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [YUM 使用](/post/yum-usage.html)，包括了如何搭建私有镜像、定制 RPM 包等。
 * [Linux System Daemon](/post/linux-systemd.html)，一般新发行版本采用的是 systemd，在此简单介绍下。
 -->
+
+
+
+
 
 ----------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------
