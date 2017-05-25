@@ -118,6 +118,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [CentOS 安装与配置](/post/centos-config-from-scratch.html)，简单介绍 CentOS 在安装时需要作的一些常用配置。
 * [RPM 包制作](/post/linux-create-rpm-package.html)，如何在 CentOS 中创建 RPM 包。
 * [Linux 常用技巧](/post/linux-tips.html)，简单记录了一些在 Linux 中常用的技巧。
+* [Bash 文本处理](/post/linux-text-process.html)，简单介绍下 Linux 常用的文本处理方式。
 * [TMUX](/post/tmux.html)，一个终端复用工具，类似 screen 但是更加方便使用，更加高端。
 * [Linux 绘图工具](/post/linux-gnuplot.html)，这是一个命令行驱动的绘图工具，支持多个平台。
 * [logrotate 使用方法](/post/logrotate-usage.html)，一个不错的日志切割管理程序。
@@ -125,11 +126,10 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [你所不知道的定时任务](/post/details-about-cronie.html)，也就是 Linux 中如何使用 crontab，以及常见错误。
 * [Git 分支管理](/post/git-branch-model.html)，主要介绍 git 的分支处理常用操作，以及比较经典的版本分支管理方式。
 * [Linux 时间同步](/post/linux-sync-time.html)，介绍部分与时间相关的概念，例如时区、闰秒、夏令时、NTP 等。
-* [Linux 时间函数](/post/linux-timer-functions.html)，简单介绍下 Linux 中与时间相关的函数。
+* [Linux System Daemon](/post/linux-systemd.html)，一般新发行版本采用的是 systemd，在此简单介绍下。
 
 <!--
 * [YUM 使用](/post/yum-usage.html)，包括了如何搭建私有镜像、定制 RPM 包等。
-* [Linux System Daemon](/post/linux-systemd.html)，一般新发行版本采用的是 systemd，在此简单介绍下。
 -->
 
 
