@@ -156,5 +156,27 @@ BTW：MySQL本身在support-files目录已经包含了一个名为mysql-log-rota
 关于 MySQL 如何安全地处理日志文件，可以查看 [Rotating MySQL Slow Logs Safely](https://engineering.groupon.com/2013/mysql/rotating-mysql-slow-logs-safely/) 中的相关介绍，否则可能会导致异常。
 
 
+
+<!--
+logrotate的copytruncate参数导致打开的文件产生空洞
+
+日志文件保存时候使用> 将其保存，对文件进行清除和日志切割(logrotate)时，容易出现文件空洞。
+
+需要使用“>>” 可以避免该问题。修改后问题确实解决了。
+
+在此Mark一下。
+
+同理，在用fopen 打开或创建日志文件时，打开方式使用“w”类似于>，使用"a"类似于>>。如果需要对日志文件进行logrotate备份，最好使用"a"方式创建或打开。（经过测试）
+
+以上情况发生的条件是，日志文件一直处于打开状态，进程没有被重启，如果进程在备份完成之后重新启动或运行，则不会导致文件空洞，因为文件的offset指示器已经到了文件头。
+
+
+
+
+logrotate机制和原理
+http://www.lightxue.com/how-logrotate-works
+-->
+
+
 {% highlight text %}
 {% endhighlight %}

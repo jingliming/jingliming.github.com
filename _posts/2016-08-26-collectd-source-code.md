@@ -743,9 +743,21 @@ fc_process_chain() 流程的处理
 
 https://collectd.org/wiki/index.php/Target:Notification
 
-
 fc_register_match() 添加到match_list_head链表的末尾
 -->
+
+## 杂项
+
+### libtoolize
+
+如果报 ```libtoolize: 'COPYING.LIB' not found in '/usr/share/libtool/libltdl'``` 错误。
+
+依赖 ```libtool-ltdl-devel``` 库，一个 GUN 提供的库，类似于 POSIX 的 ```dlopen()``` ，不过据说更简单且强大；详细可以参考官方文档 [Using libltdl](https://www.gnu.org/software/libtool/manual/html_node/Using-libltdl.html) 。
+
+另外，需要注意的是，该库并不能保证线程安全。
+
+
+
 
 ## BUG-FIX
 

@@ -30,6 +30,36 @@ description: 简单介绍下 Linux 中与 IO 相关的内容。
 块是文件系统的抽象，而非磁盘的属性，一般是 Sector Size 的倍数；扇区大小则是磁盘的物理属性，它是磁盘设备寻址的最小单元。另外，内核中要求 Block_Size = Sector_Size * (2的n次方)，且 Block_Size <= 内存的 Page_Size (页大小)。
 
 
+### 磁盘类型
+
+主要是要获取当前系统使用的什么类型的磁盘 (SCSI、IDE、SSD等)，甚至是制造商、机器型号、序列号等信息。
+
+{% highlight text %}
+$ dmesg | grep scsi
+{% endhighlight %}
+
+### 监控指标
+
+简单列举磁盘监控时常见的指标。
+
+{% highlight text %}
+IOPS 每秒IO数
+  对磁盘来说，一次磁盘的连续读或写称为一次磁盘 IO，当传输小块不连续数据时，该指标有重要参考意义。
+Throughput 吞吐量
+  硬盘传输数据流的速度，单位一般为 MB/s，在传输大块不连续数据的数据，该指标有重要参考作用。
+IO平均大小
+  实际上就是吞吐量除以 IOPS，用于判断磁盘使用模式，一般大于 32K 为顺序读取为主，否则随机读取为主。
+Utilization 磁盘活动时间百分比
+  磁盘处于活动状态 (数据传输、寻道等) 的时间百分比，也即磁盘利用率，一般该值越高对应的磁盘资源争用越高。
+Service Time 服务时间
+  磁盘读写操作执行的时间，对于机械磁盘包括了寻道、旋转、数据传输等，与磁盘性能相关性较高，另外，也受 CPU、内存影响。
+Queue Length 等待队列长度
+  待处理的 IO 请求的数目，注意，如果该磁盘为磁盘阵列虚拟的逻辑驱动器，需要除以实际磁盘数，以获取单盘的 IO 队列。
+Wait Time 等待时间
+  在队列中排队的时间。
+{% endhighlight %}
+
+
 ## iostat 系统级
 
 除了可以通过该命令查看磁盘信息之外，还可以用来查看 CPU 信息，分别通过 ```-d``` 和 ```-c``` 参数控制；可直接通过 ```iostat -xdm 1``` 命令显示磁盘队列的长度等信息。
@@ -57,16 +87,17 @@ argqu-sz Average Queue Size
   在驱动层的队列排队的平均长度。
 
 await Average Wait
-  平均的等待时间，主要包括了在队列中的等待时间，暂不确认是否包含了磁盘的处理时间。
+  平均的等待时间，包括了在队列中的等待时间，以及磁盘的处理时间。
 
 svctm(ms) Service Time
-  一次磁盘IO请求的服务时间，也就是请求发送后到接收到响应的时间差，对于单块SATA盘，完全随机读时，
-  基本在7ms左右，既寻道+旋转延迟时间；不过据说以后会删掉该监控选项。
+  请求发送给IO设备后的响应时间，也就是一次磁盘IO请求的服务时间，不过该指标官网说不准确，要取消。
+  对于单块SATA盘，完全随机读时，基本在7ms左右，既寻道+旋转延迟时间。
 
 %util
-  一秒内IO操作所占的比例，计算公式是(r/s+w/s)*(svctm/1000)；对于一块磁盘，因为没有并发IO的概念，
-  所以这个公式是正确的，但是对于RAID磁盘组或者SSD来说，这个计算公式就有问题了，就算这个值超过100%，
-  也不代表存储有瓶颈，容易产生误导。
+  一秒内IO操作所占的比例，计算公式是(r/s+w/s)*(svctm/1000)，例如采集时间为 1s 其中有 0.8s 在处
+  理 IO 请求，那么 util 为 80% ；对于一块磁盘，如果没有并发IO的概念，那么这个公式是正确的，但
+  是对于RAID磁盘组或者SSD来说，这个计算公式就有问题了，就算这个值超过100%，也不代表存储有瓶颈，
+  容易产生误导。
 {% endhighlight %}
 
 iostat 统计的是通用块层经过合并 (rrqm/s, wrqm/s) 后，直接向设备提交的 IO 数据，可以反映系统整体的 IO 状况，但是距离应用层比较远，由于系统预读、Page Cache、IO调度算法等因素，很难跟代码中的 write()、read() 对应。
@@ -78,34 +109,224 @@ rsec/s    : The number of sectors read from the hard disk per second
 wsec/s    : The number of sectors written to the hard disk per second
 -->
 
-### 其它
+### /proc/diskstats
 
-该命令会读取 ```/proc/diskstats``` 文件中的数据，其中各个段的含义如下。
+该命令会读取 ```/proc/diskstats``` 文件，各个指标详细的含义可以参考内核文档 [iostats.txt](https://www.kernel.org/doc/Documentation/iostats.txt)，其中各个段的含义如下。
 
 {% highlight text %}
-filed1  成功完成读的总次数；
-filed2  合并写完成次数，通过合并提高效率，例如两次4K合并为8K，这样只有一次IO操作；
-filed3  成功读过的扇区总次数；
-filed4  所有读操作所花费的毫秒数；
-filed5  成功完成写的总次数；
-filed6  合并写的次数；
-filed7  成功写过的扇区总次数；
-filed8  所有写操作所花费的毫秒数；
-filed9  现在正在进行的IO数目；
-filed10 输入/输出操作花费的毫秒数；
-filed11 是一个权重值，当有上面的IO操作时，这个值就增加。
+filed1  rd_ios
+  成功完成读的总次数；
+filed2  rd_merges
+  合并写完成次数，通过合并提高效率，例如两次4K合并为8K，这样只有一次IO操作；合并操作是由IO Scheduler(也叫 Elevator)负责。
+filed3  rd_sectors
+  成功读过的扇区总次数；
+filed4  rd_ticks
+  所有读操作所花费的毫秒数，每个读从__make_request()开始计时，到end_that_request_last()为止，包括了在队列中等待的时间；
+filed5  wr_ios
+  成功完成写的总次数；
+filed6  wr_merges
+  合并写的次数；
+filed7  wr_sectors
+  成功写过的扇区总次数；
+filed8  wr_ticks
+  所有写操作所花费的毫秒数；
+filed9  in_flight
+  现在正在进行的IO数目，在IO请求进入队列时该值加1，在IO结束时该值减1，注意是在进出队列时，而非交给磁盘时；
+filed10 io_ticks
+  输入/输出操作花费的毫秒数；
+filed11 time_in_queue
+  是一个权重值，当有上面的IO操作时，这个值就增加。
+{% endhighlight %}
+
+需要注意 ```io_ticks``` 与 ```rd/wr_ticks``` 的区别，后者是把每一个 IO 所消耗的时间累加在一起，因为硬盘设备通常可以并行处理多个 IO，所以统计值往往会偏大；而前者表示该设备有 IO 请求在处理的时间，也就是非空闲，不考虑 IO 有多少，只考虑现在有没有 IO 操作。在实际计算时，会在字段 ```in_flight``` 不为零的时候 ```io_ticks``` 保持计时，为 0 时停止计时。
+
+另外，```io_ticks``` 在统计时不考虑当前有几个 IO，而 ```time_in_queue``` 是用当前的 IO 数量 (in_flight) 乘以时间，统计时间包括了在队列中的时间以及磁盘处理 IO 的时间。
+
+<!-- iostat在计算avgqu-sz时会用到这个字段。 -->
+
+
+### 重要指标
+
+简单介绍下常见的指标，包括了经常误解的指标。
+
+#### util
+
+这里重点说一下 iostat 中 util 的含义，该参数可以理解为磁盘在处理 IO 请求的总时间，如果是 100% 则表明磁盘一直在处理 IO 请求，这也就意味着 IO 在满负载运行。
+
+对于一块磁盘，如果没有并发 IO 的概念，所以这个公式是正确的，但是现在的磁盘或者对于RAID磁盘组以及SSD来说，这个计算公式就有问题了，就算这个值超过100%，也不代表存储有瓶颈，容易产生误导。
+
+举个简化的例子：某硬盘处理单个 IO 需要 0.1 秒，也就是有能力达到 10 IOPS，那么当 10 个 IO 请求依次顺序提交的时候，需要 1 秒才能全部完成，在 1 秒的采样周期里 %util 达到 100%；而如果 10 个 IO 请求一次性提交的话，0.1 秒就全部完成，在 1 秒的采样周期里 %util 只有 10%。
+
+可见，即使 %util 高达 100%，硬盘也仍然有可能还有余力处理更多的 IO 请求，即没有达到饱和状态。不过遗憾的是现在 iostat 没有提供类似的指标。
+
+在 CentOS 中使用的是 [github sysstat](https://github.com/sysstat/sysstat/blob/master/iostat.c)，如下是其计算方法。
+
+{% highlight text %}
+rw_io_stat_loop()  循环读取
+ |-read_diskstats_stat()            从/proc/diskstats读取状态
+ |-write_stats()                    输出采集的监控指标
+   |-write_ext_stat()
+     |-compute_ext_disk_stats()     计算ext选项，如util
+     |-write_plain_ext_stat()
+{% endhighlight %}
+
+关于该参数的代码详细介绍如下。
+
+
+{% highlight c %}
+#define S_VALUE(m,n,p)  (((double) ((n) - (m))) / (p) * HZ)
+
+void read_diskstats_stat(int curr)
+{
+ struct io_stats sdev;
+ ... ...
+ if ((fp = fopen(DISKSTATS, "r")) == NULL)
+  return;
+
+ while (fgets(line, sizeof(line), fp) != NULL) {
+  /* major minor name rio rmerge rsect ruse wio wmerge wsect wuse running use aveq */
+  i = sscanf(line, "%u %u %s %lu %lu %lu %lu %lu %lu %lu %u %u %u %u",
+      &major, &minor, dev_name,
+      &rd_ios, &rd_merges_or_rd_sec, &rd_sec_or_wr_ios, &rd_ticks_or_wr_sec,
+      &wr_ios, &wr_merges, &wr_sec, &wr_ticks, &ios_pgr, &tot_ticks, &rq_ticks);
+
+  if (i == 14) {
+   /* Device or partition */
+   if (!dlist_idx && !DISPLAY_PARTITIONS(flags) &&
+       !is_device(dev_name, ACCEPT_VIRTUAL_DEVICES))
+    continue;
+   sdev.rd_ios     = rd_ios;
+   sdev.rd_merges  = rd_merges_or_rd_sec;
+   sdev.rd_sectors = rd_sec_or_wr_ios;
+   sdev.rd_ticks   = (unsigned int) rd_ticks_or_wr_sec;
+   sdev.wr_ios     = wr_ios;
+   sdev.wr_merges  = wr_merges;
+   sdev.wr_sectors = wr_sec;
+   sdev.wr_ticks   = wr_ticks;
+   sdev.ios_pgr    = ios_pgr;
+   sdev.tot_ticks  = tot_ticks;
+   sdev.rq_ticks   = rq_ticks;
+        }
+     ... ...
+  save_stats(dev_name, curr, &sdev, iodev_nr, st_hdr_iodev);
+ }
+ fclose(fp);
+}
+
+void write_json_ext_stat(int tab, unsigned long long itv, int fctr,
+      struct io_hdr_stats *shi, struct io_stats *ioi,
+      struct io_stats *ioj, char *devname, struct ext_disk_stats *xds,
+      double r_await, double w_await)
+{
+ xprintf0(tab,
+   "{\"disk_device\": \"%s\", \"rrqm\": %.2f, \"wrqm\": %.2f, "
+   "\"r\": %.2f, \"w\": %.2f, \"rkB\": %.2f, \"wkB\": %.2f, "
+   "\"avgrq-sz\": %.2f, \"avgqu-sz\": %.2f, "
+   "\"await\": %.2f, \"r_await\": %.2f, \"w_await\": %.2f, "
+   "\"svctm\": %.2f, \"util\": %.2f}",
+   devname,
+   S_VALUE(ioj->rd_merges, ioi->rd_merges, itv),
+   S_VALUE(ioj->wr_merges, ioi->wr_merges, itv),
+   S_VALUE(ioj->rd_ios, ioi->rd_ios, itv),
+   S_VALUE(ioj->wr_ios, ioi->wr_ios, itv),
+   S_VALUE(ioj->rd_sectors, ioi->rd_sectors, itv) / fctr,
+   S_VALUE(ioj->wr_sectors, ioi->wr_sectors, itv) / fctr,
+   xds->arqsz,
+   S_VALUE(ioj->rq_ticks, ioi->rq_ticks, itv) / 1000.0,
+   xds->await,
+   r_await,
+   w_await,
+   xds->svctm,
+   shi->used ? xds->util / 10.0 / (double) shi->used
+      : xds->util / 10.0); /* shi->used should never be zero here */
+}
+
+
+void compute_ext_disk_stats(struct stats_disk *sdc, struct stats_disk *sdp,
+       unsigned long long itv, struct ext_disk_stats *xds)
+{
+ double tput
+  = ((double) (sdc->nr_ios - sdp->nr_ios)) * HZ / itv;
+
+ xds->util  = S_VALUE(sdp->tot_ticks, sdc->tot_ticks, itv);
+ xds->svctm = tput ? xds->util / tput : 0.0;
+ /*
+  * Kernel gives ticks already in milliseconds for all platforms
+  * => no need for further scaling.
+  */
+ xds->await = (sdc->nr_ios - sdp->nr_ios)
+?  ((sdc->rd_ticks - sdp->rd_ticks) + (sdc->wr_ticks - sdp->wr_ticks)) /
+  ((double) (sdc->nr_ios - sdp->nr_ios)) : 0.0;
+ xds->arqsz = (sdc->nr_ios - sdp->nr_ios)
+?  ((sdc->rd_sect - sdp->rd_sect) + (sdc->wr_sect - sdp->wr_sect)) /
+  ((double) (sdc->nr_ios - sdp->nr_ios)) : 0.0;
+}
 {% endhighlight %}
 
 
+实际上就是 ```/proc/diskstats``` 中的 filed10 消耗时间占比。
 
 
+#### await
+
+在 Linux 中，每个 IO 的平均耗时用 await 表示，包括了磁盘处理时间以及队列排队时间，所以该指标不能完全表示设备的性能，包括 IO 调度器等，都会影响该参数值。一般来说，内核中的队列时间几乎可以忽略不计，而 SSD 不同产品从 0.01ms 到 1.00 ms 不等，对于机械磁盘可以参考 [io](http://cseweb.ucsd.edu/classes/wi01/cse102/sol2.pdf) 。
 
 
+#### svctm
 
+这个指标在 iostat 以及 sar 上都有注释 ```Warning! Do not trust this field any more. This field will be removed in a future sysstat version.```，该指标包括了队列中排队时间以及磁盘处理时间。
+
+实际上，在 UNIX 中通常通过 avserv 表示硬盘设备的性能，它是指 IO 请求从 SCSI 层发出到 IO 完成之后返回 SCSI 层所消耗的时间，不包括在 SCSI 队列中的等待时间，所以该指标体现了硬盘设备处理 IO 的速度，又被称为 disk service time，如果 avserv 很大，那么肯定是硬件出问题了。
+
+#### iowait
+
+从 top 中的解释来说，就是 CPU 在 ```time waiting for I/O completion``` 中消耗的时间，而实际上，如果需要等待 IO 完成，实际 CPU 不会一直等待该进程，而是切换到另外的进程继续执行。
+
+所以在 [Server Fault](https://serverfault.com/questions/12679/can-anyone-explain-precisely-what-iowait-is) 中将该指标定义为如下的含义：
+
+{% highlight text %}
+iowait is time that the processor/processors are waiting (i.e. is in an
+idle state and does nothing), during which there in fact was outstanding
+disk I/O requests.
+{% endhighlight %}
+
+那么对于多核，iowait 是只在一个 CPU 上，还是会消耗在所有 CPU ？如果有 4 个 CPUs，那么最大是 20% 还是 100% ？
+
+可以通过 ```dd if=/dev/sda of=/dev/null bs=1MB``` 命令简单测试下，一般来说，为了提高 cache 的命中率，会一直使用同一个 CPU ，不过部分系统会将其均分到不同的 CPU 上做均衡。另外，也可以通过 ```taskset 1 dd if=/dev/sda of=/dev/null bs=1MB``` 命令将其绑定到单个 CPU 上。
+
+> 按照二进制形式，从最低位到最高位代表物理 CPU 的 #0、#1、#2、...、#n 号核，例如：0x01 代表 CPU 的 0 号核，0x05 代表 CPU 的 0 号和 2 号核。
+>
+> 例如，将 9865 绑定到 #0、#1 上面，命令为 ```taskset -p 0x03 9865```；将进程 9864 绑定到 #1、#2、#5~#11 号核上面，从 1 开始计数，命令为 ```taskset -cp 1,2,5-11 9865``` 。
+
+可以看出，如果是 ```top <1>``` 显示各个 CPU 的指标，则是 100% 计算，而总的统计值则按照 25% 统计。
+
+<!--
 http://veithen.github.io/2013/11/18/iowait-linux.html
+-->
 
+### 其它
 
+常见问题处理。
 
+##### 问题1：如何获取真正的 serviice time(svctm)
+
+?可以通过 fio 等压测工具，通过设置为同步 IO，仅设置一个线程，以及 io_depth 也设置为 1，压测出来的就是真正的 service time(svctm)。
+
+##### 问题2：怎样获得 IO 最大并行度，或者说如何获得真正的 util% 使用率？
+
+{% highlight text %}
+最大并行度 = 压测满(r/s + w/s) * (真实svctm / 1000)
+{% endhighlight %}
+
+公式基本一样，只是将 svctm 换成了上次计算的值。
+
+##### 问题3：如何判断存在 IO 瓶颈了？
+
+实际上在如上算出真实的最大并行度，可以直接参考 avgqu-sz 值，也就是队列中的值，一般来说超过两倍可能就会存在问题。例如一块机械盘，串行 IO (每次1个IO)，那么 avgqu-sz 持续大于 2 既代表持续有两倍读写能力的 IO 请求在等待；或者当 RAIDs、SSD 等并行，这里假定并行度为 5.63，那么 avgqu-sz 持续大于10，才代表持续有两倍读写能力的 IO 请求在等待。
+
+<!--
+https://www.symantec.com/connect/articles/getting-hang-iops
+-->
 
 ## iotop pidstat iodump 进程级
 
@@ -496,6 +717,10 @@ $ ionice -p 89 91
 
 <!--
 http://www.cnblogs.com/quixotic/p/3258730.html
+
+http://hustcat.github.io/iostats/
+http://ykrocku.github.io/blog/2014/04/11/diskstats/
+http://www.udpwork.com/item/12931.html
 -->
 
 

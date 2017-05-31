@@ -592,23 +592,27 @@ http://www.yunweipai.com/archives/4220.html
 {% highlight text %}
 LoadPlugin rrdtool
 <Plugin rrdtool>
-  DataDir Directory            # 指定数据保存目录，默认会保存在BaseDir目录下
-  CreateFilesAsync false|true  # 如果需要创建几百个文件可以设置为异步，此时在文件创建完成前的数据将会丢弃；如果同步则会阻塞
-  StepSize Seconds             # 设置RRD文件的step，默认会从上报的数据中选择step，建议不要设置
-  HeartBeat Seconds            # 一般设置为step的两倍，同样不建议设置
-  RRARows NumRows              # 默认是1200，一般保存15个RRA，是MIN, AVERAGE, MAX与hour, day, week, month, year的组合，
-                               # 计算方式为PDPs=timespan/(stepsize*rrarows)
-  RRATimespan Seconds          # 手动设置范围，可以配置多次，单位是秒；如果没有配置默认是(3600, 86400, 604800, 2678400, 31622400)
-  XFF Factor                   # 设置XFiles Factor参数，默认是0.1，范围是[0.0-1.0)
+  DataDir Directory       # 指定数据保存目录，默认会保存在BaseDir目录下
+  CreateFilesAsync false  # 如果需要创建几百个文件可以设置为异步，此时在文件创建完成前的数据将会丢弃，
+                          #     如果同步则会阻塞
+  StepSize Seconds        # 设置RRD文件的step，默认会从上报的数据中选择step，建议不要设置
+  HeartBeat Seconds       # 一般设置为step的两倍，同样不建议设置
+  RRARows NumRows         # 默认是1200，一般保存15个RRA，是MIN, AVERAGE, MAX与hour, day, week, month,
+                          #     year的组合，计算方式为PDPs=timespan/(stepsize*rrarows)
+  RRATimespan Seconds     # 手动设置范围，可以配置多次，单位是秒；如果没有配置默认是(3600, 86400,
+                          #     604800, 2678400, 31622400)
+  XFF Factor              # 设置XFiles Factor参数，默认是0.1，范围是[0.0-1.0)
 
-  CacheFlush Seconds           # 当设置了缓存时，每次接收到新值时，如果超过了这里设置的时间，就会检查所有的采集值；适用于部分指标由于
-                               # 异常一直没有更新，导致始终保存在缓存中，因为消耗资源比较大，建议设置为较大的值，如900、7200秒。
-  CacheTimeout Seconds         # 大于0时会将值缓存到内存中，如果缓存的时间差超过改值，则放入到update queue队列中
-  WritesPerSecond Updates      # 如果采集的指标比较多，可能会一直在刷新，那么如果此时有 IO 操作，那么可能会导致阻塞。为此，可以通过
-                               # 该参数限制每秒更新的次数，从而不会造成过大的磁盘压力，建议设置为 25~80；此时也可以根据 RRD 文件数，
-                               # 大致评估一次刷新锁消耗的时间。
-  RandomTimeout Seconds        # 选择随机的时间，其范围是 CacheTimeout-RandomTimeout ~ CacheTimeout+RandomTimeout ，用于防止
-                               # 由于同一间隔导致峰值。
+  CacheFlush Seconds      # 当设置了缓存时，每次接收到新值时，如果超过了这里设置的时间，就会检查所有
+                          #     的采集值；适用于部分指标由于异常一直没有更新，导致始终保存在缓存中，
+                          #     因为消耗资源比较大，建议设置为较大的值，如900、7200秒。
+  CacheTimeout Seconds    # 大于0时会将值缓存到内存中，如果缓存的时间差超过改值，则放入到update queue队列中
+  WritesPerSecond Updates # 如果采集的指标比较多，可能会一直在刷新，那么如果此时有 IO 操作，那么可能会
+                          #     导致阻塞。为此，可以通过该参数限制每秒更新的次数，从而不会造成过大的磁
+                          #     盘压力，建议设置为 25~80；此时也可以根据 RRD 文件数，大致评估一次刷新锁
+                          #     消耗的时间。
+  RandomTimeout Seconds   # 选择随机的时间，其范围是 CacheTimeout-RandomTimeout ~ CacheTimeout+RandomTimeout ，
+                          #     用于防止由于同一间隔导致峰值。
 </Plugin>
 {% endhighlight %}
 
@@ -627,13 +631,34 @@ LoadPlugin rrdtool
 
 ### collectd-web
 
-直接从 [github collectd-web](https://github.com/httpdss/collectd-web) 上下载即可，在配置文件 ```/etc/collectd/collection.conf``` 中指定 ```datadir``` 目录，也就是 rrd 保存的目录。
+直接从 [github collectd-web](https://github.com/httpdss/collectd-web) 上下载即可，在配置文件 ```/etc/collectd/collection.conf``` 中指定 ```datadir``` 目录，也就是 rrd 保存的目录；例如：
+
+{% highlight text %}
+datadir: "/etc/collectd/collectd-web/"
+{% endhighlight %}
 
 然后，通过如下方式运行即可。
 
 {% highlight text %}
 ./runserver.py 0.0.0.0 8989
 {% endhighlight %}
+
+#### No DS
+
+对于 ```No DS called 'contextswitches' in``` 之类的报错，其原因是在 ```collection.modified.cgi``` 文件中的 ```load_graph_definitions()``` 写死；解决方法是先通过 ```rrdtool info filename``` 查看是否存在对应的 DS name 是否存在，一般类似：
+
+{% highlight text %}
+ds[value].index = 0
+ds[value].type = "DERIVE"
+ds[value].minimal_heartbeat = 2
+ds[value].min = 0.0000000000e+00
+ds[value].max = NaN
+ds[value].last_ds = "6950152000"
+ds[value].value = 0.0000000000e+00
+ds[value].unknown_sec = 0
+{% endhighlight %}
+
+其中的 value 就是所谓的 DS name 。
 
 
 ## 常用插件

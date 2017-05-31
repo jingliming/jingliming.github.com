@@ -61,6 +61,11 @@ Rain Check 这句话后来有了引伸意思，日常生活中普遍应用。比
 
 <!--
 This is by no means a complete or highly detailed guide but simply gives an overview of what I’ve learnt so far
+
+You cannot haggle at WallMat. Those are set prices.
+
+I spent much of this week wrestling with a server that was in the clutches of OOM killer.
+
 -->
 
 {% highlight text %}

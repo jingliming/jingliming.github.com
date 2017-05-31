@@ -489,6 +489,8 @@ $ ps aux | grep ntp
 
 为此，它会把记录下来的误差先写入 driftfile，这样即使重启之前的计算结果也就不会丢失了。
 
+另外，记录的单为是 PPM (Part Per Million)，是指百万分之一秒，也就是微秒，
+
 ##### 2. 如何同步硬件时钟?
 
 NTP 一般只会同步 system clock，如果我们也要同步 RTC (hwclock) 的话那么只需要把下面的选项打开就可以了。
@@ -500,6 +502,20 @@ SYNC_HWCLOCK=yes
 
 <!--
 2、fudge 127.127.1.0 stratum 10 如果是LINUX做为NTP服务器，stratum(层级)的值不能太大，如果要向上级NTP更新可以设成2
+
+ntpd -gq
+
+
+ frequency error -506 PPM exceeds tolerance 500 PPM
+
+
+-g
+    Normally, ntpd exits if the offset exceeds the sanity limit, which is 1000 s by default. If the sanity limit is set to zero, no sanity checking is performed and any offset is acceptable. This option overrides the limit and allows the time to be set to any value without restriction; however, this can happen only once. After that, ntpd will exit if the limit is exceeded.
+-q
+Exit the ntpd just after the first time the clock is set. This behavior mimics that of the ntpdate program, which is to be retired. The -g and -x options can be used with this option.
+
+
+
 -->
 
 
@@ -519,6 +535,8 @@ SYNC_HWCLOCK=yes
 ### NTP
 
 [standard NTP query program](https://www.eecis.udel.edu/~mills/ntp/html/ntpq.html) ntpq 的实现官网，而且包括了很多相关的资料 [The Network Time Protocol (NTP) Distribution](https://www.eecis.udel.edu/~mills/ntp/html/index.html) 。
+
+<!-- https://www.eecis.udel.edu/~mills/ntp/html/warp.html -->
 
 关于时间的简单介绍，包括了时区、NTP 等 [Managing Accurate Date and Time](http://www.tldp.org/HOWTO/TimePrecision-HOWTO/index.html)，或者 [本地文档](/reference/misc/ntp/HOWTO/TimePrecision-HOWTO/index.html) ；其它的一些关于 GPS 相关的信息可以参考 [GPS时间同步原理及其应用](/reference/misc/ntp/GPS_NTP.doc) ，一篇十分不错的文章。
 

@@ -151,6 +151,60 @@ if (...)
 综上所述，```do{...} while(0);``` 这个技术就是为了类似的宏可以在任何时候使用。
 
 
+## assert()
+
+其作用是如果它的条件返回错误，则输出错误信息 (包括文件名，函数名等信息)，并终止程序执行，原型定义：
+
+{% highlight c %}
+#include <assert.h>
+void assert(int expression);
+{% endhighlight %}
+
+如下是一个简单的示例。
+
+{% highlight c %}
+#include <stdio.h>  
+#include <assert.h>  
+#include <stdlib.h>  
+
+int main(int argc, char **argv)  
+{  
+    FILE *fp;
+
+   fp = fopen( "test.txt", "w" ); // 不存在就创建一个同名文件
+   assert( fp );                  // 所以这里不会出错
+   fclose( fp );
+
+    fp = fopen( "noexitfile.txt", "r" );  // 不存在就打开文件失败
+    assert( fp );                         // 这里出错  
+    fclose( fp );                         // 程序不会执行到此处
+
+    return 0;  
+}  
+{% endhighlight %}
+
+当在 ```<assert.h>``` 之前定义 NDEBUG 时，assert 不会产生任何代码，否则会显示错误。
+
+### 判断程序是否有 assert
+
+在 glibc 中，会定义如下的内容：
+
+{% highlight c %}
+#define assert(e) ((e \
+    ? ((void)0) \
+    :__assert_fail(#e,__FILE__,__LINE__))
+{% endhighlight %}
+
+可以通过 nm 查看程序，判断是否存在 ```__assert_fail@@GLIBC_2.2.5``` ，如果存在该函数则说明未关闭 ```assert()``` 。
+
+对于 autotool 可以通过如下的一种方式关闭：
+
+1. 在 ```configure.ac``` 文件中添加 ```AC_HEADER_ASSERT``` ，然后如果关闭是添加 ```--disable-assert``` 参数，注意，一定要保证源码包含了 ```config.h``` 头文件；
+2. 执行 configure 命令前设置环境变量，如 ```CPPFLAGS="CPPFLAGS=-DNDEBUG" ./configure```；
+3. 也可以在 ```Makefile.am``` 中设置 ```AM_CPPFLAGS += -DNDEBUG``` 参数。
+
+
+
 ## 指针
 
 指针或许是 C 语言中最复杂的东西了。
@@ -574,6 +628,10 @@ Clang 是一个 C++ 编写，基于 LLVM 的 C/C++、Objective-C 语言的轻量
 #pragma clang diagnostic pop
 {% endhighlight %}
 
+
+<!--
+http://sobuhu.com/program/2012/12/11/c.html
+-->
 
 {% highlight text %}
 {% endhighlight %}

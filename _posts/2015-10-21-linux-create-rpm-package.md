@@ -148,6 +148,8 @@ make install DESTDIR=%{buildroot}                   ← 安�
 %post                                               ← 安装后执行的脚本
 %preun                                              ← 卸载前执行的脚本
 %postun                                             ← 卸载后执行的脚本
+%pretrans                                           ← 在事务开始时执行脚本
+%posttrans                                          ← 在事务结束时执行脚本
 
 #--- 5. Clean section               ← ###清理段，可以通过--clean删除BUILD
 %clean
@@ -214,9 +216,21 @@ It is a MySQL from FooBar.
 ##   rm -rf %{buildroot}
 ##fi
 {% endhighlight %}
-
-
 -->
+
+
+关于脚本部分，通常所有安装脚本和触发器脚本都是使用 ```/bin/sh``` 来执行的，如果想使用其他脚本，如 Lua，可使用 ```-p /usr/bin/lua``` 来告诉 rpm 使用 lua 解释器。如
+
+{% highlight text %}
+%post -p /usr/bin/lua
+# lua script here
+%postun -p /usr/bin/perl
+$ perl sciprt here
+{% endhighlight %}
+
+另外，如果只执行一条命令，也使用 ```-p``` 选项可直接执行，如 ```%post -p /sbin/ldconfig``` 。
+
+一般最后一条命令的 exit 状态就是脚本的 exit 状态，除一些特殊情况，一般脚本都是以 ```exit 0``` 状态退出，所以大部分小脚本片段都会使用 ```"||:"``` 退出。
 
 
 ### %prep
@@ -238,6 +252,26 @@ It is a MySQL from FooBar.
 %patch -s 不显示打补丁时的信息。
 %patch -T 将所有打补丁时产生的输出文件删除。
 -->
+
+### systemd
+
+spec 脚本中提供了与 systemd 相关的脚本，关于脚本的详细内容可以查看 [macros.systemd.in](https://cgit.freedesktop.org/systemd/systemd/tree/src/core/macros.systemd.in)，实用方式很简单，如下：
+
+{% highlight text %}
+----- 安装结束后，实际执行systemctl preset，执行服务预设的内容
+%systemd_post foobar.service
+
+----- 执行卸载前，systemctl disable
+%systemd_preun foobar.service
+
+----- 卸载后执行重启操作，daemon-reload+try-restart
+%systemd_postun_with_restart foobar.service
+
+----- 如果不需要重启，例如有状态链接的(D-Bus)，执行systemctl daemon-reload
+%systemd_postun foobar.service
+{% endhighlight %}
+
+关于安装升级的各个操作步骤详见 [RPM SPEC pre/post/preun/postun argument values](http://meinit.nl/rpm-spec-prepostpreunpostun-argument-values) 以及 [Fedora Packaging Guidelines for RPM Scriptlets](https://fedoraproject.org/wiki/Packaging:Scriptlets) 。
 
 
 ## 常用设置

@@ -842,9 +842,54 @@ rebalance()
 verify_tree()
 
 
+安全渗透所需的工具
+https://wizardforcel.gitbooks.io/daxueba-kali-linux-tutorial/content/2.html
 
 
 
+
+
+
+1/0 = &infin;
+log (0) = -&infin;
+sqrt (-1) = NaN
+
+infinity (无穷)、NaN (非数值)
+
+除了 infin 自身和 NaN 之外，infin (正无穷) 大于任何值；而 NaN 不等于任何值，包括其自身，而且与 <, >, <=, >= 使用时将会报错。
+
+
+
+
+
+
+
+如果有 group 采用相同的 group-id，也就是有 alias group ，那么在删除某个
+
+groupdel: cannot remove the primary group of user 'monitor'
+
+----- 将原用户修改为其它分组
+# usermod -g sys monitor
+----- 删除分组
+# groupdel test
+----- 修改回来
+# usermod -g monitor monitor
+
+
+
+
+
+
+
+
+
+
+
+
+http://fengyuzaitu.blog.51cto.com/5218690/1616268
+http://www.runoob.com/python/os-statvfs.html
+http://blog.csdn.net/papiping/article/details/6980573
+http://blog.csdn.net/hepeng597/article/details/8925506
 
 ←
 -->

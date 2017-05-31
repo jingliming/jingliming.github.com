@@ -229,15 +229,17 @@ $ git push --all origin
 
 上面命令表示，将所有本地分支都推送到 origin 主机。
 
-
 ### 其它
 
-
 {% highlight text %}
-$ git rev-parse --abbrev-ref HEAD              ← 查看当前版本
+$ git rev-parse --abbrev-ref HEAD            ← 当前版本
+
+$ git show <HASHID>                          ← 某次提交的文件具体修改内容
+$ git show <HASHID> file                     ← 某次某个文件的修改内容
+$ git show <HASHID> --stat                   ← 修改了那些文件的统计
+$ git diff --name-status HEAD~2 HEAD~3       ← 标记修改了的文件
+$ git log -p <FILENAME>                      ← 某个文件修改历史
 {% endhighlight %}
-
-
 
 <!--
 如果远程主机的版本比本地版本更新，推送时Git会报错，要求先在本地做git pull合并差异，然后再推送到远程主机。这时，如果你一定要推送，可以使用–force选项。

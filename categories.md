@@ -88,6 +88,9 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 
 介绍下 Linux 内核相关的内容。
 
+* [Linux 内核编译](/post/kernel-compile.html)，简单介绍如何手动编译内核。
+* [Linux 硬件启动](/post/kernel-hardware-startup.html)，从内核加电之后，简单介绍如何从硬件加载启动。
+* [Linux 启动过程](/post/kernel-bootstrap.html)，通过 GRUB 启动之后，然后开始加载内核，再次简单介绍。
 * [Linux 内核模块](/post/kernel-modules.html)，简单介绍下 Linux 中的内核模块编写，包括了内核签名机制的配置。
 
 #### C Program
@@ -118,13 +121,15 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [CentOS 安装与配置](/post/centos-config-from-scratch.html)，简单介绍 CentOS 在安装时需要作的一些常用配置。
 * [RPM 包制作](/post/linux-create-rpm-package.html)，如何在 CentOS 中创建 RPM 包。
 * [Linux 常用技巧](/post/linux-tips.html)，简单记录了一些在 Linux 中常用的技巧。
-* [Bash 文本处理](/post/linux-text-process.html)，简单介绍下 Linux 常用的文本处理方式。
+* [Linux 常用命令 \-\- 文本处理](/post/linux-commands-text.html)，简单介绍下 Linux 常用的文本处理方式。
 * [TMUX](/post/tmux.html)，一个终端复用工具，类似 screen 但是更加方便使用，更加高端。
 * [Linux 绘图工具](/post/linux-gnuplot.html)，这是一个命令行驱动的绘图工具，支持多个平台。
 * [logrotate 使用方法](/post/logrotate-usage.html)，一个不错的日志切割管理程序。
 * [Linux 后台服务管理](/post/linux-daemon-tools.html)，介绍目前常用的后台服务管理。
 * [你所不知道的定时任务](/post/details-about-cronie.html)，也就是 Linux 中如何使用 crontab，以及常见错误。
+* [Git 简明教程](/post/git-simple-guide.html)，简单介绍常见操作。
 * [Git 分支管理](/post/git-branch-model.html)，主要介绍 git 的分支处理常用操作，以及比较经典的版本分支管理方式。
+* [Git 使用杂项](/post/git-tips.html)，记录 git 常见的示例，可以用来作为参考使用。
 * [Linux 时间同步](/post/linux-sync-time.html)，介绍部分与时间相关的概念，例如时区、闰秒、夏令时、NTP 等。
 * [Linux System Daemon](/post/linux-systemd.html)，一般新发行版本采用的是 systemd，在此简单介绍下。
 
