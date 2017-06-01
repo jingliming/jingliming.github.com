@@ -891,6 +891,20 @@ http://www.runoob.com/python/os-statvfs.html
 http://blog.csdn.net/papiping/article/details/6980573
 http://blog.csdn.net/hepeng597/article/details/8925506
 
+
+
+
+
+
+jinyang ALL=(root) NOPASSWD: ALL
+
+
+
+
+
+
+
+
 ←
 -->
 

@@ -241,6 +241,19 @@ $ git diff --name-status HEAD~2 HEAD~3       ← 标记修改了的文件
 $ git log -p <FILENAME>                      ← 某个文件修改历史
 {% endhighlight %}
 
+#### 更新单个文件
+
+可以通过如下命令更新单个文件。
+
+{% highlight text %}
+----- 获取最新的版本，不过不会添加到工作区
+$ git fetch
+
+----- 通过下载的最新版本更新单个文件
+$ git checkout origin/master -- path/to/file
+{% endhighlight %}
+
+
 <!--
 如果远程主机的版本比本地版本更新，推送时Git会报错，要求先在本地做git pull合并差异，然后再推送到远程主机。这时，如果你一定要推送，可以使用–force选项。
 

@@ -259,6 +259,8 @@ gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
 
 如上的 ISO 镜像文件中，已经包含了索引文件 (位于 repodata 文件夹)，如果自己创建本地镜像，例如平时收藏的 RPM 软件包或者集成测试等，此时需要通过 createrepo 创建索引文件。
 
+当然，如过没有 createrepo 命令，则需要安装 createrepo.xxx.rpm 包。
+
 {% highlight text %}
 ----- 1. 创建本地yum仓库目录
 $ mkdir -p /share/CentOS/7/local/x86_64/RPMS

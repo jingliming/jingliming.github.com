@@ -328,11 +328,11 @@ ssh 配置讲解大全
 
 http://blog.chinaunix.net/uid-20395453-id-3264845.html
 
-https://github.com/google/google-authenticator
 
 https://networkjutsu.com/ssh-brute-force-attack/
 
 http://os.51cto.com/art/200803/68174_all.htm
+
 FreeOTP
 https://github.com/authy/authy-ssh
 https://github.com/arthepsy/ssh-audit
@@ -343,9 +343,7 @@ http://wowubuntu.com/ssh-security.html
 http://www.cnblogs.com/mchina/archive/2013/01/01/2840815.html
 
 https://zzz.buzz/zh/2016/04/18/hardening-sshd/
-https://www.howtogeek.com/121650/how-to-secure-ssh-with-google-authenticators-two-factor-authentication/**
 https://www.digitalocean.com/community/tutorials/how-to-set-up-multi-factor-authentication-for-ssh-on-ubuntu-14-04
-https://github.com/google/google-authenticator-libpam
 -->
 
 {% highlight text %}

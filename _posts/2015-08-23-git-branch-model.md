@@ -276,7 +276,7 @@ $ git branch -d hotfix-1.2.1
 
 ### 安装
 
-可以直接从 [github gitflow/contrib/gitflow-installer.sh](https://raw.githubusercontent.com/nvie/gitflow/develop/contrib/gitflow-installer.sh 下载文件，然后执行如下命令即可。
+可以直接从 [github gitflow/contrib/gitflow-installer.sh](https://raw.githubusercontent.com/nvie/gitflow/develop/contrib/gitflow-installer.sh) 下载文件，然后执行如下命令即可。
 
 {% highlight text %}
 ----- 安装
@@ -290,7 +290,15 @@ $ rm gitflow-installer.sh
 
 实际上很简单，只是将代码 clone 到本地，然后通过 install 命令安装；当然，也可以离线安装，该模块会依赖于 [github - nvie/shFlags](https://github.com/nvie/shFlags)，直接将该代码下载并放置到源码的 shFlags 目录下即可。
 
-最后，通过 ```make install``` 安装即可。
+最后，通过 ```make install``` 安装，也可以执行如下步骤，不过需要修改安装脚本的代码，注释掉下载代码的步骤。
+
+{% highlight text %}
+$ tar -xf gitflow-x.x.x.tar.gz shFlags-x.x.x.tar.gz
+$ mv gitflow-x.x.x gitflow && rm gitflow/shFlags -rf
+$ mv shFlags-x.x.x gitflow/shFlags
+# bash gitflow/contrib/gitflow-installer.sh
+{% endhighlight %}
+
 
 
 ### 初始化

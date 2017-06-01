@@ -797,6 +797,8 @@ http://www.cppblog.com/woaidongmao/archive/2008/11/23/67637.html
 https://www2.cs.arizona.edu/~debray/Teaching/CSc453/DOCS/lex%20tutorial.ppt
 http://web.eecs.utk.edu/~bvz/teaching/cs461Sp11/notes/flex/
 通过 flex+bison 解析，源码保存在 src/liboconfig 目录下；正常源码编译时需要通过 flex+bison 生成源码文件，这里实际在发布前已经转换，所以在编译时就免去了这一步骤。
+
+https://blog.dbrgn.ch/2017/3/10/write-a-collectd-python-plugin/
 -->
 
 

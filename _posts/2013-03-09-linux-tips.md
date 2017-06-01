@@ -367,6 +367,54 @@ done
 2. 去掉 ```"\r"``` ，用命令 ```sed -i 's/\r//' test.file``` 。
 
 
+## 字符集设置
+
+程序运行时需要使用一套语言环境，包括了：字符集 (数据) 和字体 (显示)，在 Linux 中通过 locale 来设置程序运行的不同语言环境，locale 由 ANSI C 提供支持，可以根据不同的国家地区设置不同的语言环境。
+
+locale 的命名规则为 ```<语言>_<地区>.<字符集编码>``` ，例如 ```zh_CN.UTF-8``` 中 ```zh``` 代表中文，```CN``` 代表大陆地区，```UTF-8``` 表示字符集。另外，在 locale 会通过一组环境变量，针对不同场景配置。
+
+{% highlight text %}
+LC_COLLATE
+  定义该环境的排序和比较规则
+LC_CTYPE
+  用于字符分类和字符串处理，控制所有字符的处理方式，包括字符编码，字符是单字节还是
+  多字节，如何打印等，是最重要的一个环境变量。
+LC_MONETARY
+  货币格式。
+LC_NUMERIC
+  非货币的数字显示格式。
+LC_TIME
+  时间和日期格式。
+LC_MESSAGES
+  提示信息的语言，与之详细的还有LANGUAGE参数，当LANGUAGE设置后LC_MESSAGES将会失效，
+  而且可同时设置多种语言信息，如LANGUANE="zh_CN.GB18030:zh_CN.GB2312:zh_CN"。
+LANG
+  LC_*的默认值，是最低级别的设置，如果LC_*没有设置，则使用该值。
+LC_ALL
+  一个宏，如果该值设置了，则该值会覆盖所有LC_*的设置值。注意，LANG的值不受该宏影响。
+{% endhighlight %}
+
+简单介绍下常见的操作。
+
+{% highlight text %}
+----- 设置成中文环境
+export LANG="zh_CN.UTF-8"
+export LANGUAGE="zh_CN:zh:en_US:en"
+
+----- 设置成英文环境
+export LANG="en_US.UTF-8"
+export LANGUAGE="en_US:en"
+
+----- 查看现有语言环境
+$ locale
+
+----- 所有可用语言环境
+$ locale -a
+{% endhighlight %}
+
+注意，图形界面可能需要更多的设置，暂时先不讨论了。
+
+
 ## 杂项
 
 {% highlight text %}
