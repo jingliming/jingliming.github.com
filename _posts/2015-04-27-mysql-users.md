@@ -192,9 +192,9 @@ mysql> SHOW VARIABLES LIKE 'validate_password%';
 
 ### 使用密码插件登陆
 
-MySQL 提供了一个 ```mysql_config_editor``` 命令，用于加密用户密码，提供免密码登陆，适用于 mysql、mysqladmin、mysqldump 等。
+MySQL 提供了一个 ```mysql_config_editor``` 工具，用于加密用户密码，并提供了免密码登陆，适用于 ```mysql```、```mysqladmin```、```mysqldump``` 等。
 
-如下简单介绍其使用方法：
+该工具提供了 ```set```、```remove```、```print```、```reset```，如下简单介绍其使用方法：
 
 {% highlight text %}
 ----- 1. 创建MySQL测试账号密码

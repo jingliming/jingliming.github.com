@@ -114,6 +114,22 @@ num  target     prot opt source               destination
 # iptables -R INPUT 1 -j ACCEPT
 {% endhighlight %}
 
+#### 持久化保存
+
+设置完成之后，可以直接通过 ```iptables-save``` 保存为文件，默认打印到 stdout 中。
+
+{% highlight text %}
+----- RHEL/CentOS
+# iptables-save > /etc/sysconfig/iptables
+# iptables-restore < /etc/sysconfig/iptables
+----- Debian/Ubuntu
+# iptables-save > /etc/iptables/rules.v4
+# iptables-restore < /etc/iptables/rules.v4
+{% endhighlight %}
+
+注意，如果使用了 IPv6 则对应 ```ip6tables-save``` 命令以及 ```/etc/iptables/rules.v6```、```/etc/sysconfig/ip6tables``` 。
+
+
 ### 常用实例
 
 下面是常用的示例。
@@ -124,7 +140,9 @@ num  target     prot opt source               destination
 
 ----- 允许192.168.1.123访问本机的1521端口
 # iptables -I INPUT -s 192.168.1.123 -p tcp --dport 1521 -j ACCEPT
+-A INPUT -s 192.30.19.82/32 -p tcp -m tcp --dport 21005 -j ACCEPT
 {% endhighlight %}
+
 
 ## 其它
 
@@ -375,3 +393,9 @@ nf_hook_slow()
 
 
 -->
+
+
+
+
+{% highlight text %}
+{% endhighlight %}

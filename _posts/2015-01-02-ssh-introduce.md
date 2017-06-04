@@ -321,29 +321,15 @@ Are you sure you want to continue connecting (yes/no)?</pre>
 
 可以参考 [SSH The Secure Shell The Definitive Guide](/reference/linux/SSH_The_Secure_Shell_The_Definitive_Guide.pdf) 文档。
 
+github 上收集的与 SSH 相关的经典内容 [ssh awesome](https://github.com/moul/awesome-ssh) 。
+
 
 <!--
-
-ssh 配置讲解大全
-
-http://blog.chinaunix.net/uid-20395453-id-3264845.html
-
-
-https://networkjutsu.com/ssh-brute-force-attack/
-
-http://os.51cto.com/art/200803/68174_all.htm
-
-FreeOTP
-https://github.com/authy/authy-ssh
 https://github.com/arthepsy/ssh-audit
-https://github.com/moul/awesome-ssh
-https://github.com/carpedm20/awesome-hacking
-http://jamyy.us.to/blog/2014/01/5800.html
-http://wowubuntu.com/ssh-security.html
-http://www.cnblogs.com/mchina/archive/2013/01/01/2840815.html
-
+https://nvd.nist.gov/
 https://zzz.buzz/zh/2016/04/18/hardening-sshd/
-https://www.digitalocean.com/community/tutorials/how-to-set-up-multi-factor-authentication-for-ssh-on-ubuntu-14-04
+https://networkjutsu.com/ssh-brute-force-attack/
+封IP可以通过 denyhosts、iptables、Fail2Ban
 -->
 
 {% highlight text %}

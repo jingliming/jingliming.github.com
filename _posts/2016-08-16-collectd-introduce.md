@@ -14,13 +14,15 @@ collectd 是一个后台监控程序，用来采集其所运行系统上的系�
 
 <!-- more -->
 
-![collectd logo]({{ site.url }}/images/linux/collectd_logo.png "collectd logo"){: .pull-center width="40%" }
+![collectd logo]({{ site.url }}/images/linux/collectd_logo.png "collectd logo"){: .pull-center width="30%" }
 
 ## 简介
 
 Collectd 完全由 C 语言编写，故性能很高，可移植性好，它允许运行在系统没有脚本语言支持或者 cron daemon 的系统上，比如嵌入式系统；同时，它包含优化以及处理成百上千种数据集的新特性，目前包含了几十种插件。
 
 其中数据采集和采集数据的写入都可以通过插件进行定义，目前支持的数据采集插件包括了几十种，写入包括了 Graphite、RRDtool、Riemann、MongoDB、HTTP 等。
+
+![collectd architecture]({{ site.url }}/images/linux/collectd_architecture.png "collectd architecture"){: .pull-center width="70%" }
 
 简单来说，其特点如下：
 
@@ -464,14 +466,6 @@ https://collectd.org/wiki/index.php/Notifications_and_thresholds
 
 
 
-<!--
-## 脚本
-
-### Bash脚本
-
-https://collectd.org/wiki/index.php/Plugin:Exec
--->
-
 ## RRDTool
 
 Round Robin Database, RRD 适用于存储和时间序列相关的数据，是一种循环使用存储空间的数据库，也就是创建之后其大小已经固定，不再需要维护。
@@ -625,8 +619,6 @@ LoadPlugin rrdtool
 更新一个值时，一般为 8 Bytes，为了更新该值需要读取 512B(HDD)、16KB(SSD) 字节，在内存中修改对应的值，然后再写入内存，显然这将严重影响到磁盘 IO 性能，为此需要将多个指标合并写入磁盘。
 
 通过一个平衡二叉树，每个节点是采集值或者 RRD 文件，每次收到一个采集值后会与最老的值比较时间戳，如果超过了设置的超时时间，那么该节点就被放 update queue 中。如果一个新写入的值已经在 update queue 队列中了，那么新值会直接写入到 update queue 中相应的节点。
-
-
 
 
 ### collectd-web

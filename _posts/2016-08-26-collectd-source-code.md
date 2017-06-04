@@ -53,6 +53,14 @@ $ collectd-tg
 $ make distcheck
 {% endhighlight %}
 
+<!--
+../configure --enable-debug --enable-all-plugins=no \
+    --enable-logfile --enable-unixsock --enable-write-log \
+    --enable-cpu --enable-load --enable-contextswitch \
+    --enable-memory \
+    --enable-java --with-java
+-->
+
 与测试相关的宏定义在 testing.h 文件中，执行 ```make check``` 需要定义 TESTS 变量，可以指定多个，如果返回非零则表示失败，详细可以查看 [Support for test suites](https://www.gnu.org/software/automake/manual/html_node/Tests.html) 。
 
 对于 man 文档，通过 man_MANS 变量定义，然后会根据后缀名自动安装到相应的系统目录。
@@ -105,7 +113,7 @@ leeloo/load/load
 
 ### 采集值类型
 
-Collectd 中总共有四种类型，简单介绍如下：
+Collectd 中总共有四种类型，简单介绍如下。
 
 * GAUSE: 直接使用采样值，通常为温度、内存使用率等参数值；
 * DERIVE: 计算采样的速率，计算公式为 ```rate=(value_new-value_old)/(time_new-time_old)``` ，需要注意，如果值非递增，那么可能产生负值；
@@ -115,6 +123,83 @@ Collectd 中总共有四种类型，简单介绍如下：
 需要注意的是，COUNTER 值采集的三种特殊情况：1) 计数器达到最大值，导致回环；2) 监控服务维护(重启或者手动计数器清零)；3) 监控 agent 重启，导致上次计数丢失。这三种情况可能会导致采集指标异常，通常只有一个采集点，一般可以过滤或者忽略掉。
 
 <!-- 详见: https://collectd.org/wiki/index.php/Data_source -->
+
+#### 源码实现
+
+相关的代码内容如下。
+
+{% highlight c %}
+#define DS_TYPE_COUNTER 0
+#define DS_TYPE_GAUGE 1
+#define DS_TYPE_DERIVE 2
+#define DS_TYPE_ABSOLUTE 3
+
+typedef unsigned long long counter_t;
+typedef double gauge_t;
+typedef int64_t derive_t;
+typedef uint64_t absolute_t;
+
+union value_u {
+  counter_t counter;
+  gauge_t gauge;
+  derive_t derive;
+  absolute_t absolute;
+};
+typedef union value_u value_t;
+
+int value_to_rate(gauge_t *ret_rate,
+                  value_t value, int ds_type, cdtime_t t,
+                  value_to_rate_state_t *state) {
+  gauge_t interval;
+
+  /* Another invalid state: The time is not increasing. */
+  if (t <= state->last_time) {
+    memset(state, 0, sizeof(*state));
+    return (EINVAL);
+  }
+
+  interval = CDTIME_T_TO_DOUBLE(t - state->last_time);
+
+  /* Previous value is invalid. */
+  if (state->last_time == 0) {
+    state->last_value = value;
+    state->last_time = t;
+    return (EAGAIN);
+  }
+
+  switch (ds_type) {
+  case DS_TYPE_DERIVE: {
+    derive_t diff = value.derive - state->last_value.derive;
+    *ret_rate = ((gauge_t)diff) / ((gauge_t)interval);
+    break;
+  }
+  case DS_TYPE_GAUGE: {
+    *ret_rate = value.gauge;
+    break;
+  }
+  case DS_TYPE_COUNTER: {
+    counter_t diff = counter_diff(state->last_value.counter, value.counter);
+    *ret_rate = ((gauge_t)diff) / ((gauge_t)interval);
+    break;
+  }
+  case DS_TYPE_ABSOLUTE: {
+    absolute_t diff = value.absolute;
+    *ret_rate = ((gauge_t)diff) / ((gauge_t)interval);
+    break;
+  }
+  default:
+    return EINVAL;
+  }
+
+  state->last_value = value;
+  state->last_time = t;
+  return (0);
+}
+{% endhighlight %}
+
+
+
+
 
 ## 插件实现
 
@@ -260,6 +345,7 @@ main()
  | |-dispatch_block()                         ← 有子配置项时，也就是配置块
  | | |-dispatch_loadplugin()                  ← LoadPlugin，会调用plugin_load()
  | | | |-plugin_load()
+ | | |   |-strcasecmp()                       ← 对于python、perl插件，需要做部分初始化操作
  | | |   |-plugin_load_file()
  | | |     |-lt_dlsym()                       ← 调用各个插件的module_register()函数
  | | |       |-plugin_register_complex_read() ← 会生成read_func_t对象
@@ -494,13 +580,6 @@ static void *plugin_read_thread(void __attribute__((unused)) * args) {
 
 实际上，在 contrib/examples 目录下有个插件的示例程序；在此选一个比较简单的插件 load，一般最终会通过 ```plugin_dispatch_values()``` 函数提交。该函数主要是将数据添加到 write_queue_head 列表中，并发送 write_cond。
 
-## FAQ
-
-1\. meta data 的作用是？
-
-meta data (meta_data_t) 用于将一些数据附加到已经存在的结构体上，如 values_list_t，对应的是 KV 结构，其中一个使用场景是 network 插件，用于标示从哪个插件采集来的，防止出现循环，也用于该插件的 Forward 选项。
-
-
 <!--
 ### 线程上下文
 
@@ -628,12 +707,7 @@ https://collectd.org/wiki/index.php/Release_process
 plugin_dispatch_multivalue() memory
 
 
-
-
 complex 主要是会在检查配置文件读取配置项时，判断是否需要注册各种回调函数。
-
-
-
 
 
 ## threshold 实现
@@ -655,11 +729,6 @@ ut_check_threshold()
 
 
 thresholds解析
-
-
-
-
-
 
 
 ## 插件实现
@@ -746,6 +815,193 @@ https://collectd.org/wiki/index.php/Target:Notification
 fc_register_match() 添加到match_list_head链表的末尾
 -->
 
+
+## 插件实现
+
+### exec
+
+这是一个通用的插件，不过每次执行时都需要 fork 一个进程，如果需要多次采集那么其性能会变的很差，所以对于一些特定的插件，如 Python 建议不要使用该插件。
+
+如下是一个 exec 插件的配置示例。
+
+{% highlight text %}
+Loadplugin exec
+<Plugin exec>
+  Exec "user:group" "program"
+  Exec "some-user" "/path/to/another/binary" "arg0" "arg1"
+  NotificationExec "user" "/path/to/handle_notification"
+</Plugin>
+{% endhighlight %}
+
+以 bash 插件为例，直接通过 [Plain text protocol](https://collectd.org/wiki/index.php/Plain_text_protocol) 方式向 Collectd 发送数据。
+
+{% highlight bash %}
+#!/bin/bash
+
+HOSTNAME="${COLLECTD_HOSTNAME:-`hostname -f`}"
+INTERVAL="${COLLECTD_INTERVAL:-10}"
+PORT=6379
+
+while sleep "$INTERVAL"; do
+    info=$(echo info|nc -w 1 127.0.0.1 $PORT)
+    connected_clients=$(echo "$info"|awk -F : '$1 == "connected_clients" {print $2}')
+    connected_slaves=$(echo "$info"|awk -F : '$1 == "connected_slaves" {print $2}')
+    uptime=$(echo "$info"|awk -F : '$1 == "uptime_in_seconds" {print $2}')
+    used_memory=$(echo "$info"|awk -F ":" '$1 == "used_memory" {print $2}'|sed -e 's/\r//')
+    changes_since_last_save=$(echo "$info"|awk -F : '$1 == "changes_since_last_save" {print $2}')
+    total_commands_processed=$(echo "$info"|awk -F : '$1 == "total_commands_processed" {print $2}')
+    keys=$(echo "$info"|egrep -e "^db0"|sed -e 's/^.\+:keys=//'|sed -e 's/,.\+//')
+
+    echo "PUTVAL $HOSTNAME/redis-$PORT/memcached_connections-clients interval=$INTERVAL N:$connected_clients"
+    echo "PUTVAL $HOSTNAME/redis-$PORT/memcached_connections-slaves interval=$INTERVAL N:$connected_slaves"
+    echo "PUTVAL $HOSTNAME/redis-$PORT/uptime interval=$INTERVAL N:$uptime"
+    echo "PUTVAL $HOSTNAME/redis-$PORT/df-memory interval=$INTERVAL N:$used_memory:U"
+    echo "PUTVAL $HOSTNAME/redis-$PORT/files-unsaved_changes interval=$INTERVAL N:$changes_since_last_save"
+    echo "PUTVAL $HOSTNAME/redis-$PORT/memcached_command-total interval=$INTERVAL N:$total_commands_processed"
+    echo "PUTVAL $HOSTNAME/redis-$PORT/memcached_items-db0 interval=$INTERVAL N:$keys"
+done
+{% endhighlight %}
+
+在配置文件中添加如下内容即可。
+
+{% highlight text %}
+<Plugin exec>
+    Exec nobody "/etc/collectd/redis.sh"
+</Plugin>
+{% endhighlight %}
+
+<!-- https://collectd.org/wiki/index.php/Plugin:Exec -->
+
+### python
+
+Python 中有很多不错的库，例如可以通过 [pypi/collectd](https://pypi.python.org/pypi/collectd) 库，可以向 collectd 的服务端发送数据。而 collectd 的 Python 插件实现，实际上是在插件中以 C 语言的形式实现了一个 collectd 插件。
+
+#### 示例
+
+Collectd 的插件回调函数同样可以在 Python 中调用，也即 ```config```、```init```、```read```、```write```、```log```、```flush```、```shutdown``` 等接口，当然需要在其前添加 ```register_*``` 。
+
+{% highlight python %}
+import collectd
+
+PATH = '/proc/uptime'
+
+def config_func(config):
+    path_set = False
+    for node in config.children:
+        key = node.key.lower()
+        val = node.values[0]
+
+        if key == 'path':
+            global PATH
+            PATH = val
+            path_set = True
+        else:
+            collectd.info('cpu_temp plugin: Unknown config key "%s"' % key)
+
+    if path_set:
+        collectd.info('cpu_temp plugin: Using overridden path %s' % PATH)
+    else:
+        collectd.info('cpu_temp plugin: Using default path %s' % PATH)
+
+def read_func():
+    # Read raw value
+    with open(PATH, 'rb') as f:
+        temp = f.read().strip()
+
+    # Convert to degrees celsius
+    deg = float(int(temp)) / 1000
+
+    # Dispatch value to collectd
+    val = collectd.Values(type='temperature')
+    val.plugin = 'cpu_temp'
+    val.dispatch(values=[deg])
+
+collectd.register_config(config_func)
+collectd.register_read(read_func)
+{% endhighlight %}
+
+然后在配置文件中添加如下内容即可。
+
+{% highlight text %}
+LoadPlugin python
+<Plugin python>
+    ModulePath "/opt/collectd_plugins"
+    Import "cpu_temp"
+    <Module cpu_temp>
+        Path "/sys/class/thermal/thermal_zone0/temp"
+    </Module>
+</Plugin>
+{% endhighlight %}
+
+### java
+
+与 Python 相似，同样是内嵌了 JVM ，并将 API 暴露给 JAVA 程序，这样就不需要每次重新调用生成新的进程以及启动 JVM 。
+
+在 CentOS 中，编译前需要安装开发包，如 ```java-1.8.0-openjdk-devel```，在通过 ```configure``` 命令进行配置时需要添加 ```--enable-java --with-java``` 参数。
+
+编译完成后，会生成 ```bindings/java/.libs/{collectd-api.jar,generic-jmx.jar}``` 两个 jar 包。
+
+如下是一个 java 配置内容。
+
+{% highlight text %}
+<Plugin "java">
+  JVMArg "-verbose:jni"
+  JVMArg "-Djava.class.path=/lib/collectd/bindings/java"
+
+  LoadPlugin "org.collectd.java.Foobar"
+  <Plugin "org.collectd.java.Foobar">
+    # To be parsed by the plugin
+  </Plugin>
+</Plugin>
+{% endhighlight %}
+
+以及采集程序示例。
+
+{% highlight java %}
+import org.collectd.api.Collectd;
+import org.collectd.api.ValueList;
+import org.collectd.api.CollectdReadInterface;
+
+public class Foobar implements CollectdReadInterface
+{
+  public Foobar ()
+  {
+    Collectd.registerRead ("Foobar", this);
+  }
+
+  public int read ()
+  {
+    ValueList vl;
+
+    /* Do something... */
+
+    Collectd.dispatchValues (vl);
+  }
+}
+{% endhighlight %}
+
+<!--
+JAVA C 调用
+http://blog.csdn.net/kangkanglou/article/details/5807810
+http://www.cnblogs.com/hibraincol/archive/2011/05/14/2046049.html
+http://www.cnblogs.com/xiongxx/p/6239411.html
+
+内核加密算法
+http://bbs.chinaunix.net/thread-1984676-1-1.html
+http://blog.chinaunix.net/uid-26126915-id-3687668.html
+http://bbs.chinaunix.net/thread-3627341-1-1.html
+-->
+
+
+<!--
+### perl
+
+### lua
+-->
+
+
+
+
 ## 杂项
 
 ### libtoolize
@@ -755,9 +1011,6 @@ fc_register_match() 添加到match_list_head链表的末尾
 依赖 ```libtool-ltdl-devel``` 库，一个 GUN 提供的库，类似于 POSIX 的 ```dlopen()``` ，不过据说更简单且强大；详细可以参考官方文档 [Using libltdl](https://www.gnu.org/software/libtool/manual/html_node/Using-libltdl.html) 。
 
 另外，需要注意的是，该库并不能保证线程安全。
-
-
-
 
 ## BUG-FIX
 
@@ -777,6 +1030,13 @@ logfile plugin: fopen (/opt/collectd/var/log/collectd.log) failed: No such file 
 #define DEFAULT_LOGFILE "stderr"
 {% endhighlight %}
 
+## FAQ
+
+1\. meta data 的作用是？
+
+meta data (meta_data_t) 用于将一些数据附加到已经存在的结构体上，如 values_list_t，对应的是 KV 结构，其中一个使用场景是 network 插件，用于标示从哪个插件采集来的，防止出现循环，也用于该插件的 Forward 选项。
+
+
 
 ## 参考
 
@@ -788,17 +1048,13 @@ logfile plugin: fopen (/opt/collectd/var/log/collectd.log) failed: No such file 
 
 
 <!--
-Collectd Python 示例
-https://pypi.python.org/pypi/collectd
-https://github.com/deniszh/collectd-iostat-python/blob/master/collectd_iostat_python.py
 
 ### 配置文件解析
 http://www.cppblog.com/woaidongmao/archive/2008/11/23/67637.html
 https://www2.cs.arizona.edu/~debray/Teaching/CSc453/DOCS/lex%20tutorial.ppt
 http://web.eecs.utk.edu/~bvz/teaching/cs461Sp11/notes/flex/
-通过 flex+bison 解析，源码保存在 src/liboconfig 目录下；正常源码编译时需要通过 flex+bison 生成源码文件，这里实际在发布前已经转换，所以在编译时就免去了这一步骤。
 
-https://blog.dbrgn.ch/2017/3/10/write-a-collectd-python-plugin/
+通过 flex+bison 解析，源码保存在 src/liboconfig 目录下；正常源码编译时需要通过 flex+bison 生成源码文件，这里实际在发布前已经转换，所以在编译时就免去了这一步骤。
 -->
 
 

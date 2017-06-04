@@ -13,9 +13,9 @@ description: 简单记录下在 Linux 下常用的一些技巧，以方便查询
 <!-- more -->
 
 
-## 生成随机字符串
+## 随机内容
 
-在 Linux 中 /dev/urandom 可以用来产生真随机的内容，然后直接读取字符串的内容，从而生成随机的字符串。
+在 Linux 中 ```/dev/urandom``` 可以用来产生真随机的内容，然后直接读取字符串的内容，从而生成随机的字符串。
 
 如下的命令中，C 表示生成的字符串的字符数；L 表示要生成多少行随机字符。
 
@@ -26,6 +26,17 @@ $ cat /dev/urandom | strings -n C | head -n L
 ----- 生成数字加字母的随机字串
 $ cat /dev/urandom | sed 's/[^a-zA-Z0-9]//g' | strings -n C | head -n L
 {% endhighlight %}
+
+如果要生成随机整数，可以通过 shell 中的一个环境变量 ```RANDOM ```，它的范围是 ```0~32767``` 。
+
+{% highlight text %}
+----- 生成 [0, 25] 的随机数
+$ echo $(($RANDOM%26))
+
+----- 生成 [6, 100] 的随机数
+$ echo $(($RANDOM%95+6))
+{% endhighlight %}
+
 
 ## 特殊字符文件处理
 

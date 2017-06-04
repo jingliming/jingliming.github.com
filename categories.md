@@ -103,6 +103,11 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Linux 时间函数](/post/linux-timer-functions.html)，简单介绍下 Linux 中与时间相关的函数。
 * [Linux AIO](/post/linux-program-aio.html)，简单介绍下 Linux 平台下的异步读写模型。
 
+#### 安全
+
+主要是 Linux 下与安全相关的内容。
+
+* [加密算法简介](/post/security-encryption-introduce.html)，简单介绍一些常见的加密算法等。
 
 #### SSH
 
@@ -113,12 +118,13 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [SSH Simplify Your Life](/post/ssh-simplify-your-life.html)，用来配置一些常见的设置，简化登陆方式。
 * [SSH 杂项](/post/ssh-tips.html)，记录一些常见的示例。
 
-
 #### Miscellaneous
 
 简单记录一些乱七八糟的东西。
 
+* [Linux 用户管理](/post/linux-user-management.html)，简单介绍 Linux 用户管理相关的内容。
 * [CentOS 安装与配置](/post/centos-config-from-scratch.html)，简单介绍 CentOS 在安装时需要作的一些常用配置。
+* [Linux 自动编译](/post/linux-package.html)，简单介绍 Linux 下的自动编译工具，如 Makefile、Autotools 等。
 * [RPM 包制作](/post/linux-create-rpm-package.html)，如何在 CentOS 中创建 RPM 包。
 * [Linux 常用技巧](/post/linux-tips.html)，简单记录了一些在 Linux 中常用的技巧。
 * [Linux 常用命令 \-\- 文本处理](/post/linux-commands-text.html)，简单介绍下 Linux 常用的文本处理方式。
@@ -132,14 +138,6 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Git 使用杂项](/post/git-tips.html)，记录 git 常见的示例，可以用来作为参考使用。
 * [Linux 时间同步](/post/linux-sync-time.html)，介绍部分与时间相关的概念，例如时区、闰秒、夏令时、NTP 等。
 * [Linux System Daemon](/post/linux-systemd.html)，一般新发行版本采用的是 systemd，在此简单介绍下。
-
-<!--
-* [YUM 使用](/post/yum-usage.html)，包括了如何搭建私有镜像、定制 RPM 包等。
--->
-
-
-
-
 
 ----------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------

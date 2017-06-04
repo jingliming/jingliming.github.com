@@ -4,10 +4,9 @@ layout: post
 comments: true
 language: chinese
 usemath: true
-category: [linux]
+category: [linux, network]
 keywords: 网络,监控,linux,network
 description: 本来是想将报错和监控拆开的，但是发现两者几乎是耦合的，通过监控项才能发现错误，定为错误的原因时也要依赖监控项，索性就将两者合并到了一起。 对于很多的报错，实际上你即使看到报错的信息也不清楚到底是那里报错了，或者模棱两可，甚至是误导。最好的方式是 "Show me the code" 。 在此，简单介绍一下与网络相关的调试、查看方法，当然也包括了报错相关的内容。
-
 ---
 
 本来是想将报错和监控拆开的，但是发现两者几乎是耦合的，通过监控项才能发现错误，定为错误的原因时也要依赖监控项，索性就将两者合并到了一起。
@@ -199,33 +198,6 @@ static inline bool tcp_too_many_orphans(struct sock *sk, int shift)
 
 * /proc/net/tcp：记录 TCP 的状态信息。
 
-<!--
-## 常见操作
-
-{% highlight text %}
-
-netstat -n | awk '/^tcp/ {++state[$NF]} END {for(key in state) print key,"\t",state[key]}' | sort -rnk2
-
-netstat -atunp > /tmp/netstat.log
-
-cat /tmp/netstat.log | grep 'TIME_WAIT' | awk '{ print $4 }' | sort | uniq -c | sort -nr | head -5
-
-cat /tmp/netstat.log | grep '192.30.16.133:10051' | awk '{ print $5 }' | cut -d: -f1 | sort -u | wc -l
-
-TIME_WAIT优化
-http://www.heminjie.com/wordpress/3322.html
-http://blog.sina.com.cn/s/blog_54b4d5b60101e8um.html
-http://blog.qiusuo.im/blog/2014/06/11/tcp-time-wait/
-http://www.zuoqin.me/time_wait%E9%97%AE%E9%A2%98%E5%B0%8F%E7%BB%93/
-http://www.voidcn.com/blog/will130/article/p-5715670.html
-http://benpaozhe.blog.51cto.com/10239098/1767612
-http://www.serverframework.com/asynchronousevents/2011/01/time-wait-and-its-design-implications-for-protocols-and-scalable-servers.html
-http://www.isi.edu/touch/pubs/infocomm99/infocomm99-web/
-https://lanjingling.github.io/2016/02/27/nginx-tomcat-time-wait/
-
-
-{% endhighlight %}
--->
 
 {% highlight text %}
 {% endhighlight %}

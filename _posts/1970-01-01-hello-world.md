@@ -903,7 +903,28 @@ jinyang ALL=(root) NOPASSWD: ALL
 
 
 
+shell版本号比较
+http://blog.topspeedsnail.com/archives/3999
+https://www.netfilter.org/documentation/HOWTO/NAT-HOWTO-6.html
+man 3 yum.conf 确认下YUM配置文件中的变量信息
+https://unix.stackexchange.com/questions/19701/yum-how-can-i-view-variables-like-releasever-basearch-yum0
 
+
+FORTIFY.Key_Management--Hardcoded_Encryption_Key    strcasecmp("Interval", child->key)
+
+int lt_dlinit (void);
+  初始化，在使用前调用，可以多次调用，正常返回 0 ；
+const char * lt_dlerror (void);
+  返回最近一次可读的错误原因，如果没有错误返回 NULL；
+void * lt_dlsym (lt_dlhandle handle, const char *name);
+  返回指向 name 模块的指针，如果没有找到则返回 NULL 。
+lt_dlhandle lt_dlopen (const char *filename);
+  加载失败返回 NULL，多次加载会返回相同的值；
+int lt_dlclose (lt_dlhandle handle);
+  模块的应用次数减一，当减到 0 时会自动卸载；成功返回 0 。
+
+https://github.com/carpedm20/awesome-hacking
+http://jamyy.us.to/blog/2014/01/5800.html
 
 ←
 -->

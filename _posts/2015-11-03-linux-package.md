@@ -44,6 +44,9 @@ README.md
 
 详细内容可以参考陈皓编写的 [跟我一起写 Makefile](/reference/linux/Makefile.pdf)，在此就不做过多介绍了，仅简单记录下。
 
+
+### 变量
+
 如下是 Makefile 中内置的变量。
 
 {% highlight text %}
@@ -51,6 +54,38 @@ $@:  规则中的目标名（也就是规则名）；
 $<:  规则中的依赖项目,只代表规则所有依赖项目中的第一项；
 $^:  规则中所有的依赖项目；
 $?:  规则中时间新于目标的依赖项目。
+{% endhighlight %}
+
+关于变量通配符，与 shell 相同，如 1) ```?``` 任意单个字符；2) ```*``` 任意字符的字符串；3) ```[set]``` 任何在 set 里的字符；4) ```[!set]``` 任何不在 set 里的字符。
+
+以如下为例 ```touch {a,b,c}.c Makefile``` 。
+
+{% highlight makefile %}
+.PHONY: all
+
+src1=$(wildcard *.c)
+src2=%.c
+src3=*.c
+objs:=$(patsubst $(src2),%.o,$(wildcard *.c))
+
+all: $(objs)
+    @echo $^
+    @echo $(src1)
+    @echo $(src2)
+    @echo $(src3)
+    @echo *.c
+
+%o:%.c
+    @echo $?
+
+#cc    -c -o a.o a.c
+#cc    -c -o c.o c.c
+#cc    -c -o b.o b.c
+#a.o c.o b.o
+#a.c c.c b.c
+#%.c
+#a.c b.c c.c
+#a.c b.c c.c
 {% endhighlight %}
 
 
