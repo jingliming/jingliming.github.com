@@ -28,7 +28,7 @@ Nginx (发音 "Engine X") 是一款轻量级且高性能的 Web 服务器、反�
 # systemctl start nginx.service
 {% endhighlight %}
 
-在此仅介绍一下安装 Nginx 之后的默认配置选项：默认的服务器根目录是 /usr/share/nginx/html，配置文件在 /etc/nginx 目录下，默认是 /etc/nginx/nginx.conf，日志默认保存在 /var/log/nginx 目录下。
+仅介绍一下安装 Nginx 之后的默认配置选项：默认的服务器根目录是 ```/usr/share/nginx/html```，配置文件在 ```/etc/nginx``` 目录下，默认是 ```/etc/nginx/nginx.conf```，日志默认在 ```/var/log/nginx``` 目录下。
 
 ### 常用操作
 
@@ -50,9 +50,9 @@ Nginx (发音 "Engine X") 是一款轻量级且高性能的 Web 服务器、反�
 # nginx -s reload                        ← 同上
 {% endhighlight %}
 
-另外，为了防止由于安全配置导致报错，可通过 setenforce 0 关闭 SeLinux，之前被坑过 ^_^
+另外，为了防止由于安全配置导致报错，可通过 ```setenforce 0``` 关闭 SeLinux，之前被坑过 ^_^
 
-现在可以直接通过浏览器打开 [http://localhost/](http://localhost/) 即可。当然，如果发现不符合期望的，可以直接查看默认的错误日志 /var/log/nginx/error.log 。
+现在可以直接通过浏览器打开 [http://localhost/](http://localhost/) 即可。当然，如果发现不符合期望的，可以直接查看默认的错误日志 ```/var/log/nginx/error.log``` 。
 
 
 ### 源码安装
@@ -220,6 +220,17 @@ configure命令是用来检测你的安装平台的目标特征的。它定义�
 --with-pcre=../pcre-4.4
 --with-zlib=../zlib-1.1.3
 
+$ ./configure --prefix=/usr --sbin-path=/usr/sbin/nginx --conf-path=/etc/nginx/nginx.conf \
+    --error-log-path=/var/log/nginx/error.log --pid-path=/var/run/nginx.pid \
+    --user=nginx --group=nginx \
+    --with-http_ssl_module \
+    --with-http_flv_module \
+    --with-http_gzip_static_module \
+    --http-log-path=/var/log/nginx/access.log \
+    --http-client-body-temp-path=/var/tmp/nginx/client \
+    --http-proxy-temp-path=/var/tmp/nginx/proxy \
+    --http-fastcgi-temp-path=/var/tmp/nginx/fcgi \
+    --with-http_stub_status_module
 -->
 
 {% highlight text %}
@@ -248,7 +259,7 @@ $ ./configure      \
     --with-pcre \                                 ← 支持地址重写
     --with-pcre-jit \
     --with-google_perftools_module \              ← 依赖Google Perf工具，没有研究过
-    --with-debug \
+    --with-debug \                                ← 添加调试日志
 
     --add-module=/path/to/echo-nginx-module       ← 编译添加三方模块
 
@@ -290,6 +301,8 @@ built with OpenSSL 1.0.1e-fips 11 Feb 2013
 TLS SNI support enabled
 configure arguments: --prefix=/usr/share/nginx --sbin-path=/usr/sbin/nginx --conf-path=/etc/nginx/nginx.conf --error-log-path=/var/log/nginx/error.log --http-log-path=/var/log/nginx/access.log --pid-path=/run/nginx.pid --user=nginx --group=nginx --lock-path=/run/lock/subsys/nginx --http-client-body-temp-path=/var/lib/nginx/tmp/client_body --http-proxy-temp-path=/var/lib/nginx/tmp/proxy --http-fastcgi-temp-path=/var/lib/nginx/tmp/fastcgi --http-uwsgi-temp-path=/var/lib/nginx/tmp/uwsgi --http-scgi-temp-path=/var/lib/nginx/tmp/scgi --with-file-aio --with-ipv6 --with-http_ssl_module --with-http_spdy_module --with-pcre --with-pcre-jit --with-debug --add-module=/home/andy/Workspace/webserver/nginx/modules/echo-nginx-module-0.60 --with-cc-opt='-O2 -g -pipe -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -mtune=generic' --with-ld-opt=-Wl,-E
 -->
+
+nginx 没有通过 autotools 进行编译，而是通过自己的 shell 脚本实现，其中相应的脚本都在 auto 目录下，其中编译生成的文件都保存在 objs 目录下。
 
 编译完成之后，可以通过如下命令安装即可。
 
@@ -371,9 +384,9 @@ DVWA:      一个安全测试环境
 
 ## 变量
 
-Nginx 配置文件的使用就像是一门微型的编程语言，既然如此，肯定不会少 “变量”，其支持内建变量，可以直接查看源码 http/ngx_http_variables.c 中 ngx_http_core_variables[] 的实现。
+Nginx 配置文件的使用就像是一门微型的编程语言，既然如此，肯定不会少 “变量”，其支持内建变量，可以直接查看源码 ```http/ngx_http_variables.c``` 中 ```ngx_http_core_variables[]``` 的实现。
 
-如下，使用了 ngx_rewrite 标准模块的 set 配置指令对变量 $foobar 进行了赋值操作，也即把字符串 hello world 赋给了它；如下需要依赖 echo 模块，详细安装方法参考下面的内容。
+如下，使用了 ```ngx_rewrite``` 标准模块的 ```set``` 配置指令对变量 ```$foobar``` 进行了赋值操作，也即把字符串 hello world 赋给了它；如下需要依赖 echo 模块，详细安装方法参考下面的内容。
 
 {% highlight text %}
 location /hello {
@@ -468,9 +481,88 @@ $ curl 'http://localhost:80/hello'
 
 记录一些常见的问题，以及解决方法。
 
+### 管理脚本
+
+一个 Bash 管理脚本。
+
+{% highlight bash %}
+#!/bin/bash
+# chkconfig: - 30 21
+# description: http service.
+# Source Function Library
+. /etc/init.d/functions
+# Nginx Settings
+#the shell is used as a tool that start, stop, restart the servie nginx
+
+NGINX_SBIN="/usr/local/nginx/sbin/nginx"
+NGINX_CONF="/usr/local/nginx/conf/nginx.conf"
+NGINX_PID="/usr/local/nginx/logs/nginx.pid"
+RETVAL=0
+prog="Nginx"
+
+start() {
+        echo -n $"Starting $prog: "
+        mkdir -p /dev/shm/nginx_temp
+        daemon $NGINX_SBIN -c $NGINX_CONF
+        RETVAL=$?
+        echo
+        return $RETVAL
+}
+
+stop() {
+        echo -n $"Stopping $prog: "
+        killproc -p $NGINX_PID $NGINX_SBIN -TERM
+        rm -rf /dev/shm/nginx_temp
+        RETVAL=$?
+        echo
+        return $RETVAL
+}
+
+reload(){
+        echo -n $"Reloading $prog: "
+        killproc -p $NGINX_PID $NGINX_SBIN -HUP
+        RETVAL=$?
+        echo
+        return $RETVAL
+}
+
+restart(){
+        stop
+        start
+}
+
+configtest(){
+    $NGINX_SBIN -c $NGINX_CONF -t
+    return 0
+}
+
+case "$1" in
+  start)
+        start
+        ;;
+  stop)
+        stop
+        ;;
+  reload)
+        reload
+        ;;
+  restart)
+        restart
+        ;;
+  configtest)
+        configtest
+        ;;
+  *)
+        echo $"Usage: $0 {start|stop|reload|restart|configtest}"
+        RETVAL=1
+esac
+
+exit $RETVAL
+{% endhighlight %}
+
 ### 监控 nginx 的工作状态
 
-监控需要在编译时添加 \-\-with-http_stub_status_module 选项，默认不会包含在内；然后在配置文件中添加如下内容。
+监控需要在编译时添加 ```--with-http_stub_status_module``` 选项，默认不会包含在内；然后在配置文件中添加如下内容。
 
 {% highlight text %}
 location /status {
@@ -497,13 +589,15 @@ Reading: 3 Writing: 16 Waiting: 8
 
 记录下遇到的一些常见问题。
 
-#### Can't load '/usr/local/lib64/perl5/auto/nginx/nginx.so'
+#### Can't load XXX
 
-该报错是在使用 perl 模块时可能引入的报错，也就是编译时使用 \-\-with-http_perl_module 参数。
+例如报错为 ```Can't load '/usr/local/lib64/perl5/auto/nginx/nginx.so'```，该报错是在使用 perl 模块时可能引入的报错，也就是编译时使用 ```--with-http_perl_module``` 参数。
 
 {% highlight text %}
 # /usr/sbin/nginx
-Can't load '/usr/local/lib64/perl5/auto/nginx/nginx.so' for module nginx: /usr/local/lib64/perl5/auto/nginx/nginx.so: undefined symbol: ngx_http_perl_handle_request at /usr/share/perl5/XSLoader.pm line 68.
+Can't load '/usr/local/lib64/perl5/auto/nginx/nginx.so' for module nginx:
+    /usr/local/lib64/perl5/auto/nginx/nginx.so: undefined symbol:
+    ngx_http_perl_handle_request at /usr/share/perl5/XSLoader.pm line 68.
 at /usr/local/lib64/perl5/nginx.pm line 56.
 Compilation failed in require.
 BEGIN failed–compilation aborted.

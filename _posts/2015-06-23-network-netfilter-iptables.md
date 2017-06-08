@@ -137,10 +137,36 @@ num  target     prot opt source               destination
 {% highlight text %}
 ----- 允许访问22端口，如果需要拒绝访问，则将ACCEPT改为DROP即可
 # iptables -A INPUT -p tcp --dport 22 -j ACCEPT
-
 ----- 允许192.168.1.123访问本机的1521端口
 # iptables -I INPUT -s 192.168.1.123 -p tcp --dport 1521 -j ACCEPT
 -A INPUT -s 192.30.19.82/32 -p tcp -m tcp --dport 21005 -j ACCEPT
+----- 在指定位置插入，如果时-A参数则是在末尾添加
+# iptables -I INPUT 3 -p tcp -m tcp --dport 20 -j ACCEPT
+
+----- 添加NAT规则，对192.168.10.0/24进行地址伪装
+# iptables -t nat -A POSTROUTING -s 192.168.10.0/24 -j MASQUERADE
+
+----- 查看filter表规则，显示编号，常用于删除
+# iptables -L -n --line-number
+----- 查看NAT表规则
+# iptables -t nat -vnL POSTROUTING --line-number
+
+----- 修改规则，改为DROP
+# iptables -R INPUT 3 -j DROP
+
+----- 删除input的第3条规则
+# iptables -D INPUT 3
+----- 删除nat表中postrouting的第一条规则
+# iptables -t nat -D POSTROUTING 1
+----- 清空filter表INPUT所有规则
+# iptables -F INPUT
+----- 清空所有规则
+# iptables -F
+----- 清空nat表POSTROUTING所有规则
+# iptables -t nat -F POSTROUTING
+
+---- 设置filter表INPUT默认规则是DROP
+# iptables -P INPUT DROP
 {% endhighlight %}
 
 

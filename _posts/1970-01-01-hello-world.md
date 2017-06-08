@@ -926,6 +926,212 @@ int lt_dlclose (lt_dlhandle handle);
 https://github.com/carpedm20/awesome-hacking
 http://jamyy.us.to/blog/2014/01/5800.html
 
+
+
+
+
+DJBHash()
+ - hash += (hash << 5) + (*str++);
+ + hash = ((hash << 5) + hash)  + (*str++);
+https://www.byvoid.com/zhs/blog/string-hash-compare
+http://www.partow.net/programming/hashfunctions/index.html
+UDP Socket编程
+http://www.binarytides.com/programming-udp-sockets-c-linux/
+Page Cache
+https://www.thomas-krenn.com/en/wiki/Linux_Page_Cache_Basics
+一个由进程内存布局异常引起的问题
+http://www.cnblogs.com/catch/p/6370859.html
+Page Cache, the Affair Between Memory and Files
+http://duartes.org/gustavo/blog/post/page-cache-the-affair-between-memory-and-files/
+https://www.quora.com/What-is-the-major-difference-between-the-buffer-cache-and-the-page-cache
+从free到page cache
+http://www.cnblogs.com/hustcat/archive/2011/10/27/2226995.html
+FIXME: 
+  /post/linux-create-rpm-package.html
+  初始宏定义: 在定义文件的安装路径时，通常会使用类似 ```%_sharedstatedir``` 的宏，这些宏一般会在 ```/usr/lib/rpm/macros``` 中定义，当然部分会同时在不同平台上覆盖配置，可以直接 ```grep``` 查看。
+
+  在安装时，可以通过 ```%files``` 段指定需要安装的目录、文件、属组、权限等，不过需要先在 ```%
+  
+%install
+rm -rf %{buildroot}
+%{__install} -Dp -m0755 contrib/init.d-uagent %{buildroot}%{_initrddir}/uagent
+%{__install} -d %{buildroot}%{_sysconfdir}/uagent.d/
+
+%files
+%defattr(-, root, root, -)
+%doc ChangeLog README
+%attr(755, root, root) %{_bindir}/replace
+%config(noreplace) %{_sysconfdir}/uagent.conf
+%dir %attr(755, monitor, monitor) %{_sharedstatedir}/uagent
+
+/post/mysql-introduce.html
+  如果没有手动初始化数据直接启动，那么会将root密码打印到日志中，然后可以直接登陆；也可以修改配置文件跳过认证，也就是添加 skip-grant-tables 选项。
+
+----- 不建议使用如下方式修改密码
+> SET PASSWORD=PASSWORD('Root1234@');
+> FLUSH PRIVILEGES;
+
+----- 可以使用如下方式修改，且不需要FLUSH，建议时候后者
+SET password='Root1234@';
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'new_password';
+
+### 校验
+
+可以通过 ```--verify``` 或者 ```-V``` 对参数进行校验，正常不会显示任何信息，可以通过 ```--verbose``` 或者 ```-v``` 显示每个文件的信息。文件丢失时则显示 ```missing```，属性方面的修改内容如下：
+
+SM5DLUGT c filename
+属性：
+  S: 文件大小;
+  M: 权限;
+  5: MD5检查和;
+  D: 主从设备号;
+  L: 符号连接;
+  U: 属主;
+  G: 属组;
+  T: 最后修改时间。
+类型：
+  c: 配置文件；
+  d: 文档文件。
+
+
+http://blog.csdn.net/liuintermilan/article/details/6283705
+
+
+
+getaddrinfo()
+http://www.cnblogs.com/cxz2009/archive/2010/11/19/1881693.html
+
+http://leaver.me/2015/09/03/kafka%E5%BF%AB%E9%80%9F%E4%B8%8A%E6%89%8B/
+Kafka介绍   http://blog.csdn.net/suifeng3051/article/details/48053965
+ZeroCPY  https://www.ibm.com/developerworks/linux/library/j-zerocopy/
+Kafka failover 机制详解 http://www.cnblogs.com/fxjwind/p/4972244.html
+很多不错的图片 http://zqhxuyuan.github.io/2016/01/13/2016-01-13-Kafka-Picture/
+
+Consumer Group
+  多个consumer可以组成一个组，每个消息只能被组中的一个consumer消费，如果想一个消息可以被多个consumer消费的话，那么这些consumer必须在不同的组。
+消息状态
+  消息的状态被保存在consumer中，broker不会关心哪个消息被消费了被谁消费了，只记录一个offset值（指向partition中下一个要被消费的消息位置），这就意味着如果consumer处理不好的话，broker上的一个消息可能会被消费多次。
+    消息有效期：Kafka会长久保留其中的消息，以便consumer可以多次消费，当然其中很多细节是可配置的。
+    批量发送：Kafka支持以消息集合为单位进行批量发送，以提高push效率。
+    push-and-pull : Kafka中的Producer和consumer采用的是push-and-pull模式，即Producer只管向broker push消息，consumer只管从broker pull消息，两者对消息的生产和消费是异步的。
+    负载均衡方面： Kafka提供了一个 metadata API来管理broker之间的负载（对Kafka0.8.x而言，对于0.7.x主要靠zookeeper来实现负载均衡）。
+    同步异步：Producer采用异步push方式，极大提高Kafka系统的吞吐率（可以通过参数控制是采用同步还是异步方式）。
+Partition (分区)
+  一个Topic下可以有多个Partition，Kafka的broker端支持消息分区，Producer可以决定把消息发到哪个分区，在一个分区中消息的顺序就是Producer发送消息的顺序。
+
+librdkafka 用 mklove 编译。
+
+代码运行流程如下
+
+rd_kafka_conf_set()
+  设置全局配置，配置文件中通过Property配置
+rd_kafka_topic_conf_set()
+  设置topic配置
+rd_kafka_brokers_add()
+  设置broker地址，也就是bootstrap broker，启动向broker发送消息的线程
+rd_kafka_new()
+  将上述的conf作为参数，启动kafka主线程，也就是rd_kafka_thread_main()函数
+
+rd_kafka_topic_new建topic
+
+rd_kafka_produce使用本函数发送消息
+
+rd_kafka_poll调用回调函数
+
+还是看发送一条消息的过程
+
+#define HAVE_LIBRDKAFKA_LOG_CB 1
+#undef HAVE_LIBRDKAFKA_LOGGER
+
+新版本使用 rd_kafka_conf_set_log_cb() 替换了 rd_kafka_set_logger() 接口。
+
+简单来说，应用线程向队列扔消息，librdkafka启动的线程负责从队列里取消息并向kafka broker发送消息。
+
+src/rdkafka_transport.c 调用操作系统的 poll() 接口。
+
+cnd_signal()
+pthread_cond_signal()
+
+
+rd_kafka_replyq_enq()
+ |-rd_kafka_q_enq()
+
+发送消息
+rd_kafka_produce()
+ |-rd_kafka_msg_new()
+   |-rd_kafka_msg_new0() 创建消息并初始化，包括消息长度、标记位、timeout等内容
+   |-rd_kafka_msg_partitioner() 分区并添加到队列
+   | |-rd_kafka_toppar_get() 获取partition
+   | |-rd_kafka_toppar_enq_msg() 加入队列，等待broker线程取出
+   |   |-rd_kafka_msgq_enq() 真正添加到topic partition队列中，注意需要进行加锁
+   |     |-TAILQ_INSERT_TAIL() 添加到队列末尾
+   |-rd_kafka_msg_destroy()
+rd_kafka_broker_add() 
+
+rd_kafka_new() 创建新的实例，会返回rd_kafka_t结构体
+ |-rd_kafka_cgrp_new() 如果是消费者会创建分组
+ |-rd_kafka_thread_main() 为生产者、消费者启动单独线程处理 rd_kafka_thread_main()
+ | |-rd_snprintf() 将线程名称设置为main
+ | |-rd_kafka_q_serve() 从rk_ops队列中读取消息
+ |   |-rd_kafka_op_handle() 处理完成后调用回调函数
+ |-rd_kafka_broker_add() 创建内部broker线程，也就是 rd_kafka_broker_thread_main()
+
+rd_kafka_broker_thread_main()
+ |-rd_kafka_broker_terminating() 如果没有关闭
+ |-rd_kafka_broker_connect() 在初始化以及STATE_DOWN时，不断重试链接
+ | |-rd_kafka_broker_resolve()
+ | | |-rd_getaddrinfo()
+ | |-rd_kafka_transport_connect() 设置网络异步通讯
+ | | |-rd_fd_set_nonblocking()
+ | | |-rd_kafka_transport_poll_set()
+ | |-rd_kafka_broker_set_state()
+ |
+ |-rd_kafka_broker_producer_serve() 处于STATE_UP时根据不同的类型调用不同函数
+ | |-rd_kafka_broker_terminating()
+ | |-rd_kafka_toppar_producer_serve() 会通过TAILQ_FOREACH()从队列中读取，然后调用该函数
+     |-rd_kafka_msgq_concat() 如果有需要发送的消息，则直接将消息从rktp->rktp_msgq移动到rktp->rktp_xmit_msgq，并清空前者
+     |-rd_kafka_msgq_age_scan()
+  |-rd_kafka_broker_produce_toppar()
+    |-rd_kafka_buf_new() 新建发送缓冲区
+ | |-rd_kafka_broker_serve() 从队列中读取消息，并将数据发送到网络
+ |   |-rd_kafka_q_pop() 会返回具体的操作类型
+ |   | |-rd_kafka_q_pop_serve()
+ |   |-rd_kafka_broker_op_serve() 根据不同的操作类型调用不同函数接口
+ |   |
+ |   |-rd_kafka_transport_io_serve()
+ |     |-rd_kafka_transport_poll() 调用操作系统的poll()系统调用接口
+ |     |-rd_kafka_transport_poll_clear()
+ |     |-rd_kafka_transport_io_event() 处理返回的IO事件
+ |       |-rd_kafka_send() 例如发送
+ |       |-rd_kafka_recv() 以及接收
+ |-rd_kafka_broker_consumer_serve()
+
+这也就意味着应用程序将消息发送给 rdkafka，然后 rdkafka 会直接将消息保存到队列中，并由其它线程异步发送给 broker 。
+
+http://blog.csdn.net/auwzb/article/details/9665729
+http://www.cnblogs.com/xhcqwl/p/3905412.html
+http://codingeek.me/2017/04/16/librdkafka%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/
+
+
+在调用 ```rd_kafka_new()``` 函数时，会根据入参是消费者还是生产者返回 ```rd_kafka_t``` 对象，此时会同时创建一个主处理线程，也就是 ```rd_kafka_thread_main()``` 。
+
+在主线程中会从 ```rd_kafka_t.rk_ops``` 队列中逐一读取消息，然后根据不同的操作类型 (通过rd_kafka_op_type_t定义) 分别进行处理，其中操作通过 rd_kafka_op_t 定义，操作类型对应了其中的 rko_type 成员，操作执行完后调用 rd_kafka_op_handle() 回调。
+
+Kafka 中可以将 Topic 从物理上划分成一个或多个分区 (Partition)，每个分区在物理上对应一个文件夹，以 "TopicName_PartitionIndex" 的命名方式命名，该文件夹下存储这个分区的所有消息 (.log) 和索引文件 (.index)，这使得 Kafka 的吞吐率可以水平扩展。
+
+在通过命令行创建 Topic 时，可以使用 --partitions <numPartitions> 指定分区数；也可以在 server.properties 配置文件中配置参数 num.partitions 来指定默认的分区数。需要注意的是，在为 Topic 创建分区时，分区数最好是 broker 数量的整数倍。
+
+可以通过 rd_kafka_broker_add() 创建 broker 线程，有如下三种类型：
+    RD_KAFKA_CONFIGURED
+    根据用户配置，生成的broker线程
+    RD_KAFKA_LEARNED
+    内部使用的broker线程，主要针对Client Group使用
+    RD_KAFKA_INTERNAL
+    内部使用的broker线程
+#define unlikely(x) __builtin_expect((x),0)
+http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html
+
+
 ←
 -->
 

@@ -63,6 +63,8 @@ http://turnoff.us/
 Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通过 C 语言编写；另外，还包括了前端相关的内容。
 
 * [Nginx 入门](/post/nginx-introduce.html)，介绍一些常见的操作，例如安装、启动、设置等。
+* [Nginx 监控](/post/nginx-monitor.html)，关于 Nginx 的简单监控内容。
+* [Nginx https](/post/nginx-https.html)，简单介绍如何使用 Nginx 搭建 https 服务。
 * [HTTPS 协议详解](/post/https-introduce.html)，简单介绍下 HTTPS 协议是如何实现的
 
 <!--
@@ -108,6 +110,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 主要是 Linux 下与安全相关的内容。
 
 * [加密算法简介](/post/security-encryption-introduce.html)，简单介绍一些常见的加密算法等。
+* [PGP 简介](/post/security-pgp-introduce.html)，一个基于公钥加密体系的加密软件。
 
 #### SSH
 
@@ -128,7 +131,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [RPM 包制作](/post/linux-create-rpm-package.html)，如何在 CentOS 中创建 RPM 包。
 * [Linux 常用技巧](/post/linux-tips.html)，简单记录了一些在 Linux 中常用的技巧。
 * [Linux 常用命令 \-\- 文本处理](/post/linux-commands-text.html)，简单介绍下 Linux 常用的文本处理方式。
-* [TMUX](/post/tmux.html)，一个终端复用工具，类似 screen 但是更加方便使用，更加高端。
+* [TMUX](/post/tmux-introduce.html)，一个终端复用工具，类似 screen 但是更加方便使用，更加高端。
 * [Linux 绘图工具](/post/linux-gnuplot.html)，这是一个命令行驱动的绘图工具，支持多个平台。
 * [logrotate 使用方法](/post/logrotate-usage.html)，一个不错的日志切割管理程序。
 * [Linux 后台服务管理](/post/linux-daemon-tools.html)，介绍目前常用的后台服务管理。

@@ -540,7 +540,7 @@ $ tmux move-window -s processes:1 -t editor
 
 详细内容可以参考官方网站 [tmux.github.io](http://tmux.github.io/)，详细的文档可以参考 [tmux Productive Mouse-Free Development](/reference/linux/Pragmatic.tmux.Feb.2012.pdf)，版权归作者所有。
 
-当然也可以通过 [tmux-powerline](https://github.com/erikw/tmux-powerline) 配置状态栏；关于按键的绑定可以参考 [Moving The Ctrl Key](https://www.emacswiki.org/emacs/MovingTheCtrlKey) 。
+当然也可以通过 [tmux-powerline](https://github.com/erikw/tmux-powerline) 配置状态栏；关于按键的绑定可以参考 [Moving The Ctrl Key](https://www.emacswiki.org/emacs/MovingTheCtrlKey)，以及参考配置文件 [tmux.conf](/reference/linux/tmux.conf) 。
 
 
 {% highlight text %}
