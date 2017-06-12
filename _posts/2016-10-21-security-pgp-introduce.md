@@ -36,6 +36,8 @@ Pretty Good Privacy, PGP 加密由一系列散列、数据压缩、对称密钥�
 
 当然，也可以先产生一个数字签名，并将数字签名添加到信息中，然后同样会通过随机串加密。在 OpenPGP 中也可以对信息进行压缩，通常压缩是在获得数字签名后且在压缩之前。
 
+> The Public-Key Cryptography Standards(PKCS) 是由美国 RSA 数据安全公司及其合作伙伴制定的一组公钥密码学标准，包括证书申请、证书更新、证书作废表发布、扩展证书内容以及数字签名、数字信封的格式等方面的一系列相关协议。
+
 <!--
     PGP的实际操作由五种服务组成：鉴别、机密性、电子邮件的兼容性、压缩、分段和重装。
 
@@ -457,6 +459,8 @@ http://blog.codinghorror.com/speed-hashing/
 
 关于SHA1～SHA3的介绍
 http://www.answers.com/article/1163617/the-evolution-of-the-nist-secure-hash-algorithm-from-sha-1-to-sha-3
+
+http://www.ruanyifeng.com/blog/2013/07/gpg.html
 -->
 
 

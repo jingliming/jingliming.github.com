@@ -66,6 +66,7 @@ You cannot haggle at WallMat. Those are set prices.
 
 I spent much of this week wrestling with a server that was in the clutches of OOM killer.
 
+Programs must be written for people to read, and only incidentally for machines to execute.
 -->
 
 {% highlight text %}

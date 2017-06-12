@@ -475,6 +475,50 @@ $ curl 'http://localhost:80/hello'
 
 详细可以参考 Nginx 官方文档 [Module ngx_http_map_module](http://nginx.org/en/docs/http/ngx_http_map_module.html) 。
 
+### auth_basic_module
+
+关于该模块的内容详细可以查看 [Nginx 基本认证模块](http://nginx.org/en/docs/http/ngx_http_auth_basic_module.html) ，使用简单介绍如下。
+
+需要保证已经安装了 ```ngx_http_auth_basic_module``` 模块，同样可以通过 ```nginx -V``` 查看，如果不需要可以使用 ```--without-http_auth_basic_module``` 。
+
+{% highlight text %}
+location / {
+    auth_basic           "closed site";
+    auth_basic_user_file conf/htpasswd;
+}
+{% endhighlight %}
+
+其中 ```auth_basic``` 的字符串内容可以任意，例如 ```Restricted```、```NginxStatus``` 等；另外，需要注意的是 ```auth_basic_user_file``` 的路径，否则会出现 403 错误。
+
+其中密码文件的格式内容如下，其中密码通过 ```crypt()``` 函数加密，以及 Apache 基于 MD5 的变种 Hash 算法 (apr1) 生成，可以通过 Apache 中的 ```httpd-tools``` 中的 ```htpasswd``` 加密，或者使用 ```openssl passwd``` 获取。
+
+{% highlight text %}
+# comment
+name1:password1
+name2:password2:comment
+name3:password3
+{% endhighlight %}
+
+可以通过如下命令生成密码。
+
+{% highlight text %}
+$ sh -c "openssl passwd -apr1 >> /etc/nginx/.htpasswd"
+$ printf "ttlsa:$(openssl passwd -crypt 123456)\n" >>conf/htpasswd
+$ htpasswd -c conf/htpasswd username
+{% endhighlight %}
+
+另外，可以查看 Python 版本 [github htpasswd.py]( {{ site.example_repository }}/python/misc/htpasswd.py )，使用方法如下。
+
+{% highlight text %}
+$ htpasswd.py -b -c pass.txt admin 123456
+{% endhighlight %}
+
+<!--
+http://coderschool.cn/2207.html
+http://trac.edgewall.org/export/10890/trunk/contrib/htpasswd.py
+-->
+
+
 
 
 ## 其它

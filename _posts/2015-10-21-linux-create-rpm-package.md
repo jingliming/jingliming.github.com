@@ -142,6 +142,8 @@ if [-d %{buildroot}]; then
    rm -rf %{buildroot}                              ← 清空下安装目录，实际会自动清除
 fi
 make install DESTDIR=%{buildroot}                   ← 安装到buildroot目录下
+%{__install} -Dp -m0755 contrib/init.d %{buildroot}%{_initrddir}/foobar
+%{__install} -d %{buildroot}%{_sysconfdir}/foobar.d/
 
 #--- 4.1 scripts section            ← ###没必要可以不填
 %pre                                                ← 安装前执行的脚本
@@ -155,7 +157,7 @@ make install DESTDIR=%{buildroot}                   ← 安�
 %clean
 rm -rf %{buildroot}
 
-#--- 6. File section                ← ###打包时要包含的文件
+#--- 6. File section                ← ###打包时要包含的文件，注意同时需要在%install中安装
 %files
 %defattr (-,root,root,0755)                         ← 设定默认权限
 %config(noreplace) /etc/my.cnf                      ← 表明是配置文件，noplace表示替换文件
@@ -232,7 +234,6 @@ $ perl sciprt here
 
 一般最后一条命令的 exit 状态就是脚本的 exit 状态，除一些特殊情况，一般脚本都是以 ```exit 0``` 状态退出，所以大部分小脚本片段都会使用 ```"||:"``` 退出。
 
-
 ### %prep
 
 {% highlight text %}
@@ -273,6 +274,25 @@ spec 脚本中提供了与 systemd 相关的脚本，关于脚本的详细内容
 
 关于安装升级的各个操作步骤详见 [RPM SPEC pre/post/preun/postun argument values](http://meinit.nl/rpm-spec-prepostpreunpostun-argument-values) 以及 [Fedora Packaging Guidelines for RPM Scriptlets](https://fedoraproject.org/wiki/Packaging:Scriptlets) 。
 
+### 校验
+
+在安装完 RPM 包之后，可以通过 ```--verify``` 或者 ```-V``` 进行校验，正常不会显示任何信息，可以通过 ```--verbose``` 或者 ```-v``` 显示每个文件的信息；文件丢失显示 ```missing```，属性方面的修改内容如下：
+
+{% highlight text %}
+SM5DLUGT c filename
+属性：
+  S: 文件大小;
+  M: 权限;
+  5: MD5检查和;
+  D: 主从设备号;
+  L: 符号连接;
+  U: 属主;
+  G: 属组;
+  T: 最后修改时间。
+类型：
+  c: 配置文件；
+  d: 文档文件。
+{% endhighlight %}
 
 ## 常用设置
 
@@ -398,6 +418,10 @@ foobar:01
 $ rpm --define='_without_foobar 1' --define='with_foobar 0%{!?_without_foobar:1}' --eval='foobar:%{with_foobar}'
 foobar:0
 {% endhighlight %}
+
+### 初始宏定义
+
+在定义文件的安装路径时，通常会使用类似 ```%_sharedstatedir``` 的宏，这些宏一般会在 ```/usr/lib/rpm/macros``` 中定义，当然部分会同时在不同平台上覆盖配置，可以直接 ```grep``` 查看。
 
 
 ### 其它

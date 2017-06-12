@@ -14,7 +14,7 @@ description: 简单介绍下 C 语言中与字符串操作相关的函数。
 
 ## 简介
 
-C 语言中通过双引号表示字符串。
+C 语言中通过双引号表示字符串，与字符串操作相关的函数可以通过 ```man 3 string``` 查看帮助文档。
 
 {% highlight c %}
 #include <stdio.h>
@@ -341,6 +341,53 @@ int main (int argc, char **argv)
   return 0;
 }
 {% endhighlight %}
+
+## 字符串查找
+
+<!--
+strtok()
+http://blog.csdn.net/liuintermilan/article/details/6283705
+--->
+
+### strchr
+
+该函数是字符查找，找到则返回第一个字符的地址，否则返回 NULL 。如下是一个简单的程序，用来分割一个字符串，类似与 ```/etc/shadow``` 中保存的密码。
+
+{% highlight c %}
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int main (int argc, char **argv)
+{
+    char *encrypted = strdup("$1$test$justfortest");
+    char *id, *salt, *passwd;
+
+    id = strchr(encrypted, '$');
+    if (id == NULL)
+        exit(EXIT_FAILURE);
+    *id = 0;
+    id++;
+
+    salt = strchr(id, '$');
+    if (salt == NULL)
+        exit(EXIT_FAILURE);
+    *salt = 0;
+    salt++;
+
+    passwd = strchr(salt, '$');
+    if (passwd == NULL)
+        exit(EXIT_FAILURE);
+    *passwd = 0;
+    passwd++;
+
+    printf("id: %s salt: %s password: %s\n", id, salt, passwd);
+    free(encrypted);
+
+    return 0;
+}
+{% endhighlight %}
+
 
 
 ## 字符串复制

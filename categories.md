@@ -94,6 +94,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Linux 硬件启动](/post/kernel-hardware-startup.html)，从内核加电之后，简单介绍如何从硬件加载启动。
 * [Linux 启动过程](/post/kernel-bootstrap.html)，通过 GRUB 启动之后，然后开始加载内核，再次简单介绍。
 * [Linux 内核模块](/post/kernel-modules.html)，简单介绍下 Linux 中的内核模块编写，包括了内核签名机制的配置。
+* [Linux 共享内存](/post/linux-shared-memory-program.md)，Linux 中与共享内存相关的内容。
 
 #### C Program
 
@@ -111,6 +112,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 
 * [加密算法简介](/post/security-encryption-introduce.html)，简单介绍一些常见的加密算法等。
 * [PGP 简介](/post/security-pgp-introduce.html)，一个基于公钥加密体系的加密软件。
+* [Linux 密码管理](/post/security-how-to-save-password.html)，简单介绍下 Linux 中的密码管理。
 
 #### SSH
 
