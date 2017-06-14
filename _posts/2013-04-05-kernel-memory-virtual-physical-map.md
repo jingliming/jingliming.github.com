@@ -1222,7 +1222,37 @@ int main(int argc, char **argv)
 
 ## mmap
 
+对应到内核中的接口是 ```sys_mmap()``` 实际上最终调用的是 ```sys_mmap_pgoff()``` 函数，当然实际上这也是一个系统调用函数。
 
+
+{% highlight text %}
+sys_mmap_pgoff()
+ |-vm_mmap_pgoff()
+   |-security_mmap_file()       权限检查
+   |-down_write()
+   |-do_mmap_pgoff()
+     |-PAGE_ALIGN()             会做若干检查判断是否超过限制，包括sysctl_max_map_count
+     |-get_unmapped_area()      从用户地址空间寻找个合适的地址
+     |-calc_vm_prot_bits()      根据prot和flags计算获取vm_flags
+     |-calc_vm_flag_bits()
+     |-can_do_mlock()           判断是否需要锁定内存
+     |-mlock_future_check()
+     |-mmap_region()            真正的映射函数
+   |-up_write()
+   |-mm_populate()
+{% endhighlight %}
+
+内存锁定的含义是，分配的内存始终位于真实内存之中，从不被置换 (swap) 出去，在应用层可以通过 ```mlock()``` 函数实现。
+
+```mlock()``` 会锁定开始于地址 addr 并延续长度为 len 个地址范围的内存，调用成功返回后所有包含该地址范围的分页都保证在 RAM 内，这些分页保证一直在 RAM 内直到后来被解锁。
+
+
+
+            mmap_region(file, addr, len, flags, vm_flags, pgoff);
+                vma_merge
+                kmem_cache_zalloc
+                    file->f_op->mmap(file, vma); ==> generic_file_mmap
+                    shmem_zero_setup(vma);
 
 
 ### mtrace
@@ -1642,8 +1672,52 @@ struct page {
 上面涉及到了一些数据结构，围绕数据结构理解问题会容易一些。
 
 
+## Cache
 
+BufferCache
 
+        块缓冲，通常1K，对应于一个磁盘块，用于减少磁盘IO
+        由物理内存分配，通常空闲内存全是bufferCache
+        应用层面，不直接与BufferCache交互，而是与PageCache交互（见下）
+        读文件：
+
+直接从bufferCache中读取
+
+    写文件：
+
+       方法一，写bufferCache，后写磁盘
+
+       方法二，写bufferCache，后台程序合并写磁盘
+
+ 
+
+PageCache
+
+    页缓冲/文件缓冲，通常4K，由若干个磁盘块组成（物理上不一定连续），也即由若干个bufferCache组成
+    读文件：
+
+      可能不连续的几个磁盘块》》bufferCache》》pageCache》》应用程序进程空间
+
+    写文件：
+
+       pageCache, bufferCache》》磁盘
+
+ 
+
+SwapCache
+
+    交换空间（虚拟内存的表现形式）
+
+ 
+
+如何使用PageCache
+
+    以下日志，属摘抄部分，我自己还没理解。
+    【1】通过VFS直接在不同文件的Cache之间或者Cache与应用程序所提供的用户空间buffer之间拷贝数据，其实现原理如下图
+
+    【2】是通过VMM（虚拟内存管理）将Cache项映射到用户空间，使得应用程序可以像使用内存指针一样访问文件，Memory map访问Cache的方式在内核中是采用请求页面机制实现的，其工作过程如图
+
+    【3】总结1与2，总的访问图：
 
 
 #### Swap Cache

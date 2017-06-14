@@ -1016,6 +1016,261 @@ http://blog.siphos.be/2013/05/overview-of-linux-capabilities-part-1/
 关于Linux内核很不错的介绍
 http://duartes.org/gustavo/blog/
 
+
+
+
+
+
+chcon 用于修改文件的 SELinux 安全上下文，或者说是修改安全策略。
+
+进程所属的上下文类型称为域，而文件所属的上下文类型称为类型，在 SELinux 开启后，进程只能操作域类型与上下文类型一样的文件。
+
+在 CentOS 中，semanage 命令默认没有安装，可以通过 ```yum install policycoreutils-python``` 安装。
+
+----- 查看哪些服务受SELinux管理，也就是布尔值；包括了如何设置，-P永久生效
+# getsebool -a
+# setsebool samba_enable_home_dirs=1
+# setsebool samba_enable_home_dirs=on
+----- 恢复默认上下文
+# restorecon /var/www/html
+----- 默认上下文类型？保存在那个文件中
+# semanage fcontext -l
+----- 用户映射关系
+# semanage user -l
+----- 查看受SELinux控制的端口，以及将指定端口添加到规则中
+# semanage port -l
+# semanage port -a -t http_port_t -p tcp 8060
+
+chcon [选项]... 环境 文件...
+chcon [选项]... [-u 用户] [-r 角色] [-l 范围] [-t 类型] 文件...
+chcon [选项]... --reference=参考文件 文件...
+
+二、chcon命令参数：
+参数名 描述
+-u 用户
+--user=用户 设置指定用户的目标安全环境；
+ -r 角色
+--role=角色 设置指定角色的目标安全环境；
+-t 类型
+--type=类型 设置指定类型的目标安全环境；
+-l 范围
+--range=范围 设置指定范围的目标安全环境；
+-v
+--verbose 处理的所有文件时显示诊断信息；
+
+-R/--recursive
+  递归处理目录、文件；
+
+
+-h
+--no-dereference 影响符号连接而非引用的文件；
+--reference=file 使用指定参考文件file的安全环境，而非指定值；
+-H  如果一个命令行参数是一个目录的符号链接，则遍历它；
+-L 遍历每一个符号连接指向的目录；
+-P 不遍历任何符号链接（默认）；
+--help 显示此帮助信息并退出；
+--version 显示版本信息并退出；
+
+三、chcon用法演示：
+1、mysql：让selinux
+
+允许mysqld做为数据目录访问“/storage/mysql”：
+-----
+# chcon -R -t mysqld_db_t /storage/mysql
+2、ftp：将共享目录开放给匿名用户：
+[root@aiezu.com ~]# chcon -R -t public_content_t /storage/ftp/
+#允许匿名用户上传文件：
+[root@aiezu.com ~]# chcon -R -t public_content_rw_t /storage/ftp
+[root@aiezu.com ~]# setsebool -P allow_ftpd_anon_write=1
+
+3、为网站目录开放httpd访问权限：
+chcon -R -t httpd_sys_content_t /storage/web
+
+https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Security-Enhanced_Linux/chap-Security-Enhanced_Linux-SELinux_Contexts.html
+https://debian-handbook.info/browse/zh-CN/stable/sect.selinux.html
+https://wiki.centos.org/zh/HowTos/SELinux
+http://blog.siphos.be/2013/05/overview-of-linux-capabilities-part-1/
+http://www.cis.syr.edu/~wedu/seed/Labs/Documentation/Linux/How_Linux_Capability_Works.pdf
+
+
+编程时常有 Client 和 Server 需要各自得到对方 IP 和 Port 的需求，此时就可以通过 getsockname() 和 getpeername() 获取。
+
+python -c '
+import sys
+import socket
+s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect(("www.huawei.com", 80))
+print s.getsockname()
+s.close()'
+
+FIXME:
+  rsync
+  --exclude "checkout"    某个目录
+  --exclude "filename*"   某类文件
+  --exclude-from=sync-exclude.list  通过文件指定要忽略的文件
+注意，指定时使用的是源地址的相对路径。
+
+Python判断IP有效性
+https://gist.github.com/youngsterxyf/5088954
+
+/post/centos-config-from-scratch.html
+# 查询未安装软件包的依赖关系
+rpm -qRp vim-common-6.3.046-2.el4.1.x86_64.rpm
+# 查询已安装软件包的依赖关系
+rpm -qR vim-common-6.3.046-2.el4.1
+
+gpg签名
+/etc/pki/rpm-gpg/RPM*
+
+rpm 安装时可能会报 NOKEY 的错误信息 --nogpgcheck nosignature
+
+iptables -I INPUT -s 192.30.0.0/16 -p tcp --dport 21005 -j ACCEPT
+/post/linux-commands-text.html
+  如果其中的部分参数需要动态获取，而 ```''``` 则会原样输出字符内容，那么可以通过 ```echo "'$(hostname)'" | xargs sed filename -e``` 这种方式执行。
+/post/network-setting.html
+
+ip route list
+
+route -n
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.145.12.254  0.0.0.0         UG    0      0        0 eth0
+100.125.0.0     0.0.0.0         255.255.248.0   U     0      0        0 eth1
+
+Destination、Gateway、Genmask，目标地址、网管、掩码
+
+第一行表示主机所在网络的地址为192.168.120.0，若数据传送目标是在本局域网内通信，则可直接通过eth0转发数据包;
+
+第四行表示数据传送目的是访问Internet，则由接口eth0，将数据包发送到网关192.168.120.240
+
+Flags 为路由标志，标记当前网络节点的状态，各个标志简述如下：
+  U Up，此路由当前为启动状态
+  G Gateway，此网关为一路由器
+  ! Reject Route，表示此路由当前为关闭状态，常用于抵挡不安全规则
+  H Host，表示此网关为一主机
+  R Reinstate Route，使用动态路由重新初始化的路由
+  D Dynamically,此路由是动态性地写入
+  M Modified，此路由是由路由守护程序或导向器动态修改
+Metric
+
+metric Metric 为路由指定一个整数成本值标（从 1 至 9999），当在路由表(与转发的数据包目标地址最匹配)的多个路由中进行选择时可以使用。
+
+http://www.cnblogs.com/vamei/archive/2012/10/07/2713023.html
+
+----- 增加一条到达244.0.0.0的路由
+# route add -net 224.0.0.0 netmask 240.0.0.0 dev eth0
+----- 增加一条屏蔽的路由，目的地址为224.x.x.x将被拒绝
+# route add -net 224.0.0.0 netmask 240.0.0.0 reject
+----- 删除路由记录
+# route del -net 224.0.0.0 netmask 240.0.0.0
+# route del -net 224.0.0.0 netmask 240.0.0.0 reject
+----- 删除和添加设置默认网关
+# route del default gw 192.168.120.240
+# route add default gw 192.168.120.240
+
+Routing Cache 也被称为 Forwarding Information Base, FIB ，通过 Hash 表保存了最近使用的路由信息，如果在 Cache 找到了对应的路由信息，那么会直接使用该规则进行转发，而不再查找路由表。
+
+注意，Routing Cache 和 Route Table 是不相关的，所以在修改路由表之后最后手动清空下 Cache ，可以通过 ```/proc/net/rt_cache``` 文件查看或者使用如下命令：
+
+ip route show cache
+ip route flush cache
+ip route get
+
+关于 IP 命令的详细可以查看 [IP Route Management](http://linux-ip.net/html/tools-ip-route.html) 。
+
+http://linux-ip.net/html/routing-selection.html
+
+一般路由匹配的流程是：
+A. 先匹配掩码，掩码最精确匹配的路由优先 (longest prefix match)；
+B. 如果有多条路由，则匹配 [管理距离](https://en.wikipedia.org/wiki/Administrative_distance)，管理距离小的路由优先；
+C. 如果管理距离相同，在匹配度量值 (lowest metric)，度量值小的优先
+D. 如果度量值相同，则选择负载均衡，具体的方式看采用哪种路由协议和相关的配置了。
+
+安全渗透工具集
+https://wizardforcel.gitbooks.io/daxueba-kali-linux-tutorial/content/2.html
+
+git stash save              保存，不带子命令的默认值
+git stash apply stash@{0}   默认应用第一个，注意，此时不会删除保存的stash
+git stash drop stash@{0}    手动删除
+git stash list [<options>]
+git stash show [<stash>]
+git stash ( pop | apply ) [--index] [-q|--quiet] [<stash>]
+git stash branch <branchname> [<stash>]
+git stash [push [-p|--patch] [-k|--[no-]keep-index] [-q|--quiet]
+      [-u|--include-untracked] [-a|--all] [-m|--message <message>]]
+      [--] [<pathspec>…]]
+git stash clear
+git stash create [<message>]
+git stash store [-m|--message <message>] [-q|--quiet] <commit>
+
+在引用时，可以使用类似如下的方式 ```stash@{0}```、```stash@{2.hours.ago}``` 。
+
+hostname获取方式，在启动时通过 1) global_option_get() 配置文件获取；2) gethostname()；3) getaddrinfo()。
+
+#include <unistd.h>
+int gethostname(char *name, size_t len);
+  返回本地主机的标准主机名；正常返回 0 否则返回 -1，错误码保存在 errno 中。
+
+#include <netdb.h>
+#include <sys/socket.h>
+struct hostent *gethostbyname(const char *name);
+  用域名或主机名获取IP地址，注意只支持IPv4；正常返回一个 struct hostent 结构，否则返回 NULL。
+
+#include<netdb.h>
+int getaddrinfo(const char *hostname, const char *service, const struct addrinfo *hints, struct addrinfo **result);
+  hostname: 一个主机名或者地址串，IPv4的点分十进制串或者IPv6的16进制串；
+  service : 服务名可以是十进制的端口号，也可以是已定义的服务名称，如ftp、http等；
+  hints   : 可以为空，用于指定返回的类型信息，例如，服务支持 TCP/UDP 那么，可以设置 ai_socktype 为 SOCK_DGRAM 只返回 UDP 信息；
+  result  : 返回的结果。
+  返回 0 成功。
+
+struct addrinfo {
+    int              ai_flags;
+    int              ai_family;
+    int              ai_socktype;
+    int              ai_protocol;
+    socklen_t        ai_addrlen;
+    struct sockaddr *ai_addr;        // IP地址，需要通过inet_ntop()转换为IP字符串
+    char            *ai_canonname;   // 返回的主机名
+    struct addrinfo *ai_next;
+};
+http://blog.csdn.net/a_ran/article/details/41871437
+
+
+const char *inet_ntop(int af, const void *src, char *dst, socklen_t cnt);
+  将类型为af的网络地址结构src，转换成主机序的字符串形式，存放在长度为cnt的字符串中。返回指向dst的一个指针。如果函数调用错误，返回值是NULL。
+
+通常 capabilities 是和 SELinux 配合使用的，以往，如果要运行一个需要 root 权限的程序，那么需要保证有运行权限，且是 root 用户；通过 capabilities 就可以只赋予程序所需要的权限。
+
+以 ping 命令为例，因为需要发送 raw 格式数据，部分发行版本使用了 setuid + root，实际上只需要赋予 CAP_NET_RAW 权限，然后去除 setuid 即可。
+
+
+----- 直接复制一个ping命令，然后进行测试
+# cp ping anotherping
+# chcon -t ping_exec_t anotherping
+$ ping -c 1 127.0.0.1
+PING 127.0.0.1 (127.0.0.1) 56(84) bytes of data.
+64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.057 ms
+$ anotherping -c 1 127.0.0.1
+ping: icmp open socket: Operation not permitted
+
+----- 新增CAP_NET_RAW权限，然后用非root用户重新测试
+# setcap cap_net_raw+ep anotherping
+$ anotherping -c 1 127.0.0.1
+PING 127.0.0.1 (127.0.0.1) 56(84) bytes of data.
+64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.054 ms
+
+user
+role
+type
+level
+
+
+
+
+
+
+
+
 ←
 -->
 

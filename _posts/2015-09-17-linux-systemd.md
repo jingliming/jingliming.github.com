@@ -91,19 +91,28 @@ sysvinit 只能一次一个串行地启动进程，而 Systemd 则并行地启�
 $ systemctl status nginx
 
 ----- 修改service之后重新加载
-systemctl daemon-reload
+# systemctl daemon-reload
+
+----- 杀死一个服务的所有进程，传递信号到指定服务的所有进程
+# systemctl kill crond.service
+----- 指定信号类型，如下两者相同，所有fork的进程都会被杀死
+# systemctl kill -s SIGKILL crond.service
+# systemctl kill -s 9 crond.service
+----- 发送指定信号到服务的主进程
+# systemctl kill -s HUP --kill-who=main crond.service
 
 ----- 其它操作
 # systemctl                               ← 列出正在运行的单元
 # systemctl list-units                    ← 同上
+# systemctl list-units --type service     ← 同上，只是以service为单位
 # systemctl --failed                      ← 查看失败的任务
 # systemctl list-unit-files               ← 所有已经安装的任务
+# systemctl list-dependencies nginx       ← 查看特定服务的依赖关系
 {% endhighlight %}
 
 所有可用的单元文件存放在 ```/usr/lib/systemd/system``` 和 ```/etc/systemd/system``` 目录中，一个单元配置文件可以为，系统服务(.service) 、挂载点(.mount)、sockets(.sockets)、系统设备、交换分区/文件、启动目标(target)、文件系统路径、由 systemd 管理的计时器，详见 ```man 5 systemd.unit``` 。
 
 通过enable 设置为开机启动时，相当于在 ```/etc/systemd/system/default.target``` 符号链接指向的目标对应目录下添加指向 nginx 的符号链接。
-
 
 ### 设置启动级别
 
@@ -115,7 +124,6 @@ systemctl daemon-reload
 # systemctl get-default                    // 查看默认目标
 # systemctl set-default graphical.target   // 改变默认目标
 {% endhighlight %}
-
 
 ### 日志管理
 
@@ -156,7 +164,6 @@ systemctl 命令也可以用来关机、重启、挂起、休眠。
 # systemctl suspend
 # systemctl hibernate
 {% endhighlight %}
-
 
 ### 时区设置
 
@@ -203,9 +210,7 @@ WantedBy=multi-user.target
 
 一个服务以 .service 结尾，一般会分为 3 部分：```[Unit]```、```[Service]``` 和 ```[Install]``` 。
 
-服务脚本按照上面编写完成后，以 754 的权限保存在 ```/usr/lib/systemd/system``` 目录下，这时就可以利用 systemctl 进行配置了。
-
-
+服务脚本按照上面编写完成后，以 754 的权限保存在 ```/usr/lib/systemd/system``` 目录下，这时就可以利用 ```systemctl``` 进行配置了。
 
 ### Unit
 
@@ -276,10 +281,51 @@ PrivateTmp=True                            # 给服务分配独立的临时空�
 
 在所有的服务配置之前，都可以加上一个连词号 (```-```)，表示 "抑制错误"，也即即使发生错误也不影响其他命令的执行。
 
-
 ### Install
 
 在通过 enable 设置为开机启动时，添加到那个 target 里面，也即定义如何安装这个配置文件，即怎样做到开机启动。
+
+<!--
+## 资源隔离
+
+http://smilejay.com/2016/06/centos-7-systemd-conf-limits/
+http://www.jinbuguo.com/systemd/systemd.resource-control.html
+http://www.cnblogs.com/chris-cp/p/6667753.html
+
+保证资源的全部回收
+http://fangpeishi.com/systemd_chapter2.html
+
+服务进程限制
+    PrivateNetwork=[BOOL] :若服务不需要网络连接可开启本选项，更加安全。
+    PrivateTmp=[BOOl] :由于传统/tmp目录是所有本地用户和服务共用，会带来很多安全性问题，开启本选项后，服务将有一个私有的tmp，可防止攻击。
+    InaccessibleDirectories= :限制服务进程访问某些目录。
+    ReadOnlyDirectories= :设置服务进程对某些目录只读，保证目录下数据不被服务意外撰改。
+    OOMScoreAdjust= :调整服务OOM值，从-1000（对该服务进程关闭OOM）到1000(严格)。
+    IOSchedulingClass= ：IO调度类型，可设置为0，1,2,3中的某个数值,分配对应none，realtime，betst-effort和idle。
+    IOSchedulingPriority= :IO调度优先级，0～7（高到低）。
+    CPUSchedulingPriority= :CPU调度优先级，99～1(高到低)
+    Nice= :进程调度等级。
+
+进程资源管理
+Systemd 内部使用 cgroups 对其下的单元进行资源管理，包括 CPU、BlcokIO 以及 MEM 方面，。systemd的资源管理主要基于三个单元service、scope以及slice。
+
+https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/7/html/Resource_Management_Guide/index.html
+
+service
+  通过 unit 配置文件定义，包括了一个或者多个进程，可以作为整体启停。
+scope
+  任意进程可以通过 fork() 方式创建进程，常见的有 session、container 等。
+slice
+  按照层级对 service、scope 组织的运行单元，不单独包含进程资源，进程包含在 service 和 scope 中。
+
+默认包含了 A) system.slice，系统服务进程可能是开机启动或者登陆后手动启动的服务，例如crond、mysqld、nginx等服务；B) user.slice 用户登陆后的管理，一般为 session；C) machine.slice 虚机或者容器的管理。
+
+对于 cgroup 默认相关的参数会保存在 ```/sys/fs/cgroup/``` 目录下，当前系统支持的 subsys 可以通过 ```cat /proc/cgroups``` 或者 ```lssubsys``` 查看。
+
+systemd-cgls  查看slice、scope、service层级关系
+systemd-cgtop 当前资源使用情况
+
+-->
 
 
 

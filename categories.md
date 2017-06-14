@@ -30,10 +30,10 @@ http://turnoff.us/
 对与内核中网络部分的介绍。
 
 * [Linux 网络设置](/post/network-setting.html)，Linux 中一些常见的网络设置。
+* [Netstat VS. ss](/post/network-nettools-vs-iproute2.html)，netstat 和 ss 命令是比较典型的网络监控工具，在此介绍对比下。
 
 <!--
 * [Linux 网络协议栈简介](/post/network-introduce.html)，简单介绍一下 Linux 中网络协议栈的相关内容。
-* [网络监控 netstat VS. ss](/post/network-nettools-vs-iproute2.html)，netstat 和 ss 命令是比较典型的网络监控工具，在此介绍对比下。
 * [Linux 网络常见监控项以及报错](/post/network-monitor.html)，报错和监控之间的关系太紧密，就将两者合并到了一起。
 * [Linux 中的 socketfs](/post/network-socketfs.html)，也就是 Linux 中应用层与内核网络协议栈之间的中间层。
 * [TCP/IP 简介之一](/post/network-tcpip-introduce-1.html)
@@ -43,6 +43,7 @@ http://turnoff.us/
 * [Linux 网络超时与重传](/post/network-timeout-retries.html)，主要介绍TCP的三次握手、数据传输、链接关闭阶段都有响应的重传机制。
 * [Linux IP 隧道技术](/post/network-ip-tunneling.html)，说明下网络协议栈是如何实现隧道的，实际上就是将不同协议进行封装。
 * [Linux Wireshark](/post/network-wireshark.html)，介绍 Linux 中的 Wireshark 使用方式。
+-->
 
 #### Container
 
@@ -50,9 +51,10 @@ http://turnoff.us/
 
 * [Linux Chroot](/post/linux-chroot.html)，这实际上是做目录隔离的方法，也是最初的一种方式。
 * [LXC 简介](/post/linux-lxc-introduce.html)，对 Linux Container 的简单介绍，包括如何安装、新建、启动容器等操作。
-* [LXC 网络设置相关](/post/linux-lxc-network.html)，关于 Container 中网络的介绍，主要介绍 veth、vlan、macvlan 等概念。
 * [LXC sshd 单进程启动](/post/linux-lxc-sshd.html)，介绍如何启动一个单进程，对于资源隔离有很大的参考意义。
 
+<!--
+* [LXC 网络设置相关](/post/linux-lxc-network.html)，关于 Container 中网络的介绍，主要介绍 veth、vlan、macvlan 等概念。
 
 * [Bootstrap](/post/bootstrap-etc.html)，一个来自 Twitter 的前端框架，同时包括了一些 css、javascript 相关的内容介绍。
 * [Linux 内存监控](/post/linux-monitor-memory.html)，记录下在 Linux 中，与内存相关的监控项以及工具。
@@ -100,7 +102,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 
 简单介绍下与 C 语言相关的内容。
 
-* [libev 事件库](/post/linux-libev.html)，一个 C 编写的高性能事件循环库，类似库还有 libevent、libubox 等。
+* [Libev 事件库](/post/linux-libev.html)，一个 C 编写的高性能事件循环库，类似库还有 libevent、libubox 等。
 * [C 语言的字符串](/post/program-c-string-stuff.html)，简单介绍下 C 语言中与字符串、内存操作相关的函数。
 * [C 语言的奇技淫巧](/post/program-c-tips.html)，整理下 C 语言中常用的技巧。
 * [Linux 时间函数](/post/linux-timer-functions.html)，简单介绍下 Linux 中与时间相关的函数。
@@ -135,14 +137,14 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Linux 常用命令 \-\- 文本处理](/post/linux-commands-text.html)，简单介绍下 Linux 常用的文本处理方式。
 * [TMUX](/post/tmux-introduce.html)，一个终端复用工具，类似 screen 但是更加方便使用，更加高端。
 * [Linux 绘图工具](/post/linux-gnuplot.html)，这是一个命令行驱动的绘图工具，支持多个平台。
-* [logrotate 使用方法](/post/logrotate-usage.html)，一个不错的日志切割管理程序。
+* [Logrotate 使用方法](/post/logrotate-usage.html)，一个不错的日志切割管理程序。
 * [Linux 后台服务管理](/post/linux-daemon-tools.html)，介绍目前常用的后台服务管理。
 * [你所不知道的定时任务](/post/details-about-cronie.html)，也就是 Linux 中如何使用 crontab，以及常见错误。
 * [Git 简明教程](/post/git-simple-guide.html)，简单介绍常见操作。
 * [Git 分支管理](/post/git-branch-model.html)，主要介绍 git 的分支处理常用操作，以及比较经典的版本分支管理方式。
 * [Git 使用杂项](/post/git-tips.html)，记录 git 常见的示例，可以用来作为参考使用。
 * [Linux 时间同步](/post/linux-sync-time.html)，介绍部分与时间相关的概念，例如时区、闰秒、夏令时、NTP 等。
-* [Linux System Daemon](/post/linux-systemd.html)，一般新发行版本采用的是 systemd，在此简单介绍下。
+* [Systemd 使用简介](/post/linux-systemd.html)，一般新发行版本采用的是 systemd，在此简单介绍下。
 
 ----------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------

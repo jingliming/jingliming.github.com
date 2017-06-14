@@ -3,7 +3,7 @@ title: Linux Chroot
 layout: post
 comments: true
 language: chinese
-category: [linux]
+category: [linux,misc]
 keywords: linux,chroot
 description: chroot 也就是 change root directory，也就是改变程序执行时所参考的根目录位置。在 Linux 系统中，系统默认的目录结构都是以 "/"，即是以根 (root) 开始的，而在使用 chroot 之后，系统的目录结构将以指定的位置作为 "/" 位置。应用场景比较多，如安全中的蜜罐、系统启动时用的 initrd、嵌入式系统挂载的 NFS、Linux From Scratch 的编译过程等等。
 ---
