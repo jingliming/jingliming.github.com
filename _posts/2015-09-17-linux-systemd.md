@@ -285,48 +285,9 @@ PrivateTmp=True                            # 给服务分配独立的临时空�
 
 在通过 enable 设置为开机启动时，添加到那个 target 里面，也即定义如何安装这个配置文件，即怎样做到开机启动。
 
-<!--
-## 资源隔离
+### 资源隔离
 
-http://smilejay.com/2016/06/centos-7-systemd-conf-limits/
-http://www.jinbuguo.com/systemd/systemd.resource-control.html
-http://www.cnblogs.com/chris-cp/p/6667753.html
-
-保证资源的全部回收
-http://fangpeishi.com/systemd_chapter2.html
-
-服务进程限制
-    PrivateNetwork=[BOOL] :若服务不需要网络连接可开启本选项，更加安全。
-    PrivateTmp=[BOOl] :由于传统/tmp目录是所有本地用户和服务共用，会带来很多安全性问题，开启本选项后，服务将有一个私有的tmp，可防止攻击。
-    InaccessibleDirectories= :限制服务进程访问某些目录。
-    ReadOnlyDirectories= :设置服务进程对某些目录只读，保证目录下数据不被服务意外撰改。
-    OOMScoreAdjust= :调整服务OOM值，从-1000（对该服务进程关闭OOM）到1000(严格)。
-    IOSchedulingClass= ：IO调度类型，可设置为0，1,2,3中的某个数值,分配对应none，realtime，betst-effort和idle。
-    IOSchedulingPriority= :IO调度优先级，0～7（高到低）。
-    CPUSchedulingPriority= :CPU调度优先级，99～1(高到低)
-    Nice= :进程调度等级。
-
-进程资源管理
-Systemd 内部使用 cgroups 对其下的单元进行资源管理，包括 CPU、BlcokIO 以及 MEM 方面，。systemd的资源管理主要基于三个单元service、scope以及slice。
-
-https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/7/html/Resource_Management_Guide/index.html
-
-service
-  通过 unit 配置文件定义，包括了一个或者多个进程，可以作为整体启停。
-scope
-  任意进程可以通过 fork() 方式创建进程，常见的有 session、container 等。
-slice
-  按照层级对 service、scope 组织的运行单元，不单独包含进程资源，进程包含在 service 和 scope 中。
-
-默认包含了 A) system.slice，系统服务进程可能是开机启动或者登陆后手动启动的服务，例如crond、mysqld、nginx等服务；B) user.slice 用户登陆后的管理，一般为 session；C) machine.slice 虚机或者容器的管理。
-
-对于 cgroup 默认相关的参数会保存在 ```/sys/fs/cgroup/``` 目录下，当前系统支持的 subsys 可以通过 ```cat /proc/cgroups``` 或者 ```lssubsys``` 查看。
-
-systemd-cgls  查看slice、scope、service层级关系
-systemd-cgtop 当前资源使用情况
-
--->
-
+相关内容可以查看 [容器之 CGroup](/post/linux-container-cgroup-introduce.html) 。
 
 
 ## 其它

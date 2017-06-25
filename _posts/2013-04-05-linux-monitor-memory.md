@@ -463,7 +463,18 @@ $ ps -e -o 'pid,comm,args,pcpu,rsz,vsz,stime,user,uid' | sort -nrk5
 
 关于 Linux 内存的介绍可以参考 [Linux ate my ram!](http://www.linuxatemyram.com/) 。
 
-<!-- memtester 内存测试工具。-->
+<!--
+memtester 内存测试工具。
+
+Linux ate my ram
+http://www.linuxatemyram.com/
+不错介绍内存的文章
+http://linuxperf.com/?cat=7
+Linux内存中的Cache真的能被回收么？
+http://liwei.life/2016/04/26/linux%e5%86%85%e5%ad%98%e4%b8%ad%e7%9a%84cache%e7%9c%9f%e7%9a%84%e8%83%bd%e8%a2%ab%e5%9b%9e%e6%94%b6%e4%b9%88%ef%bc%9f/
+-->
+
+
 
 {% highlight text %}
 {% endhighlight %}

@@ -1269,6 +1269,788 @@ level
 
 
 
+systemd-run --unit=name --scope --slice=slice_name command
+  unit 用于标示，如果不使用会自动生成一个，通过systemctl会输出；
+  scope 默认使用 service ，该参数指定使用 scope ；
+  slice 将新启动的 service 或者 scope 添加到 slice 中，默认添加到 system.slice，也可以添加到已有 slice (systemctl -t slice) 或者新建一个。
+systemd-run --unit=toptest --slice=test top -b
+systemctl stop toptest
+
+各个服务的配置保存在 ```/usr/lib/systemd/system/``` 目录下，可以通过如下命令设置各个服务的参数。
+----- 会自动保存到配置文件中做持久化
+# systemctl set-property name parameter=value
+----- 只临时修改不做持久化
+# systemctl set-property --runtime name property=value
+----- 设置CPU和内存使用率
+# systemctl set-property httpd.service CPUShares=600 MemoryLimit=500M
+
+
+
+https://yq.aliyun.com/articles/54458
+http://www.cnblogs.com/yanghuahui/p/3751826.html
+https://yq.aliyun.com/articles/54483
+http://linuxperf.com/?p=42
+http://linuxperf.com/?p=33
+
+systemd-cgls
+
+
+
+
+
+对于不信任的组件建议使用后者，因为 ldd 可能会加载后显示依赖的库，从而导致安全问题。
+
+----- 查看依赖的库
+$ ldd /usr/bin/ssh
+$ objdump -p /usr/bin/ssh | grep NEEDED
+
+----- 运行程序加载的库
+# pldd $(pidof mysqld)
+
+
+# pldd $(pidof uagent)
+
+
+VIRT, Virtual Memory Size @
+  该任务的总的虚拟内存，包括了 code、data、shared libraries、换出到磁盘的页、已经映射但是没有使用的页。
+USED, Memory in Use @
+  包括了已使用的物理内存 RES ，以及换出到磁盘的内存 SWAP。
+%MEM, Memory Usage(RES) @
+  当前任务使用的内存与整个物理内存的占比。
+CODE, Code Size
+  可执行代码占用的物理内存数，也被称为 Text Resident Set, TRS。
+DATA, Data+Stack Size
+  除了代码之外的物理内存占用数，也就是 Data Resident Set, DRS 。
+RES, Resident Memory Size @
+  驻留在物理内存中的使用量。
+SHR, Shared Memory Size @
+  包括了共享内存以及共享库的数据。
+
+SWAP, Swapped Size
+  换出到磁盘的内存。
+nMaj, nMin, nDRT
+
+
+RES = CODE + DATA???? DATA太大了，为什么
+
+====== ps
+DRS, Data Resident Set <=> top(DATA) !!!
+  除了代码之外的物理内存占用数。
+RSS, Resident Set Size <=> top(RES)
+  物理内存使用数。
+TRS, Text Resident Set <=> top(CODE) !!!
+  代码在内存中的占用数。
+VSZ, Virtual Memory Size <=> top(VIRT) <=> pmap -d(mapped)
+  虚拟内存的大小。
+
+RES(top) 和 RSS(ps) 实际上读取的是 /proc/$(pidof process)/stat 或者 /proc/$(pidof process)/status statm。
+pmap -d $(pidof uagent)
+pmap -x $(pidof uagent)
+ps -o pid,pmem,drs,trs,rss,vsz Hp `pidof uagent`
+
+另外，cgtop 中显示的内存与什么相关？？？？
+ps(TRS) 和 top(CODE) 的值不相同。
+
+http://blog.csdn.net/u011547375/article/details/9851455
+https://stackoverflow.com/questions/7594548/res-code-data-in-the-output-information-of-the-top-command-why
+https://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/36669.pdf
+https://landley.net/kdocs/ols/2010/ols2010-pages-245-254.pdf
+LDD 跟 PMAP 加载的库不同？
+
+awk 'BEGIN{sum=0};{if($3~/x/) {sum+=$2}};END{print sum}' /tmp/1
+
+
+top
+main()
+frame_make
+window_show()
+task_show()  通过WIN_t.proc_t类型保存，最终显示
+
+procs_refresh
+
+Top用于查看Linux系统下进程信息，有时候需要选择显示那些列，以及按照某一列进行排序。查询整理如下：
+
+
+top 除了默认的列之外，可以选择需要显示的列，操作如下：
+
+----- 选择需要显示的列
+1) 按 f 键进入选择界面；2) 方向键选择需要的列；3) 通过空格选择需要显示的列。
+
+列显示位置调整：
+执行top命令后，按 o 键，选择要调整位置的列（如K:CUP Usageage），按动一下大写K则显示位置往上调整，按动一下小写K则显示位置往下调整。
+
+列排序：
+执行top命令后，按 shift + f（小写），进入选择排序列页面，再按要排序的列的代表字母即可；
+
+systemctl set-property --runtime uagent.service CPUQuota=5% MemoryLimit=30M
+
+关于资源配置的选项可以通过 ```man 5 systemd.resource-control``` 方式查看，默认是没有开启审计的，所以通过 ```systemd-cgtop``` 没有显示具体的资源。
+
+很多相关的内核文档链接
+https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html
+
+注册信号处理函数
+
+setsid()
+pidfile_create()
+
+https://www.ibm.com/support/knowledgecenter/zh/ssw_aix_61/com.ibm.aix.genprogc/ie_prog_4lex_yacc.htm
+
+flex 通过 yylval 将数据传递给 yacc；如果在 yacc 中使用了 ```%union``` ，那么各个条件的目的变量使用 yyval 。
+
+git关于merge和no-ff详细的介绍
+http://hungyuhei.github.io/2012/08/07/better-git-commit-graph-using-pull---rebase-and-merge---no-ff.html
+
+git log
+通过 git log 中的两个高级用法 (A:自定义提交信息的输出格式；B:过滤提交信息)，基本上就可以找到项目中需要的任何信息 (分支、标签、HEAD、提交历史)。
+
+--oneline
+  把每一个提交压缩到了一行中，不过包含分支的信息；
+--decorate
+  显示时添加分支以及 tag 信息，可以看到有哪些分支或者设备指向了提交记录；
+
+#### diff
+--stat/-p
+  查看每次提交时代码的文件修改量，通常用于查看概览信息比较有用，+ - 分别表示提交文件的增删修改比例；
+  后者用于查看每个文件修改的详细信息，如果修改代码比较多那么现实内容会比较大；
+
+#### 用户分类
+shortlog
+  按照提交用户分类，很容易显示哪些用户提交了哪些内容，默认是按照用户ID排序，可以通过-n按照提交量排序。
+
+#### 分支历史
+--graph
+  通过一个ASCII图像来展示提交历史的分支结构，可以和--oneline、--decorate选项一起使用；
+
+git log --graph --oneline --decorate
+*   0e25143 (HEAD, master) Merge branch 'feature'
+|\
+| * 16b36c6 Fix a bug in the new feature
+| * 23ad9ad Start a new feature
+* | ad8621a Fix a critical security issue
+|/
+* 400e4b7 Fix typos in the documentation
+* 160e224 Add the initial code base
+
+星号表明这个提交所在的分支，所以上图的意思是23ad9ad和16b36c6这两个提交在topic分支上，其余的在master分支上。对于复杂项目可以通过 gitk 或 SourceTree 分析。
+
+#### 自定义格式
+
+对于其它的 git log 格式需求，可以使用 --pretty=format:"<string>" 选项配置，通过不同的占位符替换相关的信息，详细可以查看 man git-show 。
+
+git log --pretty=format:"%cn committed %h on %cd"
+
+#### 过滤历史
+
+----- 显示最近提交的3次commit记录
+git log -3
+----- 指定时间范围(也可以使用1 week ago、yesterday)，注意--since、--until和--after、--before
+git log --after="2014-7-1" --before="2014-7-4"
+----- 按照作者过滤，可以使用正则表达式，同时会匹配邮箱
+git log --author="John\|Mary"
+----- 按照提交信息过滤
+git log --grep="JRA-224:"
+https://github.com/geeeeeeeeek/git-recipes/wiki/5.3-Git-log%E9%AB%98%E7%BA%A7%E7%94%A8%E6%B3%95
+
+如果你的工作流区分提交者和作者，--committer也能以相同的方式使用。
+
+关于FastForword的介绍
+https://ariya.io/2013/09/fast-forward-git-merge
+
+颜色设置
+https://www.pureweber.com/article/git-pretty-output/
+
+
+#### 标签修改
+
+标签可以针对某一时间点的版本做标记，常用于版本发布；git 中的标签分为两种类型：轻量标签和附注标签，前者指向提交对象的引用，附注标签则是仓库中的一个独立对象，建议使用附注标签。
+
+----- 查看标签，可以查看所有或者正则表达式过滤
+$ git tag
+$ git tag -l 'v0.1.*'
+
+----- 打标签，分别为轻量标签以及创建附注标签，其中-a表示annotated，也可以指定版本
+$ git tag v0.1.2-light
+$ git tag -a v0.1.2 -m "发布0.1.2版本"
+$ git tag -a v0.1.1 9fbc3d0
+
+----- 切换标签或者分支，两者命令相同
+$ git checkout [tagname|branch]
+
+----- 查看标签的版本信息
+$ git show v0.1.2
+
+----- 删除标签，误操作需要删除后重新添加
+$ git tag -d v0.1.2
+
+----- 标签发布，默认push不会将标签提交到git服务器，需要显示操作，可以提交单个或者所有的
+$ git push origin v0.1.2
+$ git push origin --tags
+meminfo详解
+https://lwn.net/Articles/28345/
+
+ps的SIZE以及RSS不含部分的内存统计，所以要比pmap -d统计的RSS小。
+The SIZE and RSS fields don't count some parts of a process including the page tables, kernel stack, struct thread_info
+https://techtalk.intersec.com/2013/07/memory-part-2-understanding-process-memory/
+http://tldp.org/LDP/tlk/mm/memory.html
+http://tldp.org/LDP/khg/HyperNews/get/memory/linuxmm.html
+https://lwn.net/Articles/230975/
+https://gist.github.com/CMCDragonkai/10ab53654b2aa6ce55c11cfc5b2432a4
+https://yq.aliyun.com/ziliao/75375
+http://elinux.org/Runtime_Memory_Measurement
+https://access.redhat.com/security/vulnerabilities/stackguard
+http://events.linuxfoundation.org/sites/events/files/slides/elc_2016_mem_0.pdf
+http://blog.csdn.net/lijzheng/article/details/23618365
+https://yq.aliyun.com/articles/54405
+https://stackoverflow.com/questions/31328349/stack-memory-management-in-linux
+/post/mysql-parser.html
+yyset_in() 设置入口
+
+
+pmap -d $(pidof uagent)
+pmap -x $(pidof uagent)
+
+top -Hp $(pidof uagent)
+ps -o pid,pmem,drs,trs,rss,vsz Hp `pidof uagent`
+/proc/$(pidof uagent)/stat
+/proc/$(pidof uagent)/status
+/proc/$(pidof uagent)/maps
+VmRSS、VmSize
+
+$ ps aux|grep /usr/bin/X|grep -v grep | awk '{print $2}'   # 得出X server 的 pid   ...
+1076
+$ cat /proc/1076/stat | awk '{print $23 / 1024}'
+139012
+$ cat /proc/1076/status | grep -i vmsize
+VmSize:      106516 kB
+VmSize = memory + memory-mapped hardware (e.g. video card memory).
+
+kmap 是用来建立映射的，映射后返回了被映射的高端内存在内核的线性地址
+https://www.zhihu.com/question/30338816
+http://blog.csdn.net/gatieme/article/details/52705142
+http://www.cnblogs.com/zhiliao112/p/4251221.html
+http://way4ever.com/?p=236
+awk统计Linux最常用命令
+http://www.ha97.com/3980.html
+awk使用技巧
+http://blog.csdn.net/ultrani/article/details/6750434
+http://blog.csdn.net/u011204847/article/details/51205031 *****
+http://ustb80.blog.51cto.com/6139482/1051310
+
+
+关于smaps的详细介绍
+https://jameshunt.us/writings/smaps.html
+$ cat /proc/self/smaps  相比maps显示更详细信息
+$ cat /proc/self/maps
+address                  perms   offset   dev   inode       pathname
+7f571af7a000-7f571af7d000 ---p 00000000 00:00 0
+7f571af7d000-7f571b080000 rw-p 00000000 00:00 0             [stack:4714]
+7f571b0ac000-7f571b0ad000 r--p 00021000 08:01 1838227       /usr/lib/ld-2.21.so
+7ffe49dbd000-7ffe49dbf000 r-xp 00000000 00:00 0             [vdso]
+
+列说明:
+    starting address - ending address
+    permissions
+        r : read
+        w : write
+        x : execute
+        s : shared
+        p : private (copy on write)
+    offset   : 如果不是file，则为0；
+    device   : 如果是file，则是file所在device的major and monior device number，否则为00:00；
+    inode    : 如果是file，则是file的inode number，否则为0；
+    pathname : 有几种情况；
+        file absolute path
+        [stack]         the stack of the main process
+        [stack:1001]    the stack of the thread with tid 1001
+        [heap]
+        [vdso] - virtual dynamic shared object, the kernel system call handler
+        空白 -通常都是mmap创建的，用于其他一些用途的，比如共享内存
+
+
+df -h
+ls /dev/XXX -alh
+echo $((0x0a))
+
+print "Backed by file:\n";
+print "  RO data                   r--  $mapped_rodata\n";
+print "  Unreadable                ---  $mapped_unreadable\n"; 共享库同时存在？？？？
+print "  Unknown                        $mapped_unknown\n";
+print "Anonymous:\n";
+print "  Writable code (stack)     rwx  $writable_code\n";
+print "  Data (malloc, mmap)       rw-  $data\n";
+print "  RO data                   r--  $rodata\n";
+print "  Unreadable                ---  $unreadable\n";
+print "  Unknown                        $unbacked_unknown\n";
+
+16进制求和，都是16进制
+awk --non-decimal-data  '{sum=($1 + $2); printf("0x%x %s\n", sum,$3)}'
+strtonum("0x" $1)
+echo $(( 16#a36b ))
+echo "obase=2;256"|bc ibase base
+
+
+print "Backed by file:\n";
+print "  Unreadable                ---  $mapped_unreadable\n"; 共享库同时存在？？？？
+print "  Unknown                        $mapped_unknown\n";
+print "Anonymous:\n";
+print "  Unreadable                ---  $unreadable\n";
+print "  Unknown                        $unbacked_unknown\n";
+
+代码
+r-x 代码，包括程序(File)、共享库(File)、vdso(2Pages)、vsyscall(1Page)
+rwx 没有，Backed by file: Write/Exec (jump tables); Anonymous: Writable code (stack)
+r-- 程序中的只读数据，如字符串，包括程序(File)、共享库(File)
+rw- 可读写变量，如全局变量；包括程序(File)、共享库(File)、stack、heap、匿名映射
+
+静态数据、全局变量将保存在 ELF 的 .data 段中。
+与smaps相关，以及一些实例
+https://jameshunt.us/writings/smaps.html
+
+
+各共享库的代码段，存放着二进制可执行的机器指令，是由kernel把该库ELF文件的代码段map到虚存空间；
+各共享库的数据段，存放着程序执行所需的全局变量，是由kernel把ELF文件的数据段map到虚存空间；
+
+用户代码段，存放着二进制形式的可执行的机器指令，是由kernel把ELF文件的代码段map到虚存空间；
+用户数据段之上是代码段，存放着程序执行所需的全局变量，是由kernel把ELF文件的数据段map到虚存空间；
+
+用户数据段之下是堆(heap)，当且仅当malloc调用时存在，是由kernel把匿名内存map到虚存空间，堆则在程序中没有调用malloc的情况下不存在；
+用户数据段之下是栈(stack)，作为进程的临时数据区，是由kernel把匿名内存map到虚存空间，栈空间的增长方向是从高地址到低地址。
+
+https://wiki.wxwidgets.org/Valgrind_Suppression_File_Howto
+
+
+另外，可以通过 ldd 查看对应的映射地址，在实际映射到物理内存时，会添加随机的变量，不过如上的各个共享库的地址是相同的。
+
+可以通过 echo $(( 0x00007f194de48000 - 0x00007f194dc2c000)) 计算差值。
+
+
+maps 文件对应了内核中的 show_map()
+
+show_map()
+ |-show_map_vma()
+
+address                  perms   offset   dev   inode       pathname
+
+http://duartes.org/gustavo/blog/post/how-the-kernel-manages-your-memory/
+
+
+主要是anon中的rw属性导致
+cat /proc/$(pidof uagent)/maps | grep stack | wc -l
+
+
+
+Clean_pages 自从映射之后没有被修改的页；
+Dirty_pages 反之；
+RSS 包括了共享以及私有，Shared_Clean+Shared_Dirty、Private_Clean+Private_Dirty
+PSS (Proportional set size) 包括了所有的私有页 (Private Pages) 以及共享页的平均值。例如，一个进程有100K的私有页，与一个进程有500K的共享页，与四个进程有500K的共享页，那么 PSS=100K+(500K/2)+(500K/5)=450K
+USS (Unique set size) 私有页的和。
+
+awk -f test.awk /proc/$(pidof uagent)/maps
+#! /bin/awk -f
+BEGIN {
+    mapped_executable    = 0
+    mapped_wrexec        = 0
+    mapped_rodata        = 0
+    mapped_rwdata        = 0
+    mapped_unreadable    = 0
+    mapped_unknown       = 0
+    writable_code        = 0
+    data                 = 0
+    rodata               = 0
+    unreadable           = 0
+    vdso                 = 0
+    unbacked_unknown     = 0
+}
+
+{
+    split($1, addr, "-")
+    pages = (strtonum("0x" addr[2]) - strtonum("0x" addr[1]))/4096
+    if ( $4 == "00:00") {
+        if      ( $2 ~ /rwx/ ) {     writable_code += pages }
+        else if ( $2 ~ /rw-/ ) {              data += pages }
+        else if ( $2 ~ /r-x/ ) {              vdso += pages }
+        else if ( $2 ~ /r--/ ) {            rodata += pages }
+        else if ( $2 ~ /---/ ) {        unreadable += pages }
+        else                   {  unbacked_unknown += pages }
+    } else {
+        if      ( $2 ~ /rwx/ ) {     mapped_wrexec += pages }
+        else if ( $2 ~ /rw-/ ) {     mapped_rwdata += pages }
+        else if ( $2 ~ /r-x/ ) { mapped_executable += pages }
+        else if ( $2 ~ /r--/ ) {     mapped_rodata += pages }
+        else if ( $2 ~ /---/ ) { mapped_unreadable += pages }
+        else                   {    mapped_unknown += pages }
+    }
+}
+END {
+    printf ("Backed by file:\n")
+    printf ("  Write/Exec (jump tables)  rwx  %d\n", mapped_wrexec)
+    printf ("  Data                      rw-  %d\n", mapped_rwdata)
+    printf ("  Executable                r-x  %d\n", mapped_executable)
+    printf ("  RO data                   r--  %d\n", mapped_rodata)
+    printf ("  Unreadable                ---  %d\n", mapped_unreadable)
+    printf ("  Unknown                        %d\n", mapped_unknown)
+    printf ("Anonymous:\n")
+    printf ("  Writable code (stack)     rwx  %d\n", writable_code)
+    printf ("  Data (malloc, mmap)       rw-  %d\n", data)
+    printf ("  vdso, vsyscall            r-x  %d\n", vdso)
+    printf ("  RO data                   r--  %d\n", rodata)
+    printf ("  Unreadable                ---  %d\n", unreadable)
+    printf ("  Unknown                        %d\n", unbacked_unknown)
+}
+
+pmap -x $(pidof uagent) > /tmp/1
+awk -f test.awk /tmp/1
+#! /bin/awk -f
+BEGIN {
+    lib_dirty_rx         = 0
+    lib_dirty_rw         = 0
+    lib_dirty_r          = 0
+    lib_dirty_unknown    = 0
+    lib_rss_rx         = 0
+    lib_rss_rw         = 0
+    lib_rss_r          = 0
+    lib_rss_unknown    = 0
+
+    uagent_dirty_rx      = 0
+    uagent_dirty_rw      = 0
+    uagent_dirty_r       = 0
+    uagent_dirty_unknown = 0
+    uagent_rss_rx      = 0
+    uagent_rss_rw      = 0
+    uagent_rss_r       = 0
+    uagent_rss_unknown = 0
+
+    anon_dirty_rw        = 0
+    anon_dirty_rx        = 0
+    anon_dirty_unknown   = 0
+    anon_dirty_r         = 0
+    anon_rss_rw        = 0
+    anon_rss_rx        = 0
+    anon_rss_unknown   = 0
+    anon_rss_r         = 0
+
+    count          = 0
+    actual          = 0
+}
+
+$NF ~ /(^lib|^ld)/ {
+    if      ( $5 ~ /r-x/ ) {
+        lib_rss_rx += $3
+        lib_dirty_rx += $4
+    } else if ( $5 ~ /rw-/ ) {
+        lib_rss_rw += $3
+        lib_dirty_rw += $4
+    } else if ( $5 ~ /r--/ ) {
+        lib_rss_r += $3
+        lib_dirty_r += $4
+    } else {
+        lib_rss_unknown += $3
+        lib_dirty_unknown += $4
+    }
+    count += $3
+}
+$NF ~ /([a-zA-Z]+\.so$|^uagent\>)/ {
+    if      ( $5 ~ /r-x/ ) {
+        uagent_rss_rx += $3
+        uagent_dirty_rx += $4
+    } else if ( $5 ~ /rw-/ ) {
+        uagent_rss_rw += $3
+        uagent_dirty_rw += $4
+    } else if ( $5 ~ /r--/ ) {
+        uagent_rss_r += $3
+        uagent_dirty_r += $4
+    } else {
+        uagent_rss_unknown += $3
+        uagent_dirty_unknown += $4
+    }
+    count += $3
+}
+$NF ~ /^]$/ {
+    if      ( $5 ~ /r-x/ ) {
+        anon_rss_rx += $3
+        anon_dirty_rx += $4
+    } else if ( $5 ~ /rw-/ ) {
+        anon_rss_rw += $3
+        anon_dirty_rw += $4
+    } else if ( $5 ~ /r--/ ) {
+        anon_rss_r += $3
+        anon_dirty_r += $4
+    } else {
+        anon_rss_unknown += $3
+        anon_dirty_unknown += $4
+    }
+    count += $3
+}
+$1 ~ /^total\>/ {
+    actual = $4
+}
+END {
+    printf ("Libraries info:\n")
+    printf (" Perm        RSS   Dirty\n")
+    printf ("  r-x        %5d     %5d\n", lib_rss_rx, lib_dirty_rx)
+    printf ("  rw-        %5d     %5d\n", lib_rss_rw, lib_dirty_rw)
+    printf ("  r--        %5d     %5d\n", lib_rss_r,  lib_dirty_r)
+    printf ("  Unknown    %5d     %5d\n", lib_rss_unknown, lib_dirty_unknown)
+
+    printf ("Uagent info:\n")
+    printf (" Perm        RSS   Dirty\n")
+    printf ("  r-x        %5d     %5d\n", uagent_rss_rx,      uagent_dirty_rx)
+    printf ("  rw-        %5d     %5d\n", uagent_rss_rw,      uagent_dirty_rw)
+    printf ("  r--        %5d     %5d\n", uagent_rss_r,       uagent_dirty_r)
+    printf ("  Unknown    %5d     %5d\n", uagent_rss_unknown, uagent_dirty_unknown)
+
+    printf ("Anon info:\n")
+    printf (" Perm        RSS   Dirty\n")
+    printf ("  r-x        %5d     %5d\n", anon_rss_rx,      anon_dirty_rx)
+    printf ("  rw-        %5d     %5d\n", anon_rss_rw,      anon_dirty_rw)
+    printf ("  r--        %5d     %5d\n", anon_rss_r,       anon_dirty_r)
+    printf ("  Unknown    %5d     %5d\n", anon_rss_unknown, anon_dirty_unknown)
+
+    printf ("\nCount: %d  Actual: %d\n", count, actual)
+}
+
+
+
+
+git log
+https://ruby-china.org/topics/939
+https://www.howtoforge.com/storing-files-directories-in-memory-with-tmpfs
+/lib64/libxenstore.so.3.0 is not a symbolic link
+ 错误提示：
+ldconfig
+ldconfig: /usr/local/lib/gliethttp/libxerces-c-3.0.so is not a symbolic link
+问题分析：
+因为libxerces-c-3.0.so正常情况下应该是一个符号链接,而不是实体文集件,修改其为符号链接即可
+解决方法：
+mv libxerces-c-3.0.so libxerces-c.so.3.0
+ln -s libxerces-c.so.3.0 libxerces-c-3.0.so
+这样就ok了
+
+
+touch /tmp/{top.sh,mid.sh,bot.sh}
+echo '/tmp/top.sh |/tmp/mid.sh|/tmp/bot.sh' > script_chain
+fpge script_chain  生成指纹，脚本会使用绝对路径，指纹库保存在 /usr/local/var/.bfbase 文件中
+   md5sum /tmp/top.sh | awk '{print $1}'    -> 'xxxxx'
+   echo -n "xxxxx" | md5sum | awk '{print $1}' -> 'yyyyy'
+   md5sum /tmp/top.sh | awk '{print $1}'    -> 'zzzzz'
+   echo -n "yyyyy" "zzzzz" | md5sum | awk '{print $1}'
+   最终调用 pwswitch -i -fp "111111111111111"
+   pwswitch -i -fp footprint 经过一系列HASH算法计算，保存到指纹文件中
+pwswitch -e "test" 加密密码，其中 -k 指定的key为数组动态选择
+   echo 'test'|openssl aes-256-cbc -e -k U2FsdGVkX1+AVVVxxWOuFFCBEU7jwC4dbksnF0/Wz44 -base64
+   生成密文： 222222222222
+pwswitch -d "222222222222" -fp "111111111111111"
+   首先会验证传入的指纹与文件中保存的是否相同
+   echo '222222222222'|openssl aes-256-cbc -d -k U2FsdGVkX1+AVVVxxWOuFFCBEU7jwC4dbksnF0/Wz44 -base64
+pwswitch -z 删除指纹库，直接rm删除
+
+脚本中使用方式如下：top.sh添加
+export __FPRINT__=""
+__dig__=`md5sum $0|awk '{print $1}'`
+__FPRINT__=`echo -n "$__FPRINT__""$__dig__"|md5sum|awk '{print $1}'`
+mid.sh和bot.sh中添加
+__dig__=`md5sum $0|awk '{print $1}'`
+__FPRINT__=`echo -n "$__FPRINT__""$__dig__"|md5sum|awk '{print $1}'`
+解密使用
+pwswitch –d "口令密文" –fp "$__FPRINT__"
+
+On The Security of Password Manager Database Formats
+https://www.cs.ox.ac.uk/files/6487/pwvault.pdf
+Twofish
+https://www.schneier.com/academic/twofish/
+Password Safe库信息
+https://pwsafe.org/readmore.shtml
+从FireFox获取密码
+http://www.nirsoft.net/utils/passwordfox.html
+密码保存策略
+https://nakedsecurity.sophos.com/2013/11/20/serious-security-how-to-store-your-users-passwords-safely/
+
+密码可能被hacker修改；
+修改后程序没有报错；
+
+1. 维护本地密码库信息，记录包括版本+文件内容的hash值到一个可信存储上，防止文件被替换。
+Setup, Create, Open, Valid
+
+HMAC 是密钥相关的哈希运算消息认证码，HMAC运算利用哈希算法，以一个密钥和一个消息为输入，生成一个消息摘要作为输出。
+
+HMAC 的一个典型应用是用在 (Challenge/Response) 身份认证中，一般的处理流程如下：
+(1) 客户端向服务器发出一个验证请求。
+(2) 服务器接到此请求后生成一个随机数并通过网络传输给客户端 (Challenge)。
+(3) 客户端将收到的随机数与客户保存的密码做 HMAC-MD5 计算，并将结果作为认证证据传给服务器 (Response)。
+(4) 服务器同样执行 HMSC-MD5 运算，与客户端传回的响应结果比较，如果相同则认为客户端是一个合法用户。
+
+$ read -s -p "password: " PASSWD; echo
+password:
+$ echo $PASSWD
+foobartest
+$ ls -al /proc/self/environ
+-r-------- 1 michael michael 0 May  6 14:46 /proc/self/environ
+$ grep PASSWD /proc/self/environ
+$ export PASSWD
+$ strings /proc/self/environ | grep PASSWD
+PASSWD=foobartest
+
+$ echo $$
+19613
+$ gdb -p 19613
+(gdb) info proc mappings
+     0x91f2000  0x9540000   0x34e000          0           [heap]
+(gdb) dump memory /tmp/bash.mem 0x91f2000 0x9540000
+$ strings /tmp/bash.mem |grep ^PASSWD
+PASSWD=soopersekrit
+
+可以通过mprotect设置内存的属性
+https://linux.die.net/man/2/mprotect
+Memory protection keys
+https://lwn.net/Articles/643797/
+Memory Protection and ASLR on Linux
+https://eklitzke.org/memory-protection-and-aslr
+
+ES Collectd插件
+https://www.elastic.co/guide/en/logstash/current/plugins-codecs-collectd.html
+
+AES-128-CBC
+OpenSSL (http://www.openssl.org/)  Apache 109.93MB/s
+Crypto++ (http://www.cryptopp.com/) Boost Software License 1.0 188.92~222MB/s
+Cryptlib (http://www.cs.auckland.ac.nz/~pgut001/cryptlib/) GPL-compatible 192.57MB/s
+Botan (http://botan.randombit.net/) BSD-2 License 164.299MB/s
+libgcrypt (http://www.gnu.org/software/libgcrypt/) GPLv2 100MB/s
+CyaSSL (https://www.wolfssl.com/wolfSSL/Home.html)  GPLv2 178.97MB/s
+MatrixSSL (http://www.matrixssl.org/)  GPLv2
+axTLS (http://sourceforge.net/projects/axtls/) BSD License
+
+http://china.safenet-inc.com/webback/UploadFile/DownloadDoc/416b8c01-c42f-4251-a68d-16eb3e192ec1.pdf
+
+
+高级加密标准AES的工作模式（ECB、CBC、CFB、OFB）
+https://blog.poxiao.me/p/advanced-encryption-standard-and-block-cipher-mode/
+https://l2x.gitbooks.io/understanding-cryptography/docs/chapter-2/cbc.html
+
+Password-Based Key Derivation Function, PBKDF2 用来导出密钥的函数用于生成加密的密码。
+
+它的基本原理是通过一个伪随机函数（例如HMAC函数），把明文和一个盐值作为输入参数，然后重复进行运算，并最终产生密钥。
+
+如果重复的次数足够大，破解的成本就会变得很高。而盐值的添加也会增加“彩虹表”攻击的难度。
+
+
+https://github.com/linmx0130/gcrypt_demo
+
+1. 传入密钥
+
+一般来说不会直接使用用户的输入直接作为密钥，而是通过一个密钥导出函数 (如PBKDF2) 生成，一般来说，入参中有两个比较重要的函数：A) 输入密码，用户输入；B) 初始化向量 (Initialization Vector) ，程序提供。
+
+gpg_error_t gcry_kdf_derive ( const void *passphrase, size_t passphraselen, int algo, int subalgo, const void *salt, size_t saltlen, unsigned long iterations, size_t keysize, void *keybuffer );
+参数主要包括四部分：
+  1. passphrase, passphraselen  传入的密钥明文和长度
+  2. algo, subalgo, iterations 使用的 Key Derivation Function (KDF) 算法，及其迭代次数
+  3. salt, saltlen 加盐的盐串和长度
+  4. keysize, keybuffer 用于保存生成密钥的缓存长度，以及返回密钥内容
+http://blog.csdn.net/weiyuefei/article/details/71480140
+
+
+
+
+
+
+/post/linux-tips.html
+  随机字符串会有些问题，上述只有在恰好生成相应长度时才会打印，可以通过如下方生成一批字符串然后根据需求手动截取。
+cat /dev/urandom | sed 's/[^a-zA-Z0-9]//g' | strings | tr -d '\r\n'
+真随机数等生成
+http://www.cnblogs.com/bigship/archive/2010/04/04/1704228.html
+
+在打印时，如果使用了 size_t 类型，那么通过 ```%d``` 打印将会打印一个告警，可以通过如下方式修改，也就是添加 ```z``` 描述。
+
+size_t x = ...;
+ssize_t y = ...;
+printf("%zu\n", x);  // prints as unsigned decimal
+printf("%zx\n", x);  // prints as hex
+printf("%zd\n", y);  // prints as signed decimal
+
+/proc/iomem 保存物理地址的映射情况，每行代表一个资源 (地址范围和资源名)，其中可用物理内存的资源名为 "System RAM" ，在内核中通过 insert_resource() 这个API注册到 iomem_resource 这颗资源树上。
+
+例如，如下的内容：
+
+01200000-0188b446 : Kernel code
+0188b447-01bae6ff : Kernel data
+01c33000-01dbbfff : Kernel bss
+
+这些地址范围都是基于物理地址的，在 ```setup_arch()@arch/x86/kernel/setup.c``` 中通过如下方式注册。
+
+max_pfn = e820_end_of_ram_pfn();
+        code_resource.start = __pa_symbol(_text);
+        code_resource.end = __pa_symbol(_etext)-1;
+        insert_resource(&iomem_resource, &code_resource);
+
+linux虚拟地址转物理地址
+http://luodw.cc/2016/02/17/address/
+Linux内存管理
+http://gityuan.com/2015/10/30/kernel-memory/
+/proc/iomem和/proc/ioports
+http://blog.csdn.net/ysbj123/article/details/51088644
+port地址空间和memory地址空间是两个分别编址的空间，都是从0地址开始
+port地址也可以映射到memory空间中来，前提是硬件必须支持MMIO
+iomem—I/O映射方式的I/O端口和内存映射方式的I/O端口
+http://www.cnblogs.com/b2tang/archive/2009/07/07/1518175.html
+
+PBKDF2算法
+https://segmentfault.com/a/1190000004261009
+libgcrypt示例程序
+https://github.com/linmx0130/gcrypt_demo
+
+1. 传入密钥
+
+一般来说不会直接使用用户的输入直接作为密钥，而是通过一个密钥导出函数 (如PBKDF2) 生成，一般来说，入参中有两个比较重要的函数：A) 输入密码，用户输入；B) 初始化向量 (Initialization Vector) ，程序提供。
+
+gpg_error_t gcry_kdf_derive ( const void *passphrase, size_t passphraselen, int algo, int subalgo, const void *salt, size_t saltlen, unsigned long iterations, size_t keysize, void *keybuffer );
+参数主要包括四部分：
+  1. passphrase, passphraselen  传入的密钥明文和长度
+  2. algo, subalgo, iterations 使用的 Key Derivation Function (KDF) 算法，及其迭代次数
+  3. salt, saltlen 加盐的盐串和长度
+  4. keysize, keybuffer 用于保存生成密钥的缓存长度，以及返回密钥内容
+
+2. 初始化加密句柄
+
+在获得密钥之后，我们就需要对加密的句柄进行设置。我们需要选定加密算法，顺便开好用来加密的缓存区间。我们采用比较简单的块模式进行加密，所以首先我们需要知道我们选定的加密算法所接受的密钥长度和块长度。在Libgcrypt中，加密算法用宏来标识，你需要传递指定的宏，来告知它你想用哪种加密算法。我的demo程序用的是AES256算法，但是为了通用起见，我们还是用一个CIPHER_ALGO来指代我们用的加密算法的具体名字。
+
+https://www.gnupg.org/documentation/manuals/gcrypt/index.html
+
+首先我们需要得到基本的数据：
+
+size_t key_size = gcry_cipher_get_algo_keylen(CIPHER_ALGO);
+size_t block_size = gcry_cipher_get_algo_blklen(CIPHER_ALGO);
+size_t block_required=file_size/block_size;
+if (file_size % block_size != 0){
+    block_required++;
+}
+
+file_size是要被加密的数据文件的总大小。利用get_algo_keylen()和get_algo_blklen()两个函数我们可以得到选定的算法的密钥长度和块长度，然后计算总共有多少个块。 有了这些信息，我们就可以建一个句柄：
+
+
+
+首先，需要新建一个加密用的句柄，此时可以定义使用的加密算法、加密的模式以及通过 flag 定义的使用模式。
+
+// 新建一个加密句柄，后续的所有相关操作都会使用该句柄
+cipher_err = gcry_cipher_open(&cipher_hd, GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CBC, GCRY_CIPHER_CBC_CTS);
+// 设置密钥，注意，这里的key_size是与算法相关的，随意设置可能会报错；正常来说需要保证len(key)>=key_size
+//     当大于时只使用了其中的一部分；小于时应该会自动填充到key_size
+cipher_err = gcry_cipher_setkey(cipher_hd, key, key_size);
+// 设置初始化向量IV，注意事项同上
+cipher_err=gcry_cipher_setiv(cipher_hd, iv, block_size);
+
+
+这里接收的初始化向量是随便的一个字符串，只要足够长，超过block_size一般就没什么问题了，当然，能和block_size一样长就最好好。最后建立好读入缓存和输出缓存区就好。
+
+char *input_buf = (char*)malloc(file_size);
+char *cipher_buffer = malloc(block_size*block_required);
+memset(cipher_buffer, 0, block_size*block_required);
+
+http://blog.csdn.net/weiyuefei/article/details/71480140
+
+
+ECB 模式生成的密文与 IV 无关，每次生成相同；而 CBC 则会累计，每次生成密文不同。
+
+
 
 
 ←

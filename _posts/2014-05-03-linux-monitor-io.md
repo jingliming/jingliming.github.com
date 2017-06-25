@@ -721,6 +721,9 @@ http://www.cnblogs.com/quixotic/p/3258730.html
 http://hustcat.github.io/iostats/
 http://ykrocku.github.io/blog/2014/04/11/diskstats/
 http://www.udpwork.com/item/12931.html
+
+The precise meaning of I/O wait time in Linux
+http://veithen.github.io/2013/11/18/iowait-linux.html
 -->
 
 
