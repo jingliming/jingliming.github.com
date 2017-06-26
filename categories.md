@@ -52,6 +52,7 @@ http://turnoff.us/
 * [Linux Chroot](/post/linux-chroot.html)，这实际上是做目录隔离的方法，也是最初的一种方式。
 * [LXC 简介](/post/linux-container-lxc-introduce.html)，对 Linux Container 的简单介绍，包括如何安装、新建、启动容器等操作。
 * [LXC sshd 单进程启动](/post/linux-container-lxc-sshd.html)，介绍如何启动一个单进程，对于资源隔离有很大的参考意义。
+* [容器之 CGroup](/post/linux-container-cgroup-introduce.html)，介绍 CentOS 中 systemd 以及 cgroup-tools 相关的内容。
 
 <!--
 * [LXC 网络设置相关](/post/linux-container-lxc-network.html)，关于 Container 中网络的介绍，主要介绍 veth、vlan、macvlan 等概念。
@@ -97,6 +98,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Linux 启动过程](/post/kernel-bootstrap.html)，通过 GRUB 启动之后，然后开始加载内核，再次简单介绍。
 * [Linux 内核模块](/post/kernel-modules.html)，简单介绍下 Linux 中的内核模块编写，包括了内核签名机制的配置。
 * [Linux 系统调用](/post/kernel-syscall.html)，简单介绍下 Linux 中系统调用相关的内容。
+* [Linux 调度系统](/post/linux-kernel-scheduler.html)，与内核的进程调度相关的内容。
 * [Linux 共享内存](/post/linux-shared-memory-program.html)，Linux 中与共享内存相关的内容。
 * [Linux 内存映射](/post/kernel-memory-virtual-physical-map.html)，x86 中逻辑地址到物理地址的映射关系，包括了具体的实验。
 * [Linux 内存-用户空间](/post/kernel-memory-management-from-userspace-view.html)，用户空间的内存管理，包括了内存的布局、内存申请等操作。

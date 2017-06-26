@@ -3,7 +3,6 @@ title: LXC 简介
 layout: post
 comments: true
 language: chinese
-usemath: true
 category: [linux,misc]
 keywords: linux,container,lxc,容器
 description: LXC (Linux Containters) 是一种基于内核容器的用户空间接口，提供了一系列创建、配置、管理的接口。其提供了比 chroot 更强的资源隔离，但是与硬件提供的完全虚拟化又不同，其目标为创建一个不需要独立内核，但近可能接近标准 Linux 安装的环境。在此简单介绍其使用方法，以及常用的命令。

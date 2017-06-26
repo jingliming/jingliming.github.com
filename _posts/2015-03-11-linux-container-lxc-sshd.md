@@ -3,7 +3,6 @@ title: LXC sshd 单进程启动
 layout: post
 comments: true
 language: chinese
-usemath: true
 category: [linux,misc]
 keywords: linux,lxc,sshd
 description: 在之前的 [LXC 简介](/blog/linux-lxc-introduce.html) 中介绍了如何搭建 CentOS 7 容器，在此介绍如何单独启动 sshd 这一个进程。这样，实际上我们可以通过这种方式启动类似 MySQL 之类的服务，从而减小成本。接下来，我们看看是如何启动的。
