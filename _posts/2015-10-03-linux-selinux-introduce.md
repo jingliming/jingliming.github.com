@@ -1,9 +1,8 @@
 ---
-title: SELinux
+title: SELinux 简介
 layout: post
 comments: true
 language: chinese
-usemath: true
 category: [linux,misc]
 keywords: linux,selinux
 description: SELinux 给 Linux 带来的最重要价值是：提供了一个灵活的，可配置的 MAC 机制。包括了内核中的模块，以及用户态的工具，对于用户来说是透明的，只有同时满足了 "标准 Linux 访问控制" 和 "SELinux 访问控制" 时，主体才能访问客体。
@@ -152,7 +151,104 @@ setsebool 用来切换由布尔值控制的 SELinux 策略的，当前布尔值�
 setsebool -P httpd_enable_homedirs 1
 -->
 
+## capabilities
+
+通常 capabilities 是和 SELinux 配合使用的，以往，如果要运行一个需要 root 权限的程序，那么需要保证有运行权限，且是 root 用户；通过 capabilities 就可以只赋予程序所需要的权限。
+
+以 ping 命令为例，因为需要发送 raw 格式数据，部分发行版本使用了 ```setuid + root```，实际上只需要赋予 ```CAP_NET_RAW``` 权限，然后去除 setuid 即可。
+
+{% highlight text %}
+----- 直接复制一个ping命令，然后进行测试
+# cp ping anotherping
+# chcon -t ping_exec_t anotherping
+$ ping -c 1 127.0.0.1
+PING 127.0.0.1 (127.0.0.1) 56(84) bytes of data.
+64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.057 ms
+$ anotherping -c 1 127.0.0.1
+ping: icmp open socket: Operation not permitted
+
+----- 新增CAP_NET_RAW权限，然后用非root用户重新测试
+# setcap cap_net_raw+ep anotherping
+$ anotherping -c 1 127.0.0.1
+PING 127.0.0.1 (127.0.0.1) 56(84) bytes of data.
+64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.054 ms
+{% endhighlight %}
+
 ## 参考
+
+
+<!--
+chcon 用于修改文件的 SELinux 安全上下文，或者说是修改安全策略。
+
+进程所属的上下文类型称为域，而文件所属的上下文类型称为类型，在 SELinux 开启后，进程只能操作域类型与上下文类型一样的文件。
+
+在 CentOS 中，semanage 命令默认没有安装，可以通过 ```yum install policycoreutils-python``` 安装。
+
+----- 查看哪些服务受SELinux管理，也就是布尔值；包括了如何设置，-P永久生效
+# getsebool -a
+# setsebool samba_enable_home_dirs=1
+# setsebool samba_enable_home_dirs=on
+----- 恢复默认上下文
+# restorecon /var/www/html
+----- 默认上下文类型？保存在那个文件中
+# semanage fcontext -l
+----- 用户映射关系
+# semanage user -l
+----- 查看受SELinux控制的端口，以及将指定端口添加到规则中
+# semanage port -l
+# semanage port -a -t http_port_t -p tcp 8060
+
+chcon [选项]... 环境 文件...
+chcon [选项]... [-u 用户] [-r 角色] [-l 范围] [-t 类型] 文件...
+chcon [选项]... --reference=参考文件 文件...
+
+二、chcon命令参数：
+参数名 描述
+-u 用户
+--user=用户 设置指定用户的目标安全环境；
+ -r 角色
+--role=角色 设置指定角色的目标安全环境；
+-t 类型
+--type=类型 设置指定类型的目标安全环境；
+-l 范围
+--range=范围 设置指定范围的目标安全环境；
+-v
+--verbose 处理的所有文件时显示诊断信息；
+
+-R/--recursive
+  递归处理目录、文件；
+
+
+-h
+--no-dereference 影响符号连接而非引用的文件；
+--reference=file 使用指定参考文件file的安全环境，而非指定值；
+-H  如果一个命令行参数是一个目录的符号链接，则遍历它；
+-L 遍历每一个符号连接指向的目录；
+-P 不遍历任何符号链接（默认）；
+--help 显示此帮助信息并退出；
+--version 显示版本信息并退出；
+
+三、chcon用法演示：
+1、mysql：让selinux
+
+允许mysqld做为数据目录访问“/storage/mysql”：
+-----
+# chcon -R -t mysqld_db_t /storage/mysql
+2、ftp：将共享目录开放给匿名用户：
+[root@aiezu.com ~]# chcon -R -t public_content_t /storage/ftp/
+#允许匿名用户上传文件：
+[root@aiezu.com ~]# chcon -R -t public_content_rw_t /storage/ftp
+[root@aiezu.com ~]# setsebool -P allow_ftpd_anon_write=1
+
+3、为网站目录开放httpd访问权限：
+chcon -R -t httpd_sys_content_t /storage/web
+
+https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Security-Enhanced_Linux/chap-Security-Enhanced_Linux-SELinux_Contexts.html
+https://debian-handbook.info/browse/zh-CN/stable/sect.selinux.html
+https://wiki.centos.org/zh/HowTos/SELinux
+http://blog.siphos.be/2013/05/overview-of-linux-capabilities-part-1/
+http://www.cis.syr.edu/~wedu/seed/Labs/Documentation/Linux/How_Linux_Capability_Works.pdf
+-->
 
 
 {% highlight text %}

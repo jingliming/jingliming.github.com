@@ -88,7 +88,6 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Collectd 简介](/post/collectd-introduce.html)，一个 C 语言编写的多线程监控采集程序，对其进行简单的介绍。
 * [Collectd 源码解析](/post/collectd-source-code.html)，详细介绍 Collectd 的源码实现。
 
-
 #### Kernel
 
 介绍下 Linux 内核相关的内容。
@@ -103,6 +102,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Linux 内存映射](/post/kernel-memory-virtual-physical-map.html)，x86 中逻辑地址到物理地址的映射关系，包括了具体的实验。
 * [Linux 内存-用户空间](/post/kernel-memory-management-from-userspace-view.html)，用户空间的内存管理，包括了内存的布局、内存申请等操作。
 * [Linux 内存-内核空间](/post/kernel-memory-management-from-kernel-view.html)，包括了内核中与内存相关内容，包括了初始化、内存分配等。
+* [Kernel 内存杂项](/post/kernel-memory-tips.html)，简单介绍下内核中与内存相关的内容。
 
 #### C Program
 
@@ -121,6 +121,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [加密算法简介](/post/security-encryption-introduce.html)，简单介绍一些常见的加密算法等。
 * [PGP 简介](/post/security-pgp-introduce.html)，一个基于公钥加密体系的加密软件。
 * [Linux 密码管理](/post/security-how-to-save-password.html)，简单介绍下 Linux 中的密码管理。
+* [SELinux 简介](/post/linux-selinux-introduce.html)，一种强制存取控制的实现。
 
 #### SSH
 
@@ -151,6 +152,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Git 使用杂项](/post/git-tips.html)，记录 git 常见的示例，可以用来作为参考使用。
 * [Linux 时间同步](/post/linux-sync-time.html)，介绍部分与时间相关的概念，例如时区、闰秒、夏令时、NTP 等。
 * [Systemd 使用简介](/post/linux-systemd.html)，一般新发行版本采用的是 systemd，在此简单介绍下。
+* [Rsync & Inotify](/post/rsync-inotify.html)，通过这两个命令可以快速实现文件的同步。
 
 ----------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------

@@ -128,6 +128,28 @@ systemd 的资源管理主要基于三个单元 service、scope 以及 slice：
 
 ----- 当前资源使用情况
 # systemd-cgtop
+
+----- 启动一个服务
+# systemd-run --unit=name --scope --slice=slice_name command
+   unit   用于标示，如果不使用会自动生成一个，通过systemctl会输出；
+   scope  默认使用service，该参数指定使用scope ；
+   slice  将新启动的service或者scope添加到slice中，默认添加到system.slice，
+          也可以添加到已有slice(systemctl -t slice)或者新建一个。
+# systemd-run --unit=toptest --slice=test top -b
+# systemctl stop toptest
+{% endhighlight %}
+
+各服务配置保存在 ```/usr/lib/systemd/system/``` 目录下，可以通过如下命令设置各个服务的参数。
+
+{% highlight text %}
+----- 会自动保存到配置文件中做持久化
+# systemctl set-property name parameter=value
+
+----- 只临时修改不做持久化
+# systemctl set-property --runtime name property=value
+
+----- 设置CPU和内存使用率
+# systemctl set-property httpd.service CPUShares=600 MemoryLimit=500M
 {% endhighlight %}
 
 ## 参考
@@ -137,6 +159,12 @@ systemd 的资源管理主要基于三个单元 service、scope 以及 slice：
 <!--
 Systemd 进程管理相关
 http://fangpeishi.com/systemd_chapter2.html
+
+
+https://yq.aliyun.com/articles/54458
+http://www.cnblogs.com/yanghuahui/p/3751826.html
+https://yq.aliyun.com/articles/54483
+systemd-cgls
 -->
 
 {% highlight text %}

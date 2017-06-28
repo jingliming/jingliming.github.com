@@ -344,12 +344,85 @@ int main (int argc, char **argv)
 
 ## 字符串查找
 
-<!--
-strtok()
-http://blog.csdn.net/liuintermilan/article/details/6283705
---->
+简单介绍下常见的字符串操作函数。
 
-### strchr
+### strtok()
+
+可以参考如下的示例，在 ```strtok()``` 代码中，会保存上次查询的状态，就导致不可以重入以及线程不安全。
+
+{% highlight c %}
+#include <stdio.h>
+#include <string.h>
+
+int main(int argc, char **argv)
+{
+   char str[1024]="Fred male 25,John male 62,Anna female 16";
+   char *token, *subtoken;
+
+   for(token = strtok(str, ","); token != NULL; token = strtok(NULL, ",")) {
+      printf( " %s\n", token );
+      for(subtoken = strtok(token, " "); subtoken != NULL; subtoken = strtok(NULL, " ")) {
+          printf( "  -> %s\n", subtoken );
+      }
+   }
+
+   return 0;
+}
+{% endhighlight %}
+
+如上的代码中，实际只提取了第一个人的信息，而非我们所预想的会提取所有代码。
+
+原因是，在第一次外循环中，```strtok()``` 将 ```Fred male 25,``` 后的逗号，改为了 ```'\0'```，这时 ```strtok()``` 内部的指针指向的是逗号的后一个字符 ```'J'```，经过第一次的内循环，分别提取出了 ```"Fred"```、 ```"male"```、 ```"25"```，而且在提取完 ```"25"``` 之后，函数内部的指针被修改指向了 ```"25"``` 后面的 ```'\0'``` 。
+
+内循环结束后开始第二次的外循环，而此时 ```strtok()``` 函数内部的指针已经指向了 ```NULL``` ，所以，当执行第二次的循环时会直接退出而不再执行。
+
+#### strtok_r()
+
+```strtok_r()``` 是 Linux 平台下 ```strtok()``` 的线程安全版，```saveptr``` 参数是一个指向 ```char *``` 的指针变量，用来在 ```strtok_r()``` 内部保存切分时的上下文，以应对连续调用分解相同源字符串。
+
+第一次调用 ```strtok_r()``` 时，```str``` 参数必须指向待提取的字符串，```saveptr``` 参数的值可以忽略；后续调用时，```str``` 赋值为 ```NULL```，```saveptr``` 为上次调用后返回的值，不要修改。
+
+关于示例程序可以查看 [man 3 strtok_r](https://linux.die.net/man/3/strtok_r) ，如下是一个 GUN C 的实现程序。
+
+{% highlight c %}
+/* Parse S into tokens separated by characters in DELIM.
+   If S is NULL, the saved pointer in SAVE_PTR is used as
+   the next starting point.  For example:
+        char s[] = "-abc-=-def";
+        char *sp;
+        x = strtok_r(s, "-", &sp);      // x = "abc", sp = "=-def"
+        x = strtok_r(NULL, "-=", &sp);  // x = "def", sp = NULL
+        x = strtok_r(NULL, "=", &sp);   // x = NULL
+                // s = "abc\0-def\0"
+*/
+char *strtok_r(char *s, const char *delim, char **save_ptr) {
+    char *token;
+
+    if (s == NULL) s = *save_ptr;
+
+    /* Scan leading delimiters.  */
+    s += strspn(s, delim);
+    if (*s == '\0')
+        return NULL;
+
+    /* Find the end of the token.  */
+    token = s;
+    s = strpbrk(token, delim);
+    if (s == NULL)
+        /* This token finishes the string.  */
+        *save_ptr = strchr(token, '\0');
+    else {
+        /* Terminate the token and make *SAVE_PTR point past it.  */
+        *s = '\0';
+        *save_ptr = s + 1;
+    }
+
+    return token;
+}
+{% endhighlight %}
+
+
+### strchr()
 
 该函数是字符查找，找到则返回第一个字符的地址，否则返回 NULL 。如下是一个简单的程序，用来分割一个字符串，类似与 ```/etc/shadow``` 中保存的密码。
 

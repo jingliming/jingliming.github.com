@@ -128,7 +128,71 @@ $ cat /etc/hosts
 {% endhighlight %}
 
 
+## 路由配置
 
+关于 IP 路由相关命令，详细可以查看 [IP Route Management](http://linux-ip.net/html/tools-ip-route.html) 。
+
+{% highlight text %}
+# route -n
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.145.12.254  0.0.0.0         UG    0      0        0 eth0
+100.125.0.0     0.0.0.0         255.255.248.0   U     0      0        0 eth1
+
+输出：
+  Flags 路由标志，标记当前网络节点的状态，各个标志简述如下：
+    U Up              此路由当前为启动状态
+    G Gateway         此网关为一路由器
+    ! Reject Route    表示此路由当前为关闭状态，常用于抵挡不安全规则
+    H Host            表示此网关为一主机
+    R Reinstate Route 使用动态路由重新初始化的路由
+    D Dynamically     此路由是动态性地写入
+    M Modified        此路由是由路由守护程序或导向器动态修改
+
+----- 增加一条到达244.0.0.0的路由
+# route add -net 224.0.0.0 netmask 240.0.0.0 dev eth0
+----- 增加一条屏蔽的路由，目的地址为224.x.x.x将被拒绝
+# route add -net 224.0.0.0 netmask 240.0.0.0 reject
+----- 删除路由记录
+# route del -net 224.0.0.0 netmask 240.0.0.0
+# route del -net 224.0.0.0 netmask 240.0.0.0 reject
+----- 删除和添加设置默认网关
+# route del default gw 192.168.120.240
+# route add default gw 192.168.120.240
+{% endhighlight %}
+
+<!--
+
+ip route list
+
+Destination、Gateway、Genmask，目标地址、网管、掩码
+
+第一行表示主机所在网络的地址为192.168.120.0，若数据传送目标是在本局域网内通信，则可直接通过eth0转发数据包;
+
+第四行表示数据传送目的是访问Internet，则由接口eth0，将数据包发送到网关192.168.120.240
+
+Metric
+
+metric Metric 为路由指定一个整数成本值标（从 1 至 9999），当在路由表(与转发的数据包目标地址最匹配)的多个路由中进行选择时可以使用。
+
+http://www.cnblogs.com/vamei/archive/2012/10/07/2713023.html
+
+ip route show cache
+ip route flush cache
+ip route get
+-->
+
+一般路由匹配的流程是：
+
+1. 先匹配掩码，掩码最精确匹配的路由优先 (longest prefix match)；
+2. 如果有多条路由，则匹配 [管理距离](https://en.wikipedia.org/wiki/Administrative_distance)，管理距离小的路由优先；
+3. 如果管理距离相同，在匹配度量值 (lowest metric)，度量值小的优先
+4. 如果度量值相同，则选择负载均衡，具体的方式看采用哪种路由协议和相关的配置了。
+
+Routing Cache 也称为 Forwarding Information Base, FIB，通过 Hash 保存了最近使用路由信息，如果在 Cache 找到了对应的路由信息，那么会直接使用该规则进行转发，而不再查找路由表。
+
+注意，Routing Cache 和 Route Table 是不相关的，所以在修改路由表之后最后手动清空下 Cache ，可以通过 ```/proc/net/rt_cache``` 文件查看或者使用如下命令：
+
+<!-- http://linux-ip.net/html/routing-selection.html -->
 
 {% highlight text %}
 {% endhighlight %}

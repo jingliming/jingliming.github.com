@@ -12,7 +12,6 @@ description: 主要介绍下在 Linux 中，与文本处理相关的命令。
 
 <!-- more -->
 
-
 ## diff & patch
 
 该命令通常用于文本文件的区别查看。
@@ -263,6 +262,14 @@ sed 's/$/&TAIL/g' test.file
 sed '/./{s/^/HEAD&/;s/$/&TAIL/}' test.file
 -->
 
+
+## 常用技巧
+
+如果其中的部分参数需要动态获取，而 ```''``` 则会原样输出字符内容，那么可以通过类似如下的方式使用。
+
+{% highlight text %}
+$ echo "'$(hostname)'" | xargs sed filename -e
+{% endhighlight %}
 
 {% highlight text %}
 {% endhighlight %}

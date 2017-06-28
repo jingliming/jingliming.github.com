@@ -27,6 +27,12 @@ $ cat /dev/urandom | strings -n C | head -n L
 $ cat /dev/urandom | sed 's/[^a-zA-Z0-9]//g' | strings -n C | head -n L
 {% endhighlight %}
 
+注意，如上的方式中会存在换行符，只有在出现长度是 ```C``` 的字符串时才打印，会导致打印速度很慢；所以，最好是通过如下方式生成，然后手动截取。
+
+{% highlight text %}
+$ cat /dev/urandom | sed 's/[^a-zA-Z0-9]//g' | strings | tr -d '\n\r'
+{% endhighlight %}
+
 如果要生成随机整数，可以通过 shell 中的一个环境变量 ```RANDOM ```，它的范围是 ```0~32767``` 。
 
 {% highlight text %}
@@ -36,6 +42,20 @@ $ echo $(($RANDOM%26))
 ----- 生成 [6, 100] 的随机数
 $ echo $(($RANDOM%95+6))
 {% endhighlight %}
+
+另外，```/dev/``` 目录下存在两个相关的随机数发生器，也就是 ```random``` 和 ```urandom``` ，后者也就是 ```unblocked random``` ，可以通过如下方式测试其速度。
+
+{% highlight text %}
+$ dd if=/dev/random of=random.dat bs=512 count=5
+$ dd if=/dev/urandom of=urandom.dat bs=512 count=5
+{% endhighlight %}
+
+相比来说，前者在内核中熵不足时会阻塞，而后者则不会，详细可以查看 [Myths about /dev/urandom](https://www.2uo.de/myths-about-urandom/) 。
+
+<!--
+可以参考本地文档Myths about /dev/urandom
+/reference/linux/kernel/myths_about_dev_urandom.maff
+-->
 
 
 ## 特殊字符文件处理

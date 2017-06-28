@@ -1007,8 +1007,6 @@ https://outflux.net/blog/archives/2014/01/27/fstack-protector-strong/
 -fexceptions
   打开异常处理，该选项会生成必要的代码来处理异常的抛出和捕获，对于 C++ 等会触发异常的语言来说，默认都会指定该选项。所生成的代码不会造成性能损失，但会造成尺寸上的损失。因此，如果想要编译不使用异常的 C++ 代码，可能需要指定选项 -fno-exceptions 。
 -Wall -Werror -O2 -g --param=ssp-buffer-size=4 -grecord-gcc-switches -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1  -m64 -mtune=generic -DLT_LAZY_OR_NOW="RTLD_LAZY|RTLD_GLOBAL"
-http://www.cis.syr.edu/~wedu/seed/Labs/Documentation/Linux/How_Linux_Capability_Works.pdf
-http://blog.siphos.be/2013/05/overview-of-linux-capabilities-part-1/
 
 
 
@@ -1021,78 +1019,6 @@ http://duartes.org/gustavo/blog/
 
 
 
-chcon 用于修改文件的 SELinux 安全上下文，或者说是修改安全策略。
-
-进程所属的上下文类型称为域，而文件所属的上下文类型称为类型，在 SELinux 开启后，进程只能操作域类型与上下文类型一样的文件。
-
-在 CentOS 中，semanage 命令默认没有安装，可以通过 ```yum install policycoreutils-python``` 安装。
-
------ 查看哪些服务受SELinux管理，也就是布尔值；包括了如何设置，-P永久生效
-# getsebool -a
-# setsebool samba_enable_home_dirs=1
-# setsebool samba_enable_home_dirs=on
------ 恢复默认上下文
-# restorecon /var/www/html
------ 默认上下文类型？保存在那个文件中
-# semanage fcontext -l
------ 用户映射关系
-# semanage user -l
------ 查看受SELinux控制的端口，以及将指定端口添加到规则中
-# semanage port -l
-# semanage port -a -t http_port_t -p tcp 8060
-
-chcon [选项]... 环境 文件...
-chcon [选项]... [-u 用户] [-r 角色] [-l 范围] [-t 类型] 文件...
-chcon [选项]... --reference=参考文件 文件...
-
-二、chcon命令参数：
-参数名 描述
--u 用户
---user=用户 设置指定用户的目标安全环境；
- -r 角色
---role=角色 设置指定角色的目标安全环境；
--t 类型
---type=类型 设置指定类型的目标安全环境；
--l 范围
---range=范围 设置指定范围的目标安全环境；
--v
---verbose 处理的所有文件时显示诊断信息；
-
--R/--recursive
-  递归处理目录、文件；
-
-
--h
---no-dereference 影响符号连接而非引用的文件；
---reference=file 使用指定参考文件file的安全环境，而非指定值；
--H  如果一个命令行参数是一个目录的符号链接，则遍历它；
--L 遍历每一个符号连接指向的目录；
--P 不遍历任何符号链接（默认）；
---help 显示此帮助信息并退出；
---version 显示版本信息并退出；
-
-三、chcon用法演示：
-1、mysql：让selinux
-
-允许mysqld做为数据目录访问“/storage/mysql”：
------
-# chcon -R -t mysqld_db_t /storage/mysql
-2、ftp：将共享目录开放给匿名用户：
-[root@aiezu.com ~]# chcon -R -t public_content_t /storage/ftp/
-#允许匿名用户上传文件：
-[root@aiezu.com ~]# chcon -R -t public_content_rw_t /storage/ftp
-[root@aiezu.com ~]# setsebool -P allow_ftpd_anon_write=1
-
-3、为网站目录开放httpd访问权限：
-chcon -R -t httpd_sys_content_t /storage/web
-
-https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Security-Enhanced_Linux/chap-Security-Enhanced_Linux-SELinux_Contexts.html
-https://debian-handbook.info/browse/zh-CN/stable/sect.selinux.html
-https://wiki.centos.org/zh/HowTos/SELinux
-http://blog.siphos.be/2013/05/overview-of-linux-capabilities-part-1/
-http://www.cis.syr.edu/~wedu/seed/Labs/Documentation/Linux/How_Linux_Capability_Works.pdf
-
-
 编程时常有 Client 和 Server 需要各自得到对方 IP 和 Port 的需求，此时就可以通过 getsockname() 和 getpeername() 获取。
 
 python -c '
@@ -1103,87 +1029,11 @@ s.connect(("www.huawei.com", 80))
 print s.getsockname()
 s.close()'
 
-FIXME:
-  rsync
-  --exclude "checkout"    某个目录
-  --exclude "filename*"   某类文件
-  --exclude-from=sync-exclude.list  通过文件指定要忽略的文件
-注意，指定时使用的是源地址的相对路径。
 
 Python判断IP有效性
 https://gist.github.com/youngsterxyf/5088954
 
-/post/centos-config-from-scratch.html
-# 查询未安装软件包的依赖关系
-rpm -qRp vim-common-6.3.046-2.el4.1.x86_64.rpm
-# 查询已安装软件包的依赖关系
-rpm -qR vim-common-6.3.046-2.el4.1
 
-gpg签名
-/etc/pki/rpm-gpg/RPM*
-
-rpm 安装时可能会报 NOKEY 的错误信息 --nogpgcheck nosignature
-
-iptables -I INPUT -s 192.30.0.0/16 -p tcp --dport 21005 -j ACCEPT
-/post/linux-commands-text.html
-  如果其中的部分参数需要动态获取，而 ```''``` 则会原样输出字符内容，那么可以通过 ```echo "'$(hostname)'" | xargs sed filename -e``` 这种方式执行。
-/post/network-setting.html
-
-ip route list
-
-route -n
-Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
-0.0.0.0         192.145.12.254  0.0.0.0         UG    0      0        0 eth0
-100.125.0.0     0.0.0.0         255.255.248.0   U     0      0        0 eth1
-
-Destination、Gateway、Genmask，目标地址、网管、掩码
-
-第一行表示主机所在网络的地址为192.168.120.0，若数据传送目标是在本局域网内通信，则可直接通过eth0转发数据包;
-
-第四行表示数据传送目的是访问Internet，则由接口eth0，将数据包发送到网关192.168.120.240
-
-Flags 为路由标志，标记当前网络节点的状态，各个标志简述如下：
-  U Up，此路由当前为启动状态
-  G Gateway，此网关为一路由器
-  ! Reject Route，表示此路由当前为关闭状态，常用于抵挡不安全规则
-  H Host，表示此网关为一主机
-  R Reinstate Route，使用动态路由重新初始化的路由
-  D Dynamically,此路由是动态性地写入
-  M Modified，此路由是由路由守护程序或导向器动态修改
-Metric
-
-metric Metric 为路由指定一个整数成本值标（从 1 至 9999），当在路由表(与转发的数据包目标地址最匹配)的多个路由中进行选择时可以使用。
-
-http://www.cnblogs.com/vamei/archive/2012/10/07/2713023.html
-
------ 增加一条到达244.0.0.0的路由
-# route add -net 224.0.0.0 netmask 240.0.0.0 dev eth0
------ 增加一条屏蔽的路由，目的地址为224.x.x.x将被拒绝
-# route add -net 224.0.0.0 netmask 240.0.0.0 reject
------ 删除路由记录
-# route del -net 224.0.0.0 netmask 240.0.0.0
-# route del -net 224.0.0.0 netmask 240.0.0.0 reject
------ 删除和添加设置默认网关
-# route del default gw 192.168.120.240
-# route add default gw 192.168.120.240
-
-Routing Cache 也被称为 Forwarding Information Base, FIB ，通过 Hash 表保存了最近使用的路由信息，如果在 Cache 找到了对应的路由信息，那么会直接使用该规则进行转发，而不再查找路由表。
-
-注意，Routing Cache 和 Route Table 是不相关的，所以在修改路由表之后最后手动清空下 Cache ，可以通过 ```/proc/net/rt_cache``` 文件查看或者使用如下命令：
-
-ip route show cache
-ip route flush cache
-ip route get
-
-关于 IP 命令的详细可以查看 [IP Route Management](http://linux-ip.net/html/tools-ip-route.html) 。
-
-http://linux-ip.net/html/routing-selection.html
-
-一般路由匹配的流程是：
-A. 先匹配掩码，掩码最精确匹配的路由优先 (longest prefix match)；
-B. 如果有多条路由，则匹配 [管理距离](https://en.wikipedia.org/wiki/Administrative_distance)，管理距离小的路由优先；
-C. 如果管理距离相同，在匹配度量值 (lowest metric)，度量值小的优先
-D. 如果度量值相同，则选择负载均衡，具体的方式看采用哪种路由协议和相关的配置了。
 
 安全渗透工具集
 https://wizardforcel.gitbooks.io/daxueba-kali-linux-tutorial/content/2.html
@@ -1238,63 +1088,6 @@ http://blog.csdn.net/a_ran/article/details/41871437
 
 const char *inet_ntop(int af, const void *src, char *dst, socklen_t cnt);
   将类型为af的网络地址结构src，转换成主机序的字符串形式，存放在长度为cnt的字符串中。返回指向dst的一个指针。如果函数调用错误，返回值是NULL。
-
-通常 capabilities 是和 SELinux 配合使用的，以往，如果要运行一个需要 root 权限的程序，那么需要保证有运行权限，且是 root 用户；通过 capabilities 就可以只赋予程序所需要的权限。
-
-以 ping 命令为例，因为需要发送 raw 格式数据，部分发行版本使用了 setuid + root，实际上只需要赋予 CAP_NET_RAW 权限，然后去除 setuid 即可。
-
-
------ 直接复制一个ping命令，然后进行测试
-# cp ping anotherping
-# chcon -t ping_exec_t anotherping
-$ ping -c 1 127.0.0.1
-PING 127.0.0.1 (127.0.0.1) 56(84) bytes of data.
-64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.057 ms
-$ anotherping -c 1 127.0.0.1
-ping: icmp open socket: Operation not permitted
-
------ 新增CAP_NET_RAW权限，然后用非root用户重新测试
-# setcap cap_net_raw+ep anotherping
-$ anotherping -c 1 127.0.0.1
-PING 127.0.0.1 (127.0.0.1) 56(84) bytes of data.
-64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.054 ms
-
-user
-role
-type
-level
-
-
-
-
-
-
-systemd-run --unit=name --scope --slice=slice_name command
-  unit 用于标示，如果不使用会自动生成一个，通过systemctl会输出；
-  scope 默认使用 service ，该参数指定使用 scope ；
-  slice 将新启动的 service 或者 scope 添加到 slice 中，默认添加到 system.slice，也可以添加到已有 slice (systemctl -t slice) 或者新建一个。
-systemd-run --unit=toptest --slice=test top -b
-systemctl stop toptest
-
-各个服务的配置保存在 ```/usr/lib/systemd/system/``` 目录下，可以通过如下命令设置各个服务的参数。
------ 会自动保存到配置文件中做持久化
-# systemctl set-property name parameter=value
------ 只临时修改不做持久化
-# systemctl set-property --runtime name property=value
------ 设置CPU和内存使用率
-# systemctl set-property httpd.service CPUShares=600 MemoryLimit=500M
-
-
-
-https://yq.aliyun.com/articles/54458
-http://www.cnblogs.com/yanghuahui/p/3751826.html
-https://yq.aliyun.com/articles/54483
-http://linuxperf.com/?p=42
-http://linuxperf.com/?p=33
-
-systemd-cgls
-
-
 
 
 
@@ -1358,13 +1151,6 @@ https://landley.net/kdocs/ols/2010/ols2010-pages-245-254.pdf
 LDD 跟 PMAP 加载的库不同？
 
 awk 'BEGIN{sum=0};{if($3~/x/) {sum+=$2}};END{print sum}' /tmp/1
-
-
-top
-main()
-frame_make
-window_show()
-task_show()  通过WIN_t.proc_t类型保存，最终显示
 
 procs_refresh
 
@@ -1828,78 +1614,6 @@ ln -s libxerces-c.so.3.0 libxerces-c-3.0.so
 这样就ok了
 
 
-touch /tmp/{top.sh,mid.sh,bot.sh}
-echo '/tmp/top.sh |/tmp/mid.sh|/tmp/bot.sh' > script_chain
-fpge script_chain  生成指纹，脚本会使用绝对路径，指纹库保存在 /usr/local/var/.bfbase 文件中
-   md5sum /tmp/top.sh | awk '{print $1}'    -> 'xxxxx'
-   echo -n "xxxxx" | md5sum | awk '{print $1}' -> 'yyyyy'
-   md5sum /tmp/top.sh | awk '{print $1}'    -> 'zzzzz'
-   echo -n "yyyyy" "zzzzz" | md5sum | awk '{print $1}'
-   最终调用 pwswitch -i -fp "111111111111111"
-   pwswitch -i -fp footprint 经过一系列HASH算法计算，保存到指纹文件中
-pwswitch -e "test" 加密密码，其中 -k 指定的key为数组动态选择
-   echo 'test'|openssl aes-256-cbc -e -k U2FsdGVkX1+AVVVxxWOuFFCBEU7jwC4dbksnF0/Wz44 -base64
-   生成密文： 222222222222
-pwswitch -d "222222222222" -fp "111111111111111"
-   首先会验证传入的指纹与文件中保存的是否相同
-   echo '222222222222'|openssl aes-256-cbc -d -k U2FsdGVkX1+AVVVxxWOuFFCBEU7jwC4dbksnF0/Wz44 -base64
-pwswitch -z 删除指纹库，直接rm删除
-
-脚本中使用方式如下：top.sh添加
-export __FPRINT__=""
-__dig__=`md5sum $0|awk '{print $1}'`
-__FPRINT__=`echo -n "$__FPRINT__""$__dig__"|md5sum|awk '{print $1}'`
-mid.sh和bot.sh中添加
-__dig__=`md5sum $0|awk '{print $1}'`
-__FPRINT__=`echo -n "$__FPRINT__""$__dig__"|md5sum|awk '{print $1}'`
-解密使用
-pwswitch –d "口令密文" –fp "$__FPRINT__"
-
-On The Security of Password Manager Database Formats
-https://www.cs.ox.ac.uk/files/6487/pwvault.pdf
-Twofish
-https://www.schneier.com/academic/twofish/
-Password Safe库信息
-https://pwsafe.org/readmore.shtml
-从FireFox获取密码
-http://www.nirsoft.net/utils/passwordfox.html
-密码保存策略
-https://nakedsecurity.sophos.com/2013/11/20/serious-security-how-to-store-your-users-passwords-safely/
-
-密码可能被hacker修改；
-修改后程序没有报错；
-
-1. 维护本地密码库信息，记录包括版本+文件内容的hash值到一个可信存储上，防止文件被替换。
-Setup, Create, Open, Valid
-
-HMAC 是密钥相关的哈希运算消息认证码，HMAC运算利用哈希算法，以一个密钥和一个消息为输入，生成一个消息摘要作为输出。
-
-HMAC 的一个典型应用是用在 (Challenge/Response) 身份认证中，一般的处理流程如下：
-(1) 客户端向服务器发出一个验证请求。
-(2) 服务器接到此请求后生成一个随机数并通过网络传输给客户端 (Challenge)。
-(3) 客户端将收到的随机数与客户保存的密码做 HMAC-MD5 计算，并将结果作为认证证据传给服务器 (Response)。
-(4) 服务器同样执行 HMSC-MD5 运算，与客户端传回的响应结果比较，如果相同则认为客户端是一个合法用户。
-
-$ read -s -p "password: " PASSWD; echo
-password:
-$ echo $PASSWD
-foobartest
-$ ls -al /proc/self/environ
--r-------- 1 michael michael 0 May  6 14:46 /proc/self/environ
-$ grep PASSWD /proc/self/environ
-$ export PASSWD
-$ strings /proc/self/environ | grep PASSWD
-PASSWD=foobartest
-
-$ echo $$
-19613
-$ gdb -p 19613
-(gdb) info proc mappings
-     0x91f2000  0x9540000   0x34e000          0           [heap]
-(gdb) dump memory /tmp/bash.mem 0x91f2000 0x9540000
-$ strings /tmp/bash.mem |grep ^PASSWD
-PASSWD=soopersekrit
-
 可以通过mprotect设置内存的属性
 https://linux.die.net/man/2/mprotect
 Memory protection keys
@@ -1910,52 +1624,11 @@ https://eklitzke.org/memory-protection-and-aslr
 ES Collectd插件
 https://www.elastic.co/guide/en/logstash/current/plugins-codecs-collectd.html
 
-AES-128-CBC
-OpenSSL (http://www.openssl.org/)  Apache 109.93MB/s
-Crypto++ (http://www.cryptopp.com/) Boost Software License 1.0 188.92~222MB/s
-Cryptlib (http://www.cs.auckland.ac.nz/~pgut001/cryptlib/) GPL-compatible 192.57MB/s
-Botan (http://botan.randombit.net/) BSD-2 License 164.299MB/s
-libgcrypt (http://www.gnu.org/software/libgcrypt/) GPLv2 100MB/s
-CyaSSL (https://www.wolfssl.com/wolfSSL/Home.html)  GPLv2 178.97MB/s
-MatrixSSL (http://www.matrixssl.org/)  GPLv2
-axTLS (http://sourceforge.net/projects/axtls/) BSD License
-
-http://china.safenet-inc.com/webback/UploadFile/DownloadDoc/416b8c01-c42f-4251-a68d-16eb3e192ec1.pdf
-
-
-高级加密标准AES的工作模式（ECB、CBC、CFB、OFB）
-https://blog.poxiao.me/p/advanced-encryption-standard-and-block-cipher-mode/
-https://l2x.gitbooks.io/understanding-cryptography/docs/chapter-2/cbc.html
-
-Password-Based Key Derivation Function, PBKDF2 用来导出密钥的函数用于生成加密的密码。
-
-它的基本原理是通过一个伪随机函数（例如HMAC函数），把明文和一个盐值作为输入参数，然后重复进行运算，并最终产生密钥。
-
-如果重复的次数足够大，破解的成本就会变得很高。而盐值的添加也会增加“彩虹表”攻击的难度。
-
-
-https://github.com/linmx0130/gcrypt_demo
-
-1. 传入密钥
-
-一般来说不会直接使用用户的输入直接作为密钥，而是通过一个密钥导出函数 (如PBKDF2) 生成，一般来说，入参中有两个比较重要的函数：A) 输入密码，用户输入；B) 初始化向量 (Initialization Vector) ，程序提供。
-
-gpg_error_t gcry_kdf_derive ( const void *passphrase, size_t passphraselen, int algo, int subalgo, const void *salt, size_t saltlen, unsigned long iterations, size_t keysize, void *keybuffer );
-参数主要包括四部分：
-  1. passphrase, passphraselen  传入的密钥明文和长度
-  2. algo, subalgo, iterations 使用的 Key Derivation Function (KDF) 算法，及其迭代次数
-  3. salt, saltlen 加盐的盐串和长度
-  4. keysize, keybuffer 用于保存生成密钥的缓存长度，以及返回密钥内容
-http://blog.csdn.net/weiyuefei/article/details/71480140
 
 
 
 
 
-
-/post/linux-tips.html
-  随机字符串会有些问题，上述只有在恰好生成相应长度时才会打印，可以通过如下方生成一批字符串然后根据需求手动截取。
-cat /dev/urandom | sed 's/[^a-zA-Z0-9]//g' | strings | tr -d '\r\n'
 真随机数等生成
 http://www.cnblogs.com/bigship/archive/2010/04/04/1704228.html
 
@@ -1993,64 +1666,9 @@ port地址也可以映射到memory空间中来，前提是硬件必须支持MMIO
 iomem—I/O映射方式的I/O端口和内存映射方式的I/O端口
 http://www.cnblogs.com/b2tang/archive/2009/07/07/1518175.html
 
-PBKDF2算法
-https://segmentfault.com/a/1190000004261009
-libgcrypt示例程序
-https://github.com/linmx0130/gcrypt_demo
 
-1. 传入密钥
-
-一般来说不会直接使用用户的输入直接作为密钥，而是通过一个密钥导出函数 (如PBKDF2) 生成，一般来说，入参中有两个比较重要的函数：A) 输入密码，用户输入；B) 初始化向量 (Initialization Vector) ，程序提供。
-
-gpg_error_t gcry_kdf_derive ( const void *passphrase, size_t passphraselen, int algo, int subalgo, const void *salt, size_t saltlen, unsigned long iterations, size_t keysize, void *keybuffer );
-参数主要包括四部分：
-  1. passphrase, passphraselen  传入的密钥明文和长度
-  2. algo, subalgo, iterations 使用的 Key Derivation Function (KDF) 算法，及其迭代次数
-  3. salt, saltlen 加盐的盐串和长度
-  4. keysize, keybuffer 用于保存生成密钥的缓存长度，以及返回密钥内容
-
-2. 初始化加密句柄
-
-在获得密钥之后，我们就需要对加密的句柄进行设置。我们需要选定加密算法，顺便开好用来加密的缓存区间。我们采用比较简单的块模式进行加密，所以首先我们需要知道我们选定的加密算法所接受的密钥长度和块长度。在Libgcrypt中，加密算法用宏来标识，你需要传递指定的宏，来告知它你想用哪种加密算法。我的demo程序用的是AES256算法，但是为了通用起见，我们还是用一个CIPHER_ALGO来指代我们用的加密算法的具体名字。
-
-https://www.gnupg.org/documentation/manuals/gcrypt/index.html
-
-首先我们需要得到基本的数据：
-
-size_t key_size = gcry_cipher_get_algo_keylen(CIPHER_ALGO);
-size_t block_size = gcry_cipher_get_algo_blklen(CIPHER_ALGO);
-size_t block_required=file_size/block_size;
-if (file_size % block_size != 0){
-    block_required++;
-}
-
-file_size是要被加密的数据文件的总大小。利用get_algo_keylen()和get_algo_blklen()两个函数我们可以得到选定的算法的密钥长度和块长度，然后计算总共有多少个块。 有了这些信息，我们就可以建一个句柄：
-
-
-
-首先，需要新建一个加密用的句柄，此时可以定义使用的加密算法、加密的模式以及通过 flag 定义的使用模式。
-
-// 新建一个加密句柄，后续的所有相关操作都会使用该句柄
-cipher_err = gcry_cipher_open(&cipher_hd, GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CBC, GCRY_CIPHER_CBC_CTS);
-// 设置密钥，注意，这里的key_size是与算法相关的，随意设置可能会报错；正常来说需要保证len(key)>=key_size
-//     当大于时只使用了其中的一部分；小于时应该会自动填充到key_size
-cipher_err = gcry_cipher_setkey(cipher_hd, key, key_size);
-// 设置初始化向量IV，注意事项同上
-cipher_err=gcry_cipher_setiv(cipher_hd, iv, block_size);
-
-
-这里接收的初始化向量是随便的一个字符串，只要足够长，超过block_size一般就没什么问题了，当然，能和block_size一样长就最好好。最后建立好读入缓存和输出缓存区就好。
-
-char *input_buf = (char*)malloc(file_size);
-char *cipher_buffer = malloc(block_size*block_required);
-memset(cipher_buffer, 0, block_size*block_required);
-
-http://blog.csdn.net/weiyuefei/article/details/71480140
-
-
-ECB 模式生成的密文与 IV 无关，每次生成相同；而 CBC 则会累计，每次生成密文不同。
-
-
+协程
+https://github.com/Tencent/libco
 
 
 ←

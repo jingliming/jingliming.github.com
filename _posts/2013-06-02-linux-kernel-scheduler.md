@@ -402,5 +402,11 @@ schedule() 通常会找到一个最高优先级的调度类，查找自己的可
 period 也没有用变量来保存，用 __sched_period() 计算得到，sysctl_sched_latency * (nr_running / sysctl_nr_latency)。
 -->
 
+## 参考
+
+<!--
+http://linuxperf.com/?p=42
+-->
+
 {% highlight text %}
 {% endhighlight %}

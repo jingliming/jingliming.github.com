@@ -140,6 +140,10 @@ RPM 包通常有一个通用的命名方式：name-version-release.arch.rpm 。
 # rpm -Vp xxx.rpm                                         // 与数据库中的版本校验 (Verify)
 # rpm -Va                                                 // 校验所有的
 # rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6      // 导入 GPG key
+----- 查询未安装软件包的依赖关系
+$ rpm -qRp vim-common-6.3.046-2.el4.1.x86_64.rpm
+----- 查询已安装软件包的依赖关系
+$ rpm -qR vim-common-6.3.046-2.el4.1
 
 ----- 数据库出错，通过下述命令重建
 # rm /var/lib/rpm/__db*
@@ -472,6 +476,11 @@ Icon=/usr/share/icons/hicolor/128x128/apps/haroopad.png
 
 官方的镜像列表，可以参考 [List of CentOS Mirrors](https://www.centos.org/download/mirrors/) 。
 
+<!--
+gpg签名
+/etc/pki/rpm-gpg/RPM*
+rpm 安装时可能会报 NOKEY 的错误信息 --nogpgcheck nosignature
+-->
 
 {% highlight text %}
 {% endhighlight %}

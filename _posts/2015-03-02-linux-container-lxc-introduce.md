@@ -407,6 +407,11 @@ lxc.lxcpath
 
 官方网站 [linuxcontainers.org](https://linuxcontainers.org/) 。
 
+<!--
+用 cgroups 管理 cpu 资源
+http://xiezhenye.com/2013/10/%E7%94%A8-cgroups-%E7%AE%A1%E7%90%86-cpu-%E8%B5%84%E6%BA%90.html
+-->
+
 
 {% highlight text %}
 {% endhighlight %}
