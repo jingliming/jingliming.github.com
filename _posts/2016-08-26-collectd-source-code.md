@@ -326,7 +326,7 @@ main()
  | | | | | |-yyparse()                        ← 使用LEX+YACC进行词法+语法解析
  | | | | | |-yyset_in()                       ← 处理完成，修改为NULL值
  | | | | |-fclose()
- | | | |-cf_include_all()
+ | | | |-cf_include_all()                     ← 在解析完上述配置文件后查看是否有Include选项
  | | |-cf_read_dir()                          ← 如果是目录，会递归调用cf_read_generic()
  | | |-cf_ci_append_children()                ← 添加到root中
  | |
@@ -407,6 +407,7 @@ main()
  |   | | | |-fc_default_action() ##OR1##      ← 调用写入插件写入
  |   | | |   |-fc_bit_write_invoke()
  |   | | |     |-plugin_write()               ← 通过list_write链表调用各个组件写入
+ |   | | |       |                            ← 当所有插件都写入失败时返回-1，否则返回0
  |   | | |       |-cf_callback()
  |   | | | ###END###while
  |   | | |-plugin_value_list_free()           ← TODODO:是否使用缓存池
@@ -937,9 +938,17 @@ LoadPlugin python
 
 与 Python 相似，同样是内嵌了 JVM ，并将 API 暴露给 JAVA 程序，这样就不需要每次重新调用生成新的进程以及启动 JVM 。
 
-在 CentOS 中，编译前需要安装开发包，如 ```java-1.8.0-openjdk-devel```，在通过 ```configure``` 命令进行配置时需要添加 ```--enable-java --with-java``` 参数。
+在 CentOS 中，编译前需要安装开发包，如 ```java-1.8.0-openjdk-devel```，在通过 ```configure``` 命令进行配置时需要添加 ```--enable-java --with-java=$JAVA_HOME``` 参数；除了上述两个参数外，还可以通过命令行指定 JAVA 相关的参数，示例如下：
 
-编译完成后，会生成 ```bindings/java/.libs/{collectd-api.jar,generic-jmx.jar}``` 两个 jar 包。
+{% highlight text %}
+$ ./configure --with-java=$JAVA_HOME JAVA_CFLAGS="-I$JAVA_HOME/include -I$JAVA_HOME/include/linux" \
+    JAVA_CPPFLAGS="-I$JAVA_HOME/include -I$JAVA_HOME/include/linux"                                \
+    JAVA_LDFLAGS="-I$JAVA_HOME/include -I$JAVA_HOME/include/linux"                                 \
+    JAVA_LIBS="-I$JAVA_HOME/include" JAR="/path/to/jar" JAVAC="/path/to/javac"                     \
+    --enable-java=force
+{% endhighlight %}
+
+编译完成后，会生成 ```bindings/java/.libs/{collectd-api.jar,generic-jmx.jar}``` 两个 jar 包；当通过 RPM 包安装时，默认会安装到 `/usr/share/collectd/java/` 目录下。
 
 如下是一个 java 配置内容。
 
@@ -981,10 +990,12 @@ public class Foobar implements CollectdReadInterface
 {% endhighlight %}
 
 <!--
-JAVA C 调用
-http://blog.csdn.net/kangkanglou/article/details/5807810
-http://www.cnblogs.com/hibraincol/archive/2011/05/14/2046049.html
-http://www.cnblogs.com/xiongxx/p/6239411.html
+https://github.com/auxesis/collectd-opentsdb
+https://github.com/BlackBeltTechnology/collectd
+https://github.com/allixender/collectd-mqtt
+https://github.com/Gnome-OPW/collectd
+https://github.com/auxesis/collectd-opentsdb
+http://www.programcreek.com/java-api-examples/index.php?api=org.collectd.api.ValueList
 
 内核加密算法
 http://bbs.chinaunix.net/thread-1984676-1-1.html

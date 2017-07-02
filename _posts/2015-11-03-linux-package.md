@@ -126,7 +126,7 @@ $(SUBDIRS):
 
 ![autotools]({{ site.url }}/images/linux/autotools-process-1.png "autotools"){: .pull-center }
 
-其中用到的核心工具包括了 Autoconf 和 Automake ，首先从用户和开发者角度看看两者的区别。
+其中用到的核心工具包括了 Autoconf 和 Automake ，首先从用户和开发者角度看看两者的区别。关于 autotools 的简单处理流程可以参考 [automake](http://www.gnu.org/software/automake/manual/automake.html) 中的 ```Setup Explained``` 内容。
 
 ### 用户视角
 
@@ -200,7 +200,7 @@ AC_PROG_LIBTOOL
 # Checks for header files.
 # Checks for typedefs, structures, and compiler characteristics.
 # Checks for library functions.
-AC_CONFIG_FILES([Makefile
+AC_CONFIG_FILES([Makefile                     # 主要是通过*.in模板生成响应的文件
                  src/Makefile
                  src/a/Makefile
                  src/b/Makefile])
@@ -292,21 +292,17 @@ LT_INIT
 有时，如果要用到 libtool 中的某些宏，则推荐将这些宏复制到项目中。首先，通过 ```AC_CONFIG_MACRO_DIR([m4])``` 指定使用 m4 目录存放第三方宏；然后在最外层的 Makefile.am 中加入 ```ACLOCAL_AMFLAGS = -I m4``` 。
 
 <!--
-
 https://segmentfault.com/a/1190000006915719
 
 
 Configure、Makefile.am、Makefile.in、Makefile之间的关系
-
 http://www.51cos.com/?p=1649
 
 可以参考官方文档
-
 http://inti.sourceforge.net/tutorial/libinti/autotoolsproject.html
 
 
 通过--with-libmysql=/opt/mysql/lib指定MySQL库的路径；--enable-mysql编译MySQL插件；
-
 
 需要手动编译：
 1. Makefile.am
@@ -354,6 +350,8 @@ fi
 # 设置条件变量，可以再Makefile.am中使用
 AM_CONDITIONAL(BUILD_WITH_LIBMYSQL, test "x$with_libmysql" = "xyes")
 -->
+
+
 
 ### Flat
 
@@ -464,6 +462,54 @@ CPPFLAGS="-I/include/path"  LDFLAGS="-L/lib/path"  ./configure --prefix=/...
 {% endhighlight %}
 
 另外，还可以通过 ```LIBRARY_PATH``` 环境变量指定编译期间搜索 lib 库的路径，使用冒号分割，此时会先搜索该变量指定的路径，如果找不到则搜索系统默认搜索路径；而 ```LD_LIBRARY_PATH``` 则用于指定程序运行期间查找so动态链接库的搜索路径。
+
+#### 测试功能
+
+automake 提供了简单测试功能，在运行程序时返回非 0 则认为失败，否则认为成功；示例如下，需要在 `Makefile.am` 中添加如下内容，然后通过 `make check` 执行检查，相关可以参考 [Tests](https://www.gnu.org/software/automake/manual/html_node/Tests.html) 。
+
+{% highlight text %}
+TESTS = check_money
+check_PROGRAMS = check_money
+check_money_SOURCES = check_money.c $(top_builddir)/src/money.h
+check_money_CFLAGS = @CHECK_CFLAGS@
+check_money_LDADD = $(top_builddir)/src/libmoney.la @CHECK_LIBS@
+{% endhighlight %}
+
+另外，可以在 `Makefile.am` 中，可以增加其它功能测试，例如内存泄露，增加如下内容，详细参考 [Parallel Test Harness](https://www.gnu.org/software/automake/manual/html_node/Parallel-Test-Harness.html) 。
+
+<!-- LOG_COMPILER = env VALGRIND="@VALGRIND@" $(abs_top_srcdir)/testwrapper.sh  -->
+
+#### LIBADD VS. LDADD
+
+简单来说 `LIBADD` 用于库，`LDADD` 用于可执行文件。
+
+例如，要通过 libtool 生成一个 libfoo.la 静态库，那么可以使用如下方式。
+
+{% highlight text %}
+libfoo_la_LIBADD = libbar.la
+{% endhighlight %}
+
+如果使用了非 libtool 库，那么就需要通过 `-L` 和 `-l` 参数选项。
+
+{% highlight text %}
+libfoo_la_LIBADD = libbar.la -L/opt/local/lib -lpng
+{% endhighlight %}
+
+不过一般来说，回通过 configure 脚本查找所依赖的库，然后通过 `AC_SUBST` 函数将其导出，然后使用如下方式引用。
+
+{% highlight text %}
+libfoo_la_LIBADD = libbar.la $(EXTRA_FOO_LIBS)
+{% endhighlight %}
+
+而对于一个程序则使用如下方式。
+
+{% highlight text %}
+myprog_LDADD = libfoo.la # links libfoo, libbar, and libpng to myprog.
+{% endhighlight %}
+
+<!--
+Sometimes the boundaries are a bit vague. $(EXTRA_FOO_LIBS) could have been added to myprog_LDADD. Adding dependencies to a libtool (.la) library, and using libtool do all the platform-specific linker magic, is usually the best approach. It keeps all the linker metadata in the one place.
+-->
 
 ### 总结
 

@@ -204,6 +204,11 @@ int main(int argc, char **argv)
 3. 也可以在 ```Makefile.am``` 中设置 ```AM_CPPFLAGS += -DNDEBUG``` 参数。
 
 
+<!--
+## 宏定义
+http://hbprotoss.github.io/posts/cyu-yan-hong-de-te-shu-yong-fa-he-ji-ge-keng.html
+http://gcc.gnu.org/onlinedocs/cpp/Macros.html
+-->
 
 ## 指针
 
@@ -626,6 +631,62 @@ Clang 是一个 C++ 编写，基于 LLVM 的 C/C++、Objective-C 语言的轻量
 //... ...
 
 #pragma clang diagnostic pop
+{% endhighlight %}
+
+## 其它
+
+### is not a symbolic link
+
+正常情况下，类似库 ```libxerces-c-3.0.so``` 应该是个符号链接，而不是实体文件，对于这种情况只需要修改其为符号链接即可。
+
+{% highlight text %}
+# mv libxerces-c-3.0.so libxerces-c.so.3.0
+# ln -s libxerces-c.so.3.0 libxerces-c-3.0.so
+{% endhighlight %}
+
+### 指针参数修改
+
+一个比较容易犯错的地方，愿意是在 `foobar()` 函数内修改 `main()` 中的 v 指向的变量，其中后者实际上是修改的本地栈中保存的临时版本。
+
+{% highlight c %}
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+typedef struct value_s {
+  union {
+    char *string;
+  } value;
+} value_t;
+
+#if 1
+void foobar ( value_t *t )
+{
+  char **v = &t->value.string;
+  printf("foobar %p %s\n", *v, *v);
+  *v = "yang";
+  printf("foobar %p %s\n", *v, *v);
+}
+#else
+void foobar ( value_t *t )
+{
+  value_t v = *t;
+  printf("foobar %p %s\n", v.value.string, v.value.string);
+  v.value.string = "yang";
+  printf("foobar %p %s\n", v.value.string, v.value.string);
+}
+#endif
+
+int main()
+{
+  value_t v;
+  v.value.string = "jin";
+  printf("       %p %s\n", v.value.string, v.value.string);
+  foobar( &v );
+  printf("       %p %s\n", v.value.string, v.value.string);
+
+  return(0);
+}
 {% endhighlight %}
 
 

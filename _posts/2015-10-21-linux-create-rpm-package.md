@@ -171,6 +171,10 @@ rm -rf %{buildroot}
 - Initial version
 {% endhighlight %}
 
+对于 ```%config(noreplace)``` 表示为配置文件，且不能覆盖，新安装时如果配置文件存在则会将原文件保存为 `*.rpmsave` ，升级时则不会覆盖原文件，直接将包中的文件命名为 `*.rpmnew`，更详细内容可以参考 [RPM, %config, and (noreplace)](http://people.ds.cam.ac.uk/jw35/docs/rpm_config.html) 。
+
+<!-- /reference/linux/rpm-config-noreplace.maff -->
+
 <!--
 ###  4.1 scripts section #没必要可以不写 %pre        #rpm安装前制行的脚本 if [ $1 == 1 ];then    #$1==1 代表的是第一次安装，2代表是升级，0代表是卸载         /usr/sbin/useradd -r nginx 2> /dev/null  ##其实这个脚本写的不完整fi %post       #安装后执行的脚本  %preun      #卸载前执行的脚本 if [ $1 == 0 ];then         /usr/sbin/userdel -r nginx 2> /dev/null fi %postun     #卸载后执行的脚本  ###  5.clean section 清理段,删除buildroot  %clean rm -rf %{buildroot}      ###  6.file section 要包含的文件 %files  %defattr (-,root,root,0755)   #设定默认权限，如果下面没有指定权限，则继承默认 /etc/           #下面的内容要根据你在%{rootbuild}下生成的来写     /usr/ /var/      ###  7.chagelog section  改变日志段 %changelog *  Fri Dec 29 2012 laoguang <ibuler@qq.com> - 1.0.14-1 - Initial version
 

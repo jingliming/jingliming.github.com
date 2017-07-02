@@ -23,6 +23,80 @@ Git 版本的分支 (branch) 和合并 (merge) 十分方便，只生成一个指
 
 更加详细的内容可以查看 [Git Branching](https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell) 。
 
+### fast-forward
+
+当前分支合并到另一分支时，当没分歧解决时就会直接移动文件指针，这就被叫做 fast-forward 。
+
+举例来说，一直在 develop 分支开发，然后新建了一个 feature 分支，并在该分支上进行一系列提交，完成后，回到 develop 分支，此时，如果 develop 分支在创建 feature 分支后从未产生任何新的提交，此时的合并就叫 fast forward 。
+
+**注意**：可以看出这次合并完之后的视图为扁平状，看不出 feature 分支开发的任何信息。
+
+![git develop model no-ff means]({{ site.url }}/images/misc/git-develop-model-no-ff-means.png "git develop model no-ff means"){: .pull-center width="70%" }
+
+另外，可以使用 `--no-ff` (no fast foward) 进行合并，使得每一次的合并都创建一个新的 commit 记录，并强制保留 feature 分支的开发记录，也就告诉后来者 **一系列的提交都是为了同一个目的** 。
+
+{% highlight text %}
+[branch "master"]
+mergeoptions = --no-commit --no-ff
+{% endhighlight %}
+
+如果远程和本地分支的提交线图有分叉，也即不能 fast-forwarded，git 会执行一次 merge 操作，也就是产生一次没意义的提交记录，从而造成提交日志比较混乱。
+
+#### rebase VS. no-ff
+
+pull 时可以使用 `git pull --rebase` 选项，也即当提交线图有分叉的话，git 会用 rebase 策略来代替默认的 merge 策略，可以通过 `man git-merge` 查看详细内容，其好处介绍如下。
+
+假设提交线图在执行 pull 前是这样的：
+
+{% highlight text %}
+                 A---B---C  remotes/origin/master
+                /
+           D---E---F---G  master
+{% endhighlight %}
+
+如果是执行 `git pull` 后，提交线图会变成这样：
+
+{% highlight text %}
+                 A---B---C remotes/origin/master
+                /         \
+           D---E---F---G---H master
+{% endhighlight %}
+
+结果多出了 H 这个没必要的提交记录，如果执行 `git pull --rebase` 的话，提交线图会变成如下：
+
+{% highlight text %}
+                       remotes/origin/master
+                           |
+           D---E---A---B---C---F'---G'  master
+{% endhighlight %}
+
+F G 两个提交通过 rebase 方式重新拼接在 C 之后，多余的分叉去掉了，目的达到。大多数时候，使用 `git pull --rebase` 是为了使提交线图更好看，从而方便 code review 。
+
+<!--
+不过，如果你对使用 git 还不是十分熟练的话，我的建议是 git pull --rebase 多练习几次之后再使用，因为 rebase 在 git 中，算得上是『危险行为』。
+另外，还需注意的是，使用 git pull --rebase 比直接 pull 容易导致冲突的产生，如果预期冲突比较多的话，建议还是直接 pull。
+-->
+
+#### 最佳实践
+
+在合并分支之前，例如要在本地将 feature 分支合并到 dev 分支，会先检查 feature 分支是否落后于远程 dev 分支：
+
+{% highlight text %}
+$ git checkout dev
+$ git fetch                   ← 更新dev分支，pull<=>fetch+merge
+$ git log feature..dev
+{% endhighlight %}
+
+如果没有输出任何提交信息的话，即表示 feature 对于 dev 分支是 up-to-date 的，如果有输出的而马上执行了 `git merge --no-ff` 的话，提交线图会变成上图的左侧。
+
+<!--
+所以这时在合并前，通常我会先执行：
+git checkout feature
+git rebase dev
+这样就可以将 feature 重新拼接到更新了的 dev 之后，然后就可以合并了，最终得到一个干净舒服的提交线图。
+再次提醒：像之前提到的，rebase 是『危险行为』，建议你足够熟悉 git 时才这么做，否则的话是得不偿失啊。
+-->
+
 ### 常用场景
 
 如上是从现有代码中 clone 并查看分支，进行开发。
@@ -47,6 +121,9 @@ $ git checkout dev
 接下来看看如何从无到有新建分支，并提交到远端。
 
 {% highlight text %}
+----- 完整命令
+$ git push <remote-host> <local-branch>:<remote-branch>
+
 ----- 1. 创建本地新的hello分支
 $ git branch hello                    ← 创建本地分支
 $ git branch                          ← 查看本地分支
@@ -81,6 +158,8 @@ $ git branch -d hello
 
 ### 合并冲突
 
+作为分布式版本控制系统，所有修改操作都是基于本地的，在团队协作时，如果同时修改了相同的代码，而你同伴先于你 push 到远端，那么你必须先 pull 做本地合并，然后在 push 到远程。
+
 当在合并的时候，可能会出现代码冲突。
 
 {% highlight text %}
@@ -112,7 +191,7 @@ $ git status
 </div>
 {% endhighlight %}
 
-然后，通过 ```git add index.html``` 命令标记下，表示现在已经解决了冲突；当然，也可以使用 git mergetool 工具。
+然后，通过 ```git add index.html``` 命令标记下，表示现在已经解决了冲突；当然，也可以使用 `git mergetool` 工具。
 
 #### 其它
 

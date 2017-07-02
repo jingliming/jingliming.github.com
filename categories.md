@@ -111,8 +111,18 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Libev 事件库](/post/linux-libev.html)，一个 C 编写的高性能事件循环库，类似库还有 libevent、libubox 等。
 * [C 语言的字符串](/post/program-c-string-stuff.html)，简单介绍下 C 语言中与字符串、内存操作相关的函数。
 * [C 语言的奇技淫巧](/post/program-c-tips.html)，整理下 C 语言中常用的技巧。
+* [C 编译链接](/post/c-complie-link.html)，与 C 语言相关的编译链接概念
+* [Linux 线程编程](/post/program-c-linux-pthreads.html)，简单介绍下 Linux 中与线程相关的编程。
 * [Linux 时间函数](/post/linux-timer-functions.html)，简单介绍下 Linux 中与时间相关的函数。
 * [Linux AIO](/post/linux-program-aio.html)，简单介绍下 Linux 平台下的异步读写模型。
+
+#### Java Program
+
+简单介绍下与 Java 语言相关的内容。
+
+* [Java 环境搭建](/post/java-environment.html)，简单记录一下 Linux 下的 Java 环境搭建，以及使用方法。
+* [Java JDBC 驱动介绍](/post/java-jdbc-introduce.html)，先看 JDBC 的使用方法，然后看看其具体的实现原理
+* [Java C 程序调用](/post/program-c-java.html)，简单介绍下 Java 和 C 程序的相互调用。
 
 #### 安全
 

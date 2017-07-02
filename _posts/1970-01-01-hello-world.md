@@ -948,7 +948,6 @@ http://duartes.org/gustavo/blog/post/page-cache-the-affair-between-memory-and-fi
 https://www.quora.com/What-is-the-major-difference-between-the-buffer-cache-and-the-page-cache
 
 从free到page cache
-
 http://www.cnblogs.com/hustcat/archive/2011/10/27/2226995.html
 
 
@@ -965,39 +964,8 @@ libcurl使用
 http://www.cnblogs.com/moodlxs/archive/2012/10/15/2724318.html
 
 
-FIXME:
-   /post/collectd-source-code.html
-   cf_include_all() 在解析完上述配置文件后查看是否有Include选项
-   /post/collectd-source-code.html
- plugin_write() 所有插件都写入失败时返回-1，否则返回0
-   /post/linux-package.html
-   有红色输出，语法问题。
-   AC_CONFIG_FILES 主要是通过 ```*.in``` 模板生成响应的文件。
-
-   关于 autotools 的简单处理流程可以参考 [automake](http://www.gnu.org/software/automake/manual/automake.html) 中的 ```Setup Explained``` 内容。
-
-http://people.ds.cam.ac.uk/jw35/docs/rpm_config.html
-%config(noreplace)
-新安装时如果配置文件存在则会将原文件保存为 *.rpmsave ，升级时则不会覆盖原文件，直接将包中的文件命名为 *.rpmnew 。
 
 
-### simple & matching=>默认行为
-
-在 git 全局配置中，有个 push.default 属性决定了 git push 操作的默认行为，在 2.0 之前，默认为 'matching'，2.0 之后则被更改为了 'simple'。除此之外，还有如下的几个配置项：
-
-* nothing<br>push操作无效，除非显式指定远程分支，例如 git push origin develop。
-* current<br>push当前分支到远程同名分支，如果远程同名分支不存在则自动创建同名分支。
-* upstream<br>push当前分支到它的upstream分支上，常用于从本地分支push/pull到同一远程仓库的情景，这种模式叫做central workflow。
-* simple<br>simple和upstream是相似的，只有一点不同，simple必须保证本地分支和它的远程upstream分支同名，否则会拒绝push操作。
-* matching<br>push所有本地和远程两端都存在的同名分支。
-
-初次提交本地分支，例如 git push origin develop 操作，并不会定义当前本地分支的upstream分支，可以通过git push --set-upstream origin develop，关联本地develop分支的upstream分支，另一个更为简洁的方式是初次push时，加入-u参数，例如git push -u origin develop，这个操作在push的同时会指定当前分支的upstream。
-
- git branch --set-upstream-to=origin/<branch> new1
-http://blog.angular.in/git-pushmo-ren-fen-zhi/
-http://ybin.cc/git/git-default-push-option-explanation/
-https://orga.cat/posts/most-useful-git-commands
-https://git-scm.com/book/zh/v2/Git-%E5%B7%A5%E5%85%B7-%E5%82%A8%E8%97%8F%E4%B8%8E%E6%B8%85%E7%90%86#_git_stashing
 https://lwn.net/Articles/584225/
 https://en.wikipedia.org/wiki/Stack_buffer_overflow#Stack_canaries
 https://gcc.gnu.org/onlinedocs/gcc/Debugging-Options.html
@@ -1037,22 +1005,6 @@ https://gist.github.com/youngsterxyf/5088954
 
 安全渗透工具集
 https://wizardforcel.gitbooks.io/daxueba-kali-linux-tutorial/content/2.html
-
-git stash save              保存，不带子命令的默认值
-git stash apply stash@{0}   默认应用第一个，注意，此时不会删除保存的stash
-git stash drop stash@{0}    手动删除
-git stash list [<options>]
-git stash show [<stash>]
-git stash ( pop | apply ) [--index] [-q|--quiet] [<stash>]
-git stash branch <branchname> [<stash>]
-git stash [push [-p|--patch] [-k|--[no-]keep-index] [-q|--quiet]
-      [-u|--include-untracked] [-a|--all] [-m|--message <message>]]
-      [--] [<pathspec>…]]
-git stash clear
-git stash create [<message>]
-git stash store [-m|--message <message>] [-q|--quiet] <commit>
-
-在引用时，可以使用类似如下的方式 ```stash@{0}```、```stash@{2.hours.ago}``` 。
 
 hostname获取方式，在启动时通过 1) global_option_get() 配置文件获取；2) gethostname()；3) getaddrinfo()。
 
@@ -1184,94 +1136,10 @@ https://www.ibm.com/support/knowledgecenter/zh/ssw_aix_61/com.ibm.aix.genprogc/i
 
 flex 通过 yylval 将数据传递给 yacc；如果在 yacc 中使用了 ```%union``` ，那么各个条件的目的变量使用 yyval 。
 
-git关于merge和no-ff详细的介绍
-http://hungyuhei.github.io/2012/08/07/better-git-commit-graph-using-pull---rebase-and-merge---no-ff.html
-
-git log
-通过 git log 中的两个高级用法 (A:自定义提交信息的输出格式；B:过滤提交信息)，基本上就可以找到项目中需要的任何信息 (分支、标签、HEAD、提交历史)。
-
---oneline
-  把每一个提交压缩到了一行中，不过包含分支的信息；
---decorate
-  显示时添加分支以及 tag 信息，可以看到有哪些分支或者设备指向了提交记录；
-
-#### diff
---stat/-p
-  查看每次提交时代码的文件修改量，通常用于查看概览信息比较有用，+ - 分别表示提交文件的增删修改比例；
-  后者用于查看每个文件修改的详细信息，如果修改代码比较多那么现实内容会比较大；
-
-#### 用户分类
-shortlog
-  按照提交用户分类，很容易显示哪些用户提交了哪些内容，默认是按照用户ID排序，可以通过-n按照提交量排序。
-
-#### 分支历史
---graph
-  通过一个ASCII图像来展示提交历史的分支结构，可以和--oneline、--decorate选项一起使用；
-
-git log --graph --oneline --decorate
-*   0e25143 (HEAD, master) Merge branch 'feature'
-|\
-| * 16b36c6 Fix a bug in the new feature
-| * 23ad9ad Start a new feature
-* | ad8621a Fix a critical security issue
-|/
-* 400e4b7 Fix typos in the documentation
-* 160e224 Add the initial code base
-
-星号表明这个提交所在的分支，所以上图的意思是23ad9ad和16b36c6这两个提交在topic分支上，其余的在master分支上。对于复杂项目可以通过 gitk 或 SourceTree 分析。
-
-#### 自定义格式
-
-对于其它的 git log 格式需求，可以使用 --pretty=format:"<string>" 选项配置，通过不同的占位符替换相关的信息，详细可以查看 man git-show 。
-
-git log --pretty=format:"%cn committed %h on %cd"
-
-#### 过滤历史
-
------ 显示最近提交的3次commit记录
-git log -3
------ 指定时间范围(也可以使用1 week ago、yesterday)，注意--since、--until和--after、--before
-git log --after="2014-7-1" --before="2014-7-4"
------ 按照作者过滤，可以使用正则表达式，同时会匹配邮箱
-git log --author="John\|Mary"
------ 按照提交信息过滤
-git log --grep="JRA-224:"
-https://github.com/geeeeeeeeek/git-recipes/wiki/5.3-Git-log%E9%AB%98%E7%BA%A7%E7%94%A8%E6%B3%95
-
-如果你的工作流区分提交者和作者，--committer也能以相同的方式使用。
-
-关于FastForword的介绍
-https://ariya.io/2013/09/fast-forward-git-merge
-
-颜色设置
-https://www.pureweber.com/article/git-pretty-output/
+https://www.howtoforge.com/storing-files-directories-in-memory-with-tmpfs
 
 
-#### 标签修改
 
-标签可以针对某一时间点的版本做标记，常用于版本发布；git 中的标签分为两种类型：轻量标签和附注标签，前者指向提交对象的引用，附注标签则是仓库中的一个独立对象，建议使用附注标签。
-
------ 查看标签，可以查看所有或者正则表达式过滤
-$ git tag
-$ git tag -l 'v0.1.*'
-
------ 打标签，分别为轻量标签以及创建附注标签，其中-a表示annotated，也可以指定版本
-$ git tag v0.1.2-light
-$ git tag -a v0.1.2 -m "发布0.1.2版本"
-$ git tag -a v0.1.1 9fbc3d0
-
------ 切换标签或者分支，两者命令相同
-$ git checkout [tagname|branch]
-
------ 查看标签的版本信息
-$ git show v0.1.2
-
------ 删除标签，误操作需要删除后重新添加
-$ git tag -d v0.1.2
-
------ 标签发布，默认push不会将标签提交到git服务器，需要显示操作，可以提交单个或者所有的
-$ git push origin v0.1.2
-$ git push origin --tags
 meminfo详解
 https://lwn.net/Articles/28345/
 
@@ -1599,19 +1467,6 @@ END {
 
 
 
-git log
-https://ruby-china.org/topics/939
-https://www.howtoforge.com/storing-files-directories-in-memory-with-tmpfs
-/lib64/libxenstore.so.3.0 is not a symbolic link
- 错误提示：
-ldconfig
-ldconfig: /usr/local/lib/gliethttp/libxerces-c-3.0.so is not a symbolic link
-问题分析：
-因为libxerces-c-3.0.so正常情况下应该是一个符号链接,而不是实体文集件,修改其为符号链接即可
-解决方法：
-mv libxerces-c-3.0.so libxerces-c.so.3.0
-ln -s libxerces-c.so.3.0 libxerces-c-3.0.so
-这样就ok了
 
 
 可以通过mprotect设置内存的属性
@@ -1623,8 +1478,6 @@ https://eklitzke.org/memory-protection-and-aslr
 
 ES Collectd插件
 https://www.elastic.co/guide/en/logstash/current/plugins-codecs-collectd.html
-
-
 
 
 
@@ -1670,6 +1523,32 @@ http://www.cnblogs.com/b2tang/archive/2009/07/07/1518175.html
 协程
 https://github.com/Tencent/libco
 
+
+#if FOO < BAR
+#error "This section will only work on UNIX systems"
+#endif
+http://hbprotoss.github.io/posts/cyu-yan-hong-de-te-shu-yong-fa-he-ji-ge-keng.html
+https://linuxtoy.org/archives/pass.html
+https://en.m.wikipedia.org/wiki/Padding_(cryptography)
+
+
+
+
+
+ sed -e 's/collectd/\1/' *
+sed只取匹配部分
+http://mosquito.blog.51cto.com/2973374/1072249
+http://blog.sina.com.cn/s/blog_470ab86f010115kv.html
+
+通过sed只显示匹配行或者某些行
+----- 显示1,10行
+$ sed -n '1,10p' filename
+----- 显示第10行
+$ sed -n '10p' filename
+----- 显示某些匹配行
+$ sed -n '/This/p' filename
+sed -n '/\<collectd\>/p' *
+sed -i 's/\<Collectd/Uagent/g' *
 
 ←
 -->

@@ -93,12 +93,22 @@ git clone username@host:/path/to/repository
 -->
 
 
-
 ### 工作区和版本库
 
-**工作区** 就是在电脑上看到的目录以及文件 (.git隐藏目录版本库除外)，包括以后需要再新建的目录文件等等都属于工作区范畴。
+在本地会分为三部分，分别是。
 
-**版本库 (Repository)** 工作区有一个隐藏目录 .git 就是版本库，其中比较重要的就是 stage(暂存区)，还有自动创建了第一个分支 master，以及指向 master 的一个指针 HEAD。
+1. Working Directory(Tree)，工作目录<br>
+    也就是保存当前工作的文件所在的目录，文件会在切换分支时被删除或者替换。
+
+2. GIT Directory (GIT库目录)<br>
+    项目所有历史提交都被保存在了GIT库目录中。
+
+3. GIT Index (GIT索引)<br>
+    可以看作是工作目录和GIT库目录之间的暂存区，与 `Staging Area` 是相同意思，也就是已经被 ADD 但是尚未被 commit 的内容。
+
+**工作目录** 就是在电脑上看到的目录以及文件 (.git隐藏目录版本库除外)，包括以后需要再新建的目录文件等等都属于工作区范畴。
+
+**版本库** 工作目录下有一个隐藏目录 .git 就是版本库，其中比较重要的就是 stage(暂存区)，还有自动创建了第一个分支 master，以及指向 master 的一个指针 HEAD。
 
 ![git stage commit]({{ site.url }}/images/misc/git-stage-commit.png "git stage commit"){: .pull-center width="50%" }
 
@@ -112,13 +122,57 @@ git clone username@host:/path/to/repository
 
 也就是说，添加到 stage 区域后，只要未提交，可以多次修改文件并 add 到 stage 区。
 
+### upstream downstream
+
+git 中的 upstream 和 downstream 的概念是相对的，如果本地库中的分支 foo 被 push 到远端中的分支 bar，那么 bar 就是 foo 的 upstream，而 foo 就是 bar 的 downstream 。
+
+相关的配置会保存在本地库的 `.git/config` 文件中。
+
+{% highlight text %}
+[core]
+    filemode = true
+[remote "origin"]
+    url = https://github.com/foobar/test.git
+    fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "master"]
+    remote = origin
+    merge = refs/heads/master
+{% endhighlight %}
+
+如果当前分支与多个主机存在追踪关系，则可以使用 `-u` 选项指定一个默认主机，这样后面就可以不加任何参数使用 `git push` ，命令如下，在 push 的同时也会指定当前分支的 upstream 。
+
+{% highlight text %}
+----- 初次提交本地分支，并不会设置当前本地分支的upstream分支
+$ git push origin local-branch:remote-branch
+
+----- 提交的同时，关联本地local-branch分支的upstream分支
+$ git push --set-upstream origin local-branch:remote-branch
+$ git push -u origin local-branch:remote-branch
+
+----- 只设置分支，为新建的本地分支设置在远程库中的upstream分支
+$ git branch --set-upstream-to=origin/remote-branch local-branch
+$ git branch --set-upstream local-branch origin/remote-branch        ← 过期
+{% endhighlight %}
+
+通过 `git push -u origin master` 将本地的 master 分支推送到 origin 主机后，同时指定 origin 为默认主机，以及指定的远端分支，后面就可以不加任何参数使用 `git push` 了。
+
+<!--
+$ git remote add origin ssh://github/foobar/test
+now configure master to know to track
+# git config branch.master.remote origin
+# git config branch.master.merge refs/heads/master
+and push
+# git push origin master
+-->
+
+
 ### 配置文件
 
-总共有三个配置文件：/etc/gitconfig、~/.gitconfig、.git/config ，其优先级依次递增，后者的配置会覆盖前面的配置项。
+总共有三个配置文件：`/etc/gitconfig`、`~/.gitconfig`、`.git/config` ，其优先级依次递增，后者的配置会覆盖前面的配置项。
 
 #### 全局配置
 
-简单来说就是 git config \-\-system 命令，添加了一个 system 参数，配置内容保存在 /etc/gitconfig 文件中，如下是设置 st 简化命令。
+简单来说就是 `git config --system` 命令，可以添加了一个 system 参数，配置内容保存在 `/etc/gitconfig` 文件中，如下是设置 st 简化命令。
 
 {% highlight text %}
 $ git config --system alias.st status     # git st
@@ -126,13 +180,16 @@ $ git config --system alias.st status     # git st
 
 #### 用户配置
 
-执行 git config 会修改 ~/.gitconfig 文件的内容。
+执行 `git config` 会修改 `~/.gitconfig` 文件的内容。
 
 {% highlight text %}
 ----- 设置用户的默认用户名和密码
-$ git config --global user.name "Your Name"
-$ git config --global user.email you@example.com
-$ git commit --amend --reset-author          # 未提交远端的可以进行修复
+$ git config --global user.name   "Your Name"
+$ git config --global user.email  you@example.com
+$ git config --global core.editor vim
+$ git config --global merge.tool  vimdiff 
+$ git config --list
+$ git commit --amend --reset-author                 ← 未提交远端的可以进行修复
 
 ----- 开启颜色显示
 $ git config --global color.ui true
@@ -140,17 +197,25 @@ $ git config --global color.ui true
 
 #### 工作目录配置
 
-进入工作根目录，运行 git config -e，这样就只会修改工作区的 .git/config 文件。
+进入工作根目录，运行 `git config -e`，这样就只会修改工作区的 `.git/config` 文件。
 
 
 ## 常见命令参考
 
 在 clone 时会自动在本地分支和远程分支之间，建立一种追踪关系 (tracking)；例如，在通过 git clone 从远程库中复制代码库时，会自动将本地的 master 分支与 origin/master 分支对应。
 
-当然，Git 也允许手动建立追踪关系，如下命令指定本地 master 分支追踪远程的 origin/next 分支。
+![git operation]({{ site.url }}/images/misc/git-operatoins.jpg "git operations"){: .pull-center width="80%" }
+
+当然，也可以手动建立追踪关系，如下命令指定本地 master 分支追踪远程的 origin/next 分支。
 
 {% highlight text %}
+----- 手动设置上游
 $ git branch --set-upstream master origin/next
+
+----- 查看origin远端的信息，包括哪些远程分支信息可能过期
+$ git remote show origin
+----- 删除origin远程过期的分支
+$ git remote prune origin
 {% endhighlight %}
 
 ### git pull
@@ -183,7 +248,7 @@ $ git pull --rebase <远程主机名> <远程分支名>:<本地分支名>
 
 ### git push
 
-该命令用于将本地分支的更新，推送到远程主机，其格式与 git pull 命令相仿，只是分支方向相反。
+该命令用于将本地分支的更新推送到远程主机，其格式与 `git pull` 相仿，只是分支方向相反。
 
 {% highlight text %}
 ----- 完整命令
@@ -204,17 +269,22 @@ $ git push
 
 {% endhighlight %}
 
-如果当前分支与多个主机存在追踪关系，则可以使用 -u 选项指定一个默认主机，这样后面就可以不加任何参数使用 git push ，命令如下。
-
-{% highlight text %}
-$ git push -u origin master
-{% endhighlight %}
-
-上面命令将本地的 master 分支推送到 origin 主机，同时指定 origin 为默认主机，后面就可以不加任何参数使用 git push 了。
-
 #### simple & matching
 
-简单来说，对于不带任何参数的 git push 命令；如果只推送当前分支，则称之为 simple方式；如果推送所有远程分支的对应本地分支，则为 matching，可以通过如下方式设置。
+<!--
+Git push与pull的默认行为
+http://blog.angular.in/git-pushmo-ren-fen-zhi/
+-->
+
+在 git 全局配置中，有个 `push.default` 属性决定了 `git push` 操作的默认行为，在 2.0 之前，默认为 `'matching'`，2.0 之后则被更改为了 `'simple'`。除此之外，还有如下的几个配置项：
+
+* nothing<br>push操作无效，除非显式指定远程分支，例如 git push origin develop。
+* current<br>push当前分支到远程同名分支，如果远程同名分支不存在则自动创建同名分支。
+* upstream<br>把当前分支推送到远程跟踪分支(upstream)，远程跟踪分支必须存在，但是不必跟当前分支同名；常用于从本地分支push/pull到同一远程仓库的情景，这种模式叫做central workflow。
+* simple<br>simple和upstream是相似的，只是必须保证本地分支和它的远程upstream分支同名且存在，否则会拒绝push操作。
+* matching<br>push所有本地和远程两端都存在的同名分支。
+
+简单来说，对于不带任何参数的 `git push` 命令；如果只推送当前分支，则称之为 simple方式；如果推送所有远程分支的对应本地分支，则为 matching，可以通过如下方式设置。
 
 {% highlight text %}
 $ git config --global push.default matching
@@ -229,6 +299,199 @@ $ git push --all origin
 
 上面命令表示，将所有本地分支都推送到 origin 主机。
 
+### git log
+
+通过 `git log` 中的两个高级用法 (A:自定义提交信息的输出格式；B:过滤提交信息)，基本上就可以找到项目中需要的任何信息 (分支、标签、HEAD、提交历史)。
+
+{% highlight text %}
+--oneline
+  把每一个提交压缩到了一行中，不过包含分支的信息；
+--decorate
+  显示时添加分支以及 tag 信息，可以看到有哪些分支或者设备指向了提交记录；
+
+<<<<<<<< 查看diff信息
+--stat/-p
+  查看每次提交时代码的文件修改量，通常用于查看概览信息比较有用，+ - 分别表示提交文件的增删修改比例；
+  注意，由于后者用于查看每个文件修改的详细信息，如果修改代码比较多那么现实内容会比较大；
+
+<<<<<<<< 按照用户分类
+shortlog
+  按照提交用户分类，很容易显示哪些用户提交了哪些内容，默认是按照用户ID排序，可以通过-n按照提交量排序。
+  git shortlog --format='%H|%cn|%s'
+
+<<<<<<<< 查看分支历史
+--graph
+  通过一个ASCII图像来展示提交历史的分支结构，可以和--oneline、--decorate选项一起使用，如下所示：
+$ git log --graph --oneline --decorate
+*   0e25143 (HEAD, master) Merge branch 'feature'
+|\
+| * 16b36c6 Fix a bug in the new feature
+| * 23ad9ad Start a new feature
+* | ad8621a Fix a critical security issue
+|/
+* 400e4b7 Fix typos in the documentation
+* 160e224 Add the initial code base
+  星号表明这个提交所在的分支，所以上图的意思是23ad9ad和16b36c6这两个提交在topic分支上，其余的在master
+  分支上。对于复杂项目可以通过gitk或SourceTree分析。
+
+<<<<<<<< 过滤历史
+----- 显示最近提交的3次commit记录
+$ git log -3
+----- 指定时间范围(也可以使用1 week ago、yesterday)，注意--since、--until和--after、--before
+$ git log --after="2014-7-1" --before="2014-7-4"
+----- 按照作者过滤，可以使用正则表达式，同时会匹配邮箱
+$ git log --author="John\|Mary"
+----- 按照提交信息过滤
+$ git log --grep="JRA-224:"
+{% endhighlight %}
+
+#### 自定义格式
+
+对于其它的 `git log` 格式需求，可以使用 `--pretty=format:"<string>"` 选项配置，通过不同的占位符替换相关的信息，详细可以查看 `man git-show` 。
+
+{% highlight text %}
+----- 简单示例
+$ git log --pretty=format:"%cn committed %h on %cd"
+{% endhighlight %}
+
+如果定制了一个输出方案，可保存到 `git config`，或设置 `alias` 以便日后使用，在 `~/.gitconfig` 中加入:
+
+{% highlight text %}
+[alias]
+    lg = log --graph
+{% endhighlight %}
+
+或者运行 `git config --global alias.lg "log --graph"` 。
+
+<!--
+git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset' --abbrev-commit --date=relative
+git log --pretty=format:\"%h %ad | %s%d [%an]\" --graph --date=short
+https://github.com/geeeeeeeeek/git-recipes/wiki/5.3-Git-log%E9%AB%98%E7%BA%A7%E7%94%A8%E6%B3%95
+
+如果你的工作流区分提交者和作者，--committer也能以相同的方式使用。
+-->
+
+### git tag
+
+标签可对某一时间点的版本做标记，常用于版本发布；分为两种类型：轻量标签和附注标签，前者指向提交对象的引用，附注标签则是仓库中的一个独立对象，建议使用附注标签。
+
+{% highlight text %}
+----- 查看标签，可以查看所有或者正则表达式过滤
+$ git tag
+$ git tag -l 'v0.1.*'
+
+----- 打标签，分别为轻量标签以及创建附注标签，其中-a表示annotated，也可以指定版本
+$ git tag v0.1.2-light
+$ git tag -a v0.1.2 -m "发布0.1.2版本"
+$ git tag -a v0.1.1 9fbc3d0
+
+----- 切换标签或者分支，两者命令相同
+$ git checkout [tagname|branch]
+
+----- 查看标签的版本信息
+$ git show v0.1.2
+
+----- 删除标签，误操作需要删除后重新添加
+$ git tag -d v0.1.2
+
+----- 标签发布，默认push不会将标签提交到git服务器，需要显示操作，可以提交单个或者所有的
+$ git push origin v0.1.2
+$ git push origin --tags
+{% endhighlight %}
+
+### git stash
+
+<!--
+Git 工具 - 储藏与清理
+https://git-scm.com/book/zh/v2/Git-%E5%B7%A5%E5%85%B7-%E5%82%A8%E8%97%8F%E4%B8%8E%E6%B8%85%E7%90%86#_git_stashing
+-->
+
+在做了一堆的修改之后，突然有另外的任务要做，切换分支时就会有问题，那么此时可以通过该命令暂存，完成工作后恢复。
+
+{% highlight text %}
+$ git stash save                 ← 保存，不带子命令的默认值
+$ git stash apply stash@{0}      ← 默认应用第一个，注意，此时不会删除保存的stash
+$ git stash drop stash@{0}       ← 手动删除
+$ git stash list                 ← 查看所有的stash
+{% endhighlight %}
+
+<!--
+git stash show [<stash>]
+git stash ( pop | apply ) [--index] [-q|--quiet] [<stash>]
+git stash branch <branchname> [<stash>]
+git stash [push [-p|--patch] [-k|--[no-]keep-index] [-q|--quiet]
+      [-u|--include-untracked] [-a|--all] [-m|--message <message>]]
+      [--] [<pathspec>…]]
+git stash clear
+git stash create [<message>]
+git stash store [-m|--message <message>] [-q|--quiet] <commit>
+https://git-scm.com/book/zh/v1/Git-%E5%B7%A5%E5%85%B7-%E5%82%A8%E8%97%8F%EF%BC%88Stashing%EF%BC%89
+-->
+
+在引用时，可以使用类似如下的方式 ```stash@{0}```、```stash@{2.hours.ago}``` 。
+
+### git revert reset
+
+`git revert` 生成一个新的提交来撤销某次提交，此次提交之前的 commit 都会被保留；`git reset` 回到某次提交，提交及之前的 commit 都会被保留，但是此次之后的修改都会被退回到暂存区。
+
+如下，假设已经通过三次提交保存了三个文件。
+
+{% highlight text %}
+$ git log --pretty=oneline
+commit3: add file3.txt
+commit2: add file2.txt
+commit1: add file1.txt
+
+----- 通过revert撤销一次修改，实际上是提交了一次反向的提交
+$ git revert HEAD~1
+$ git log --pretty=oneline
+commit4: Revert "add file3.txt"
+commit3: add file3.txt
+commit2: add file2.txt
+commit1: add file1.txt
+{% endhighlight %}
+
+通过 reset 撤销上次提交时有三个参数，分别针对 `working tree` 和 `index` 和 `HEAD` 进行重置：
+
+* soft：只回退 commit 信息，不恢复到 index file 一级，如果还要提交，直接 commit 即可；
+* mixed：默认方式，回退到某个版本，只保留源码，回退 commit 和 index 信息；
+* hard：彻底回退到某个版本，本地的源码也会变为上一个版本的内容。
+
+{% highlight text %}
+----- 通过soft回退，回退提交信息，文件回到stage区，不会删除
+$ git reset --soft HEAD~1
+commit2: add file2.txt
+commit1: add file1.txt
+$ ls
+file1.txt file2.txt file3.txt
+$ git status                       ← file3.txt回退到stage区
+# On branch master
+# Changes to be committed:
+#       new file:   file3.txt
+
+----- 通过mixed回退，回退提交信息，文件回到工作区，不会删除
+$ git reset --mixed HEAD~1
+commit2: add file2.txt
+commit1: add file1.txt
+$ ls
+file1.txt file2.txt file3.txt
+$ git status                       ← file3.txt回退到工作区
+# On branch master
+# Untracked files:
+#       file3.txt
+
+----- 通过hard回退，回退提交信息，文件被删除
+$ git reset --hard HEAD~1
+HEAD is now at c518422 add file2.txt
+commit2: add file2.txt
+commit1: add file1.txt
+$ ls
+file1.txt file2.txt
+$ git status                       ← file3.txt被删除
+# On branch master
+nothing to commit, working directory clean
+{% endhighlight %}
+
 ### 其它
 
 {% highlight text %}
@@ -239,6 +502,11 @@ $ git show <HASHID> file                     ← 某次某个文件的修改内�
 $ git show <HASHID> --stat                   ← 修改了那些文件的统计
 $ git diff --name-status HEAD~2 HEAD~3       ← 标记修改了的文件
 $ git log -p <FILENAME>                      ← 某个文件修改历史
+
+----- 查看当前目录每个文件的最后提交者
+git ls-tree -r --name-only HEAD | while read filename; do
+  echo "$(git log -1 --format="%an %ae" -- $filename) $filename"
+done
 {% endhighlight %}
 
 #### 更新单个文件
@@ -382,11 +650,10 @@ git submodule update
 
 ## 参考
 
-Windows 下的客户端可以参考 [git for windows](https://git-for-windows.github.io/) 。
-
-一本不错介绍 Git 的资料 [Pro Git Book](http://git-scm.com/book/) 。
+Windows 下的客户端可以参考 [git for windows](https://git-for-windows.github.io/)，Linux 可以使用基于 ncurses 的客户端 [tig](http://jonas.nitro.dk/tig/) ，也可以直接参考 [github](https://github.com/jonas/tig)；另外，一本不错介绍 Git 的资料 [Pro Git Book](http://git-scm.com/book/) 。
 
 对于一种不错的 Git 分支管理模式，也即如上的介绍，可以参考 [A successful Git branching model](http://nvie.com/posts/a-successful-git-branching-model/) 或者 [本地文档](/reference/misc/A successful Git branching model.mht) 。
+
 
 <!--
 
@@ -403,6 +670,8 @@ http://www.cnblogs.com/ctrlzhang/p/5195079.html
 https://www.oschina.net/news/70368/git-advanced-commands
 
 http://blog.csdn.net/wirelessqa/article/details/20152353
+
+https://git-scm.com/book/zh/v1/Git-%E5%9F%BA%E7%A1%80-%E6%92%A4%E6%B6%88%E6%93%8D%E4%BD%9C
 -->
 
 {% highlight text %}
