@@ -243,10 +243,12 @@ master_SSL_Cipher         #加密算法;
 master_SSL_Key            #私钥文件;
 -->
 
-如果不指定 master_log_file 和 master_log_pos 参数，则会从头开始复制；但是如果已经有很多数据了，可以通过 mysqldump 导出，并记录二进制文件以及位置。
+在执行 `CHANGE MASTER TO` 命令时，可以只修改部分命令参数，例如只修改同步的位置信息。
+
+如果不指定 `master_log_file` 和 `master_log_pos` 参数，则会从头开始复制；但是如果已经有很多数据了，可以通过 `mysqldump` 导出，并记录二进制文件以及位置。
 
 
-<!--
+
 #### 重置复制
 
 在如下的测试中，可以通过下面的方式重置复制。
@@ -284,7 +286,6 @@ mysql> CHANGE MASTER TO master_host='localhost',master_port=3307,
        master_user='mysync',master_password='kidding',
        master_auto_position = 1;
 {% endhighlight %}
--->
 
 
 

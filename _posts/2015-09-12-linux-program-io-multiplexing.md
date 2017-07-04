@@ -1,5 +1,5 @@
 ---
-title: Linux IO 多路复用应用
+title: Linux IO 多路复用
 layout: post
 comments: true
 language: chinese

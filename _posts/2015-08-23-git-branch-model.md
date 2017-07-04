@@ -23,6 +23,20 @@ Git 版本的分支 (branch) 和合并 (merge) 十分方便，只生成一个指
 
 更加详细的内容可以查看 [Git Branching](https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell) 。
 
+### 追踪分支
+
+追踪分支是用与联系本地分支和远程分支，在追踪分支 (Tracking Branches) 上执行 push 或 pull 时，会自动关联到远程分支上；如果要经常从远程仓库里拉取分支到本地，而且想简单使用 `git pull` 命令，那么就应当使用 "追踪分支" 。
+
+可以通过如下命令手动创建一个追踪分支。
+
+{% highlight text %}
+$ git branch --track experimental origin/experimental
+{% endhighlight %}
+
+当运行 `git pull experimental` 命令时，会自动从 `origin/experimental` fetch 内容，然后再将该分支 merge 进本地的 `experimental` 分支。
+
+当要把修改 push 到 origin 时, 它会将你本地的 `experimental` 分支中的修改推送到 `origin/experimental` 分支里，而且无需指定 origin 。
+
 ### fast-forward
 
 当前分支合并到另一分支时，当没分歧解决时就会直接移动文件指针，这就被叫做 fast-forward 。

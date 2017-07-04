@@ -409,10 +409,12 @@ https://git-scm.com/book/zh/v2/Git-%E5%B7%A5%E5%85%B7-%E5%82%A8%E8%97%8F%E4%B8%8
 在做了一堆的修改之后，突然有另外的任务要做，切换分支时就会有问题，那么此时可以通过该命令暂存，完成工作后恢复。
 
 {% highlight text %}
-$ git stash save                 ← 保存，不带子命令的默认值
-$ git stash apply stash@{0}      ← 默认应用第一个，注意，此时不会删除保存的stash
-$ git stash drop stash@{0}       ← 手动删除
-$ git stash list                 ← 查看所有的stash
+$ git stash save "message ..."       ← 保存，不带子命令的默认值  
+$ git stash apply stash@{0}          ← 默认应用第一个，注意，此时不会删除保存的stash
+$ git stash drop stash@{0}           ← 手动删除
+$ git stash list                     ← 查看所有的stash
+$ git stash pop [--index] [<stash>]  ← 恢复最新的保存，并从列表中删除
+$ git stash clear                    ← 删除所有存储的进度
 {% endhighlight %}
 
 <!--
@@ -491,6 +493,76 @@ $ git status                       ← file3.txt被删除
 # On branch master
 nothing to commit, working directory clean
 {% endhighlight %}
+
+### git rm
+
+主要介绍 `git rm --cached` 的操作，其原理是删除 stage 和 repository 中对应文件，但是不会删除 working directory 中的文件，由于已经从 repository 刪除，那么文件会从 tracked 变成 untracked 。
+
+### 撤销操作
+
+经常会有操作错误的情况，简单介绍常见的撤销操作。
+
+#### 修改最后一次提交
+
+有时候我们提交完了才发现漏掉了几个文件没有加，或者提交信息写错了。想要撤消刚才的提交操作，可以使用 `--amend` 选项重新提交：
+
+{% highlight text %}
+$ git commit --amend
+{% endhighlight %}
+
+此命令将使用当前的暂存区域快照提交，如果刚才提交完没有作任何改动，相当于有机会重新编辑提交说明。
+
+如果刚才提交时忘了暂存某些修改，可以先补上暂存操作，然后再运行 `--amend` 提交：
+
+{% highlight text %}
+$ git commit -m 'initial commit'
+$ git add forgotten_file
+$ git commit --amend
+{% endhighlight %}
+
+上面的三条命令最终只是产生一个提交，第二个提交命令修正了第一个的提交内容。
+
+#### 取消已经暂存的文件
+
+已经通过 add 添加到了 staged 中，但是想分开提交，那么可以通过如下方式操作。
+
+{% highlight text %}
+----- 查看状态，实际在提示中已经有相关的命令，
+$ git status
+On branch master
+Changes to be committed:
+  (use "git reset HEAD <file>..." to unstage)
+
+        modified:   README.txt
+        modified:   benchmarks.rb
+----- 撤销一个文件的缓存操作，如果不指定文件则会撤销所有的
+$ git reset HEAD benchmarks.rb
+Unstaged changes after reset:
+M       benchmarks.rb
+$ git status
+On branch master
+Changes to be committed:
+        modified:   README.txt
+
+Changes not staged for commit:
+        modified:   benchmarks.rb
+{% endhighlight %}
+
+#### 取消对文件的修改
+
+在修改了一个文件之后，突然发现修改完全没有必要，可以通过如下方式撤销；实际上，在 `git status` 中已经有了提示。
+
+{% highlight text %}
+$ git checkout -- benchmarks.rb
+$ git status
+On branch master
+Changes to be committed:
+        modified:   README.txt
+{% endhighlight %}
+
+注意，这条命令是直接撤消了之前的修改，而且无法恢复，所以执行前一定要确认确实不需要了。
+
+另外，任何已经提交到 git 的都可以被恢复，即便在已经删除分支中的提交，或者用 `--amend` 重新改写的提交；可能失去的数据，仅限于没有提交过的，因为对 git 来说它们就像从未存在过一样。
 
 ### 其它
 

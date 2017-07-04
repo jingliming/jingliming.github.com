@@ -137,6 +137,9 @@ systemd 的资源管理主要基于三个单元 service、scope 以及 slice：
           也可以添加到已有slice(systemctl -t slice)或者新建一个。
 # systemd-run --unit=toptest --slice=test top -b
 # systemctl stop toptest
+
+----- 查看当前资源使用状态
+$ systemctl show toptest
 {% endhighlight %}
 
 各服务配置保存在 ```/usr/lib/systemd/system/``` 目录下，可以通过如下命令设置各个服务的参数。
@@ -151,6 +154,8 @@ systemd 的资源管理主要基于三个单元 service、scope 以及 slice：
 ----- 设置CPU和内存使用率
 # systemctl set-property httpd.service CPUShares=600 MemoryLimit=500M
 {% endhighlight %}
+
+另外，在 systemd 213 版本之后才开始支持 `CPUQuota` 参数，此时可以直接修改 `cpu.cfs_{quota,period}_us` 参数，也就是在 `/sys/fs/cgroup/cpu/` 目录下。
 
 ## 参考
 

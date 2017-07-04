@@ -1550,6 +1550,39 @@ $ sed -n '/This/p' filename
 sed -n '/\<collectd\>/p' *
 sed -i 's/\<Collectd/Uagent/g' *
 
+
+
+
+Proxy
+简单的实现，通常用于嵌入式系统
+https://github.com/kklis/proxy
+Golang实现的代理，包括了0复制技术等 
+https://github.com/funny/proxy
+dnscrypt-proxy DNS客户端与服务端的加密传输，使用libevent库
+https://github.com/jedisct1/dnscrypt-proxy
+ProxyChains Sock以及HTTP代理，通常用在类似TOR上面
+https://github.com/haad/proxychains
+https://github.com/rofl0r/proxychains-ng
+基于libevent的简单代理服务
+https://github.com/wangchuan3533/proxy
+支持多种协议的代理服务，包括FTP、DNS、TCP、UDP等等
+https://github.com/z3APA3A/3proxy
+一个加密的代理服务
+https://github.com/proxytunnel/proxytunnel
+Vanish缓存中使用的代理服务
+https://github.com/varnish/hitch
+360修改的MySQL代理服务
+https://github.com/Qihoo360/Atlas
+Twitter提供的Memchached代理服务
+https://github.com/twitter/twemproxy
+
+UDP可靠传输方案
+http://blog.codingnow.com/2016/03/reliable_udp.html
+http://blog.csdn.net/kennyrose/article/details/7557917
+BitCoin中使用的可靠UDP传输方案
+https://github.com/maidsafe-archive/MaidSafe-RUDP
+UDP方案的优缺点
+https://blog.wilddog.com/?p=668
 ←
 -->
 
