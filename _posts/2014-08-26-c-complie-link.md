@@ -108,6 +108,77 @@ __attribute__((section("BAR"))) void foo() { }
 * 入口函数在完成初始化之后，调用 main 函数，正式开始执行程序主体部分。
 * `main()` 执行完后，返回到入口函数，入口函数进行清理工作，包括全局变量析构、堆销毁、关闭 IO 等，然后进行系统调用结束进程。
 
+## 静态库和动态库
+
+库有动态与静态两种，Linux 中动态通常用 `.so` 为后缀，静态用 `.a` 为后缀，如：`libhello.so` `libhello.a`。为了在同一系统中使用不同版本的库，可以在库文件名后加上版本号为后缀，例如：`libhello.so.1.0`，然后，使用时通过符号链接指向不同版本。
+
+{% highlight text %}
+# ln -s libhello.so.1.0 libhello.so.1
+# ln -s libhello.so.1 libhello.so
+{% endhighlight %}
+
+在动态链接的情况下，可执行文件中还有很多外部符号的引用还处于无效地址的状态，因此需要首先启一个 **动态链接器 (Dynamic Linker)**，该连接器的位置在程序的 `".interp"` (interpreter) 中指定，可以通过如下的命令查询。
+
+{% highlight text %}
+$ readelf -l a.out | grep interpreter
+{% endhighlight %}
+
+### 共享库的更新
+
+对于共享库更新时通常会有兼容更新和不兼容更新，此处所说的兼容是指二进制接口，即 `ABI (Application Binary Interface)`。
+
+为了保证共享库的兼容性， Linux 采用一套规则来命名系统中的共享库，简单来说，其规则如下 `libname.so.x.y.z`，name 为库的名称，x y z 的含义如下：
+
+* x，主版本号(Major Version Number)，库的重大升级，不同的主版本号之间不兼容。
+* y，次版本号(Minor Version Number)，库的增量升级，增加了一些新的接口，且保持原来的符号不变。
+* z，发布版本号(Release Version Number)，库的一些错误的修正、性能的改进等，并不添加任何新的接口，也不对接口进行改进。
+
+由于历史的原因最基本的 C 语言库 glibc 动态链接库不使用这种规则，如 `libc-x.y.z.so` 、`ld-x.y.z.so` 。
+
+下面这篇论文， Library Interface Versioning in Solaris and Linux ，对 Salaris 和 Linux 的共享库版本机制和符号版本机制做了非常详细的介绍。
+
+在 Linux 中采用 SO-NAME 的命名机制，每个库会对应一个 SO-NAME ，这个 SO-NAME 只保留主版本号，也即 SO-NAME 规定了共享库的接口。
+
+### 路径问题
+
+如果动态库不在搜索路径中，则会报 `cannot open shared object file: No such file or directory` 的错误。可以通过 `gcc --print-search-dirs` 命令查看默认的搜索路径。
+
+查找顺序通常为：
+
+1. 查找程序编译指定的路径，保存在 `.dynstr` 段，其中包含了一个以冒号分割的目录搜索列表。
+2. 查找环境变量 `LD_LIBRARY_PATH`，以冒号分割的目录搜索列表。
+3. 查找 `/etc/ld.so.conf` 。
+4. 默认路径 `/lib` 和 `/usr/lib` 。
+
+为了让执行程序顺利找到动态库，有三种方法：
+
+##### 复制到指定路径
+
+把库拷贝到查找路径下，通常为 `/usr/lib` 和 `/lib` 目录下，或者通过 `gcc --print-search-dirs` 查看动态库的搜索路径。
+
+##### 添加链接选项
+
+编译时添加链接选项，指定链接库的目录，此时会将该路径保存在二进制文件中。
+
+{% highlight text %}
+$ gcc -o test test.o -L. -lhello -Wl,-rpath,/home/lib:.
+$ readelf -d test | grep RPATH
+$ objdump -s -j .dynstr test                     // 查看.dynstr段的内容
+{% endhighlight %}
+
+##### 设置环境变量
+
+执行时在 `LD_LIBRARY_PATH` 环境变量中加上库所在路径，例如动态库 `libhello.so` 在 `/home/test/lib` 目录下。
+
+{% highlight text %}
+$ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/test/lib
+{% endhighlight %}
+
+##### 修改配置文件
+
+修改 `/etc/ld.so.conf` 文件，把库所在的路径加到文件中，并执行 `ldconfig` 刷新配置。动态链接库通常保存在 `/etc/ld.so.cache` 文件中，执行 `ldconfig` 可以对其进行刷新。
+
+
 
 
 {% highlight text %}

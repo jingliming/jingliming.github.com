@@ -1583,6 +1583,46 @@ BitCoin中使用的可靠UDP传输方案
 https://github.com/maidsafe-archive/MaidSafe-RUDP
 UDP方案的优缺点
 https://blog.wilddog.com/?p=668
+
+
+
+
+export http_proxy="http://<username>:<password>@proxy.foobar.com:8080"
+export https_proxy="http://<username>:<password>@proxy.foobar.com:8080"
+export ftp_proxy="http://<username>:<password>@proxy.foobar.com:8080"
+export no_proxy="xxxx,xxxx"
+
+
+https://github.com/wglass/collectd-haproxy  Python
+https://github.com/Fotolia/collectd-mod-haproxy  C
+https://github.com/funzoneq/collectd-haproxy-nbproc
+https://github.com/signalfx/collectd-haproxy  ***
+https://github.com/mleinart/collectd-haproxy  *
+
+很多collectd插件的组合，很多不错的监控指标梳理
+https://github.com/signalfx/integrations
+https://github.com/DataDog/the-monitor
+https://www.librato.com/docs/kb/collect/integrations/haproxy/
+https://www.datadoghq.com/blog/monitoring-haproxy-performance-metrics/
+https://github.com/mleinart/collectd-haproxy/blob/master/haproxy.py
+Request: (只对HTTP代理有效)
+   request_rate(req_rate)      px->fe_req_per_sec           proxy_inc_fe_req_ctr()  请求速率
+   req_rate_max 请求限制速率
+   req_tot 目前为止总的请求数
+Response: (只对HTTP代理有效)
+  'hrsp_1xx': ('response_1xx', 'derive'),
+  'hrsp_2xx': ('response_2xx', 'derive'),
+  'hrsp_3xx': ('response_3xx', 'derive'),
+  'hrsp_4xx': ('response_4xx', 'derive'),
+  'hrsp_5xx': ('response_5xx', 'derive'),
+  'hrsp_other': ('response_other', 'derive'),
+
+>>>>>backend<<<<<
+Time:
+  qtime (v1.5+) 过去1024个请求在队里中的平均等待时间
+  rtime (v1.5+) 过去1024个请求在队里中的平均响应时间
+
+
 ←
 -->
 

@@ -33,21 +33,36 @@ Bundle 'gmarik/vundle'
 """""""""""""""""""""""""""""""          My Bundles here         """""""""""""""""""""""""""""""""
 "" original repos on github
 
-" Go (golang) support for Vim
-Bundle 'fatih/vim-go'
-
+" show tags, better than taglist.
+Bundle 'majutsushi/tagbar'
+" auto align tools.
+Bundle 'godlygeek/tabular'
+" finder with regexp support
+Bundle 'kien/ctrlp.vim'
+" solarized colorscheme
+Bundle 'altercation/vim-colors-solarized'
+" ultimate solution for snippets
+Bundle 'UltiSnips'
 " display the directory.
 Bundle 'scrooloose/nerdtree'
 Bundle 'jistr/vim-nerdtree-tabs'
 
-" auto align tools.
-Bundle 'godlygeek/tabular'
+"<<<<<<<<<< misc >>>>>>>>>>>
+" check color number.
+Bundle 'guns/xterm-color-table.vim'
+" a great start screen, list some info like recent open...
+Bundle 'mhinz/vim-startify'
+
+
+
+
+
+" Go (golang) support for Vim
+Bundle 'fatih/vim-go'
 
 " support for Chinese.
 Bundle 'mbbill/fencview'
 
-" check color number.
-Bundle 'guns/xterm-color-table.vim'
 
 " a better support for line number.
 Bundle 'myusuf3/numbers.vim'
@@ -63,12 +78,6 @@ Plugin 'vim-airline/vim-airline-themes'
 
 Bundle 'Valloric/YouCompleteMe'
 
-" a great start screen, list some info like recent open...
-Bundle 'mhinz/vim-startify'
-
-" show tags, better than taglist.
-Bundle 'majutsushi/tagbar'
-
 
 
 "Bundle 'Shougo/neocomplcache.vim'
@@ -80,9 +89,7 @@ Bundle 'scrooloose/nerdcommenter'
 Bundle 'wesleyche/SrcExpl'
 "Bundle 'sjl/gundo.vim'
 Bundle 'Lokaltog/vim-easymotion'
-Bundle 'kien/ctrlp.vim'
 Bundle 'klen/python-mode'
-Bundle 'altercation/vim-colors-solarized'
 
 "Bundle 'jlanzarotta/bufexplorer'
 " git
@@ -98,7 +105,6 @@ Bundle 'altercation/vim-colors-solarized'
 " needed by lookupfile
 "Bundle 'genutils'
 "Bundle 'lookupfile'
-"Bundle 'UltiSnips'
 "vim中的杀手级插件: EasyGrep
 Bundle 'EasyGrep'
 Bundle 'grep.vim'
@@ -125,106 +131,24 @@ source ~/.vim/defaults.vim
 "
 
 
-
-
-" {1   plugin: vim-togglelist  quickfix:<leader>q, location:<leader>l
+" {1   plugin: tagbar  F3
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-let g:toggle_list_no_mappings=1
-nmap <script> <silent> <leader>l :call ToggleLocationList()<CR>
-nmap <script> <silent> <leader>q :call ToggleQuickfixList()<CR>
-" specify the command to open quickfix, always open at bottom(default on the right bottom),
-" 'botright copen 10' specify the height.
-let g:toggle_list_copen_command="botright copen"
-" After opening or closing either list, the previous window is restored so you can still use `<C-w>p`.
-" }1
-
-" {1   plugin: vim-powerline/airline
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-"let g:Powerline_colorscheme='solarized256'
-"set guifont=DejaVu\ Sans\ Mono\ for\ Powerline\ 9
-let g:airline_powerline_fonts = 0
-" enable tabline on the top
-let g:airline#extensions#tabline#enabled = 1
-" set left separator
-let g:airline#extensions#tabline#left_sep = ' '
-" set left separator which are not editting
-let g:airline#extensions#tabline#left_alt_sep = '|'
-" show buffer number
-let g:airline#extensions#tabline#buffer_nr_show = 1
-" Smarter tab line
-let g:airline#extensions#tabline#enabled = 1
-let g:airline#extensions#tabline#left_sep = ' '
-let g:airline#extensions#tabline#left_alt_sep = '|'
-" raven, sol, serene
-let g:airline_theme='serene'
-"let g:airline_section_b = '%{strftime("%c")}'
-"let g:airline_section_y = 'BN: %{bufnr("%")}'
-"let g:airline#extensions#tavline#enabled = 1
-"let g:Powerline_symbols='fancy'
-" }1
-
-" {1   plugin: numbers.vim
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" plugins that do NOT want to display numbers.
-" let g:numbers_exclude = ['unite', 'tagbar', 'startify', 'gundo', 'vimshell', 'w3m']
-let g:numbers_exclude = ['tagbar', 'gundo', 'minibufexpl', 'nerdtree']
-"nnoremap <F3> :NumbersToggle<CR>
-"nnoremap <F4> :NumbersOnOff<CR>
-" }1
-
-" {1   plugin: NERDTree(NERDTreeTabs used)  F4
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" do NOT load plugin, unless commented.
-"let loaded_nerd_tree=0
-
-" map F3 to toggle nerdtree window.
-"map <F3> :NERDTreeTabsToggle<CR>
-" auto quit when only nerdtree window.
-"autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTreeType") && b:NERDTreeType == "primary") | q | endif
-"autocmd vimenter * NERDTree    " open nerdtree window automatically.
-let NERDTreeShowBookmarks=1    " display bookmark automatically.
-let NERDTreeStatusline=''      " set the status line.
-let NERDTreeWinPos="right"     " put nerdtree win to right, default left.
-"""""""""""""""""""""""""""              NERDTreeTabs            """""""""""""""""""""""""""""""""""
-map <F4> :NERDTreeTabsToggle<CR>
-" open NERDTree on gvim/macvim startup, default 1
-let g:nerdtree_tabs_open_on_gui_startup=0
-" open NERDTree on console vim startup, default 0
-let g:nerdtree_tabs_open_on_console_startup=0
-" do not open NERDTree if vim starts in diff mode, default 1
-let g:nerdtree_tabs_no_startup_for_diff=0
-" on startup, focus NERDTree if opening a directory, focus file if opening a file.
-" (When set to `2`, always focus file window after startup), default 1.
-let g:nerdtree_tabs_smart_startup_focus=2
-" open NERDTree on new tab creation (if NERDTree was globally opened by
-" :NERDTreeTabsToggle), default 1
-let g:nerdtree_tabs_open_on_new_tab=1
-" unfocus NERDTree when leaving a tab for descriptive tab names, default 1.
-let g:nerdtree_tabs_meaningful_tab_names=1
-" Close current tab if there is only one window in it and it's NERDTree, default 1.
-let g:nerdtree_tabs_autoclose=1
-" Synchronize view of all NERDTree windows (scroll and cursor position), default 1.
-let g:nerdtree_tabs_synchronize_view=1
-" Synchronize focus when switching windows (focus NERDTree after tab switch
-" if and only if it was focused before tab switch), default 1.
-let g:nerdtree_tabs_synchronize_focus=1
-" When switching into a tab, make sure that focus is on the file window,
-" not in the NERDTree window. (Note that this can get annoying if you use
-" NERDTree's feature "open in new tab silently", as you will lose focus on the
-" NERDTree.), default 0.
-let g:nerdtree_tabs_focus_on_files=0
-" When given a directory name as a command line parameter when launching Vim,
-" `:cd` into it, default 1.
-let g:nerdtree_tabs_startup_cd=1
-" Automatically find and select currently opened file in NERDTree, default 0.
-let g:nerdtree_tabs_autofind=0
-" }1
-
-" {1   plugin: fencview  FencAutoDetect
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" using F
-let g:fencview_autodetect=0      " auto-detect when load
-let g:fencview_checklines=10     " only test the first 10 lines, or '*' for all.
+"let g:loaded_tagbar=0                   " do NOT load plugin, unless commented.
+nmap <silent> <F3> :TagbarToggle<CR>
+nmap <leader>bp :TagbarTogglePause<CR>
+set updatetime=100
+let g:tagbar_ctags_bin = 'ctags'
+let g:tagbar_width = 40                 " set the width
+let g:tagbar_autofocus=0                " jump to main windows.
+let g:tabular_autoclose=0               " always display the win.
+let g:tagbar_sort = 0                   " 关闭排序，按标签本身在文件中的位置排序
+let g:tagbar_autopreview = 1            " 开启自动预览，随着光标在标签上的移动，顶部会出现一个实时的预览窗口
+let g:tagbar_foldlevel = 2
+"let g:tagbar_right = 1                  " on the right.
+let g:tagbar_left = 1                  " on the left.
+autocmd FileType c,cpp nested :TagbarOpen
+"autocmd BufReadPost *.cpp,*.c,*.h,*.hpp,*.cc,*.cxx call tagbar#autoopen()
+"autocmd VimEnter * nested :call tagbar#autoopen(1)    " auto-open
 " }1
 
 " {1   plugin: Tabular   <leader>a=
@@ -261,24 +185,127 @@ function! s:align()
 endfunction
 " }1
 
-" {1   plugin: tagbar  F3
+" {1   plugin: CtrlP
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" do NOT load plugin, unless commented.
+"let g:loaded_ctrlp=1
+" }1
+
+" {1   plugin: Solarized Colorscheme
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" details check "syntax/highlight setting"
+" }1
+
+" {1   plugin: NERDTree(NERDTreeTabs used)  F4
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-"let g:loaded_tagbar=0                   " do NOT load plugin, unless commented.
-nmap <silent> <F3> :TagbarToggle<CR>
-nmap <leader>bp :TagbarTogglePause<CR>
-set updatetime=100
-let g:tagbar_ctags_bin = 'ctags'
-let g:tagbar_width = 40                 " set the width
-let g:tagbar_autofocus=0                " jump to main windows.
-let g:tabular_autoclose=0               " always display the win.
-let g:tagbar_sort = 0                   " 关闭排序，按标签本身在文件中的位置排序
-let g:tagbar_autopreview = 1            " 开启自动预览，随着光标在标签上的移动，顶部会出现一个实时的预览窗口
-let g:tagbar_foldlevel = 2
-"let g:tagbar_right = 1                  " on the right.
-let g:tagbar_left = 1                  " on the left.
-autocmd FileType c,cpp nested :TagbarOpen
-"autocmd BufReadPost *.cpp,*.c,*.h,*.hpp,*.cc,*.cxx call tagbar#autoopen()
-"autocmd VimEnter * nested :call tagbar#autoopen(1)    " auto-open
+" do NOT load plugin, unless commented.
+"let loaded_nerd_tree=0
+
+" map F3 to toggle nerdtree window.
+"map <F3> :NERDTreeTabsToggle<CR>
+" auto quit when only nerdtree window.
+"autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTreeType") && b:NERDTreeType == "primary") | q | endif
+"autocmd vimenter * NERDTree    " open nerdtree window automatically.
+let NERDTreeShowBookmarks=1    " display bookmark automatically.
+let NERDTreeStatusline=''      " set the status line.
+let NERDTreeWinPos="right"     " put nerdtree win to right, default left.
+"let g:NERDTreeWinSize=20       " Set the window's width
+"""""""""""""""""""""""""""              NERDTreeTabs            """""""""""""""""""""""""""""""""""
+map <F4> :NERDTreeTabsToggle<CR>
+" open NERDTree on gvim/macvim startup, default 1
+let g:nerdtree_tabs_open_on_gui_startup=0
+" open NERDTree on console vim startup, default 0
+let g:nerdtree_tabs_open_on_console_startup=0
+" do not open NERDTree if vim starts in diff mode, default 1
+let g:nerdtree_tabs_no_startup_for_diff=0
+" on startup, focus NERDTree if opening a directory, focus file if opening a file.
+" (When set to `2`, always focus file window after startup), default 1.
+let g:nerdtree_tabs_smart_startup_focus=2
+" open NERDTree on new tab creation (if NERDTree was globally opened by
+" :NERDTreeTabsToggle), default 1
+let g:nerdtree_tabs_open_on_new_tab=1
+" unfocus NERDTree when leaving a tab for descriptive tab names, default 1.
+let g:nerdtree_tabs_meaningful_tab_names=1
+" Close current tab if there is only one window in it and it's NERDTree, default 1.
+let g:nerdtree_tabs_autoclose=1
+" Synchronize view of all NERDTree windows (scroll and cursor position), default 1.
+let g:nerdtree_tabs_synchronize_view=1
+" Synchronize focus when switching windows (focus NERDTree after tab switch
+" if and only if it was focused before tab switch), default 1.
+let g:nerdtree_tabs_synchronize_focus=1
+" When switching into a tab, make sure that focus is on the file window,
+" not in the NERDTree window. (Note that this can get annoying if you use
+" NERDTree's feature "open in new tab silently", as you will lose focus on the
+" NERDTree.), default 0.
+let g:nerdtree_tabs_focus_on_files=0
+" When given a directory name as a command line parameter when launching Vim,
+" `:cd` into it, default 1.
+let g:nerdtree_tabs_startup_cd=1
+" Automatically find and select currently opened file in NERDTree, default 0.
+let g:nerdtree_tabs_autofind=0
+" }1
+
+" {1   plugin: vim-powerline/airline
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"let g:Powerline_colorscheme='solarized256'
+"set guifont=DejaVu\ Sans\ Mono\ for\ Powerline\ 9
+let g:airline_powerline_fonts = 0
+" enable tabline on the top
+let g:airline#extensions#tabline#enabled = 1
+" set left separator
+let g:airline#extensions#tabline#left_sep = ' '
+" set left separator which are not editting
+let g:airline#extensions#tabline#left_alt_sep = '|'
+" show buffer number
+let g:airline#extensions#tabline#buffer_nr_show = 1
+" Smarter tab line
+let g:airline#extensions#tabline#enabled = 1
+let g:airline#extensions#tabline#left_sep = ' '
+let g:airline#extensions#tabline#left_alt_sep = '|'
+" raven, sol, serene
+let g:airline_theme='serene'
+"let g:airline_section_b = '%{strftime("%c")}'
+"let g:airline_section_y = 'BN: %{bufnr("%")}'
+"let g:airline#extensions#tavline#enabled = 1
+"let g:Powerline_symbols='fancy'
+" }1
+
+" {1   plugin: xterm-color-table
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+":XtermColorTable
+" }1
+
+" {1   plugin: numbers.vim
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" plugins that do NOT want to display numbers.
+" let g:numbers_exclude = ['unite', 'tagbar', 'startify', 'gundo', 'vimshell', 'w3m']
+let g:numbers_exclude = ['tagbar', 'gundo', 'minibufexpl', 'nerdtree']
+"nnoremap <F3> :NumbersToggle<CR>
+"nnoremap <F4> :NumbersOnOff<CR>
+" }1
+
+" {1   plugin: vim-startify
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" }1
+
+" {1   plugin: fencview  FencAutoDetect
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" using F
+let g:fencview_autodetect=0      " auto-detect when load
+let g:fencview_checklines=10     " only test the first 10 lines, or '*' for all.
+" }1
+
+
+
+" {1   plugin: vim-togglelist  quickfix:<leader>q, location:<leader>l
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+let g:toggle_list_no_mappings=1
+nmap <script> <silent> <leader>l :call ToggleLocationList()<CR>
+nmap <script> <silent> <leader>q :call ToggleQuickfixList()<CR>
+" specify the command to open quickfix, always open at bottom(default on the right bottom),
+" 'botright copen 10' specify the height.
+let g:toggle_list_copen_command="botright copen"
+" After opening or closing either list, the previous window is restored so you can still use `<C-w>p`.
 " }1
 
 " {1   plugin: tags...
@@ -314,10 +341,6 @@ nmap <F7> :call AutoLoadCTagsAndCScope()<CR>
 " call AutoLoadCTagsAndCScope()
 " http://vifix.cn/blog/vim-auto-load-ctags-and-cscope.html
 " }1
-
-
-
-
 
 
 
@@ -435,16 +458,10 @@ nmap <F6> :YcmDiags<CR>
 "let g:neocomplcache_force_omni_patterns.perl = '\h\w*->\h\w*\|\h\w*::'
 "" }1
 
-
-
-
-
 " {1   plugin: EasyGrep
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 "let g:EasyGrepVersion = "1.2"    " do NOT load easygrep
 " }1
-
-
 
 " {1   plugin: NeoSnippet
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -466,12 +483,6 @@ let g:loaded_neocomplcach=0
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " do NOT load plugin, unless commented.
 let g:EasyMotion_loaded=0
-" }1
-
-" {1   plugin: CtrlP
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" do NOT load plugin, unless commented.
-let g:loaded_ctrlp=1
 " }1
 
 " {1   plugin: python-mode
@@ -521,13 +532,6 @@ let g:pymode_syntax_space_errors = g:pymode_syntax_all
 " Don't autofold code
 let g:pymode_folding = 0
 " }1
-
-
-
-
-
-
-
 
 " {1   plugin: cscope
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -748,10 +752,6 @@ let g:SrcExpl_prevDefKey = "<F3>"
 " // Set "<F4>" key for displaying the next definition in the jump list
 let g:SrcExpl_nextDefKey = "<F4>"
 " }1
-
-
-
-
 
 "" {1   plugin: WinManager
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""

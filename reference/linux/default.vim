@@ -63,7 +63,7 @@ endif
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 autocmd! bufwritepost .vimrc source %        "Automatic reloading of .vimrc
 if has('mouse')               " in many terminal emulators the mouse works just fine, so enable it
-  set mouse=a
+  set mouse=nv                " Mouse only works in 'Normal' and 'Visual' Mode, a indicate all Mode.
 endif
 autocmd BufEnter * cd %:p:h   " Change word dir to current dir
 set history=50	              " keep 50 lines of command line history
@@ -216,17 +216,18 @@ nmap <leader>l :vertical resize +6<CR>
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 syntax on                   " enable syntax highlighting. OR <syntax on>
 if has("gui_running")       " load my color scheme, ron, solarized, slate, evening, desert, morning, pablo, torte, darkblue, etc.
+    set background=light
     colorscheme desert      " you can type :colorscheme <Tab> to search the supporting scheme.
     set guioptions-=T
     set guioptions+=e
     set guitablabel=%M\ %t
     set t_Co=256
 else                        " Or
-    " blue darkblue delek desert koehler solarized
-    colorscheme elflord
-    "let g:solarized_termcolors=256
+    " blue darkblue delek desert koehler solarized elflord(*)
+    set background=dark         " dark background
+    colorscheme solarized
+    let g:solarized_termcolors=256
 endif
-set background=dark         " dark background
 " }1
 
 " {1   encoding
@@ -263,6 +264,5 @@ match WhitespaceEOL /\s\+$/
 set grepprg=grep\ -nH   " grep -n $* /dev/null(default), grep command.
 "set grepformat=        " %f:%l%m,%f  %l%m(default), output format.
 " }1
-
 
 " vim: foldmarker={,} foldlevel=0 foldmethod=marker :
