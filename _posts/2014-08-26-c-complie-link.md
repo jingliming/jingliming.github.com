@@ -108,6 +108,66 @@ __attribute__((section("BAR"))) void foo() { }
 * 入口函数在完成初始化之后，调用 main 函数，正式开始执行程序主体部分。
 * `main()` 执行完后，返回到入口函数，入口函数进行清理工作，包括全局变量析构、堆销毁、关闭 IO 等，然后进行系统调用结束进程。
 
+## 链接过程
+
+在程序由源码到可执行文件的编译过程实际有预处理 (Propressing)、编译 (Compilation)、汇编 (Assembly) 和链接 (Linking) 四步，在 `gcc` 中分别使用 `ccp`，`cc1`，`as`，`ld` 来完成。
+
+关于链接方面可以直接从网上搜索 《linker and loader》。
+
+![compile link gcc details]({{ site.url }}/images/linux/compile-link-gcc-details.jpg "compile link gcc details"){: .pull-center }
+
+### 预编译
+
+将源代码和头文件通过预编译成一个 `.i` 文件，相当与如下命令。
+
+{% highlight text %}
+$ gcc -E main.c -o main.i          # C
+$ cpp main.c > main.i              # CPP
+{% endhighlight %}
+
+与编译主要是处理源码中以 `"#"` 开始的与编译指令，主要的处理规则是：
+
+* 删除所有的 `"#define"` ，并且展开所有的宏定义。
+* 处理所有条件预编译指令，比如 `"#if"`、`"#ifdef"`、`"#elif"`、`"#else"`、`"#endif"` 。
+* 处理 `"#include"` ，将被包含的文件插入到该预编译指令的位置，该过程是递归的。
+* 删除多有的注释 `"//"` 和 `"/* */"` 。
+* 添加行号和文件名标识，如 `#2 "main.c" 2` ，用于编译时产生调试用的行号以及在编译时产生错误或警告时显示行号。
+* 保留所有的 `"#pragma"` 编译器指令，因为编译器需要使用它们。
+
+经过预编译后的 `.i` 文件不包含任何宏定义，因为所有的宏已经被展开，并且包含的文件也已经被插入到 `.i` 文件中。所以，当无法判断宏定义是否正确或头文件包含是否正确时，可以查看该文件。
+
+### 编译
+
+编译过程就是把预处理后的文件进行一系列的词法分析、语法分析、语义分析以及优化后生成相应的汇编代码文件，这个是核心部分，也是最复杂的部分。
+
+gcc 把预编译和编译合并成一个步骤，对于 C 语言使用的是 `cc1` ，C++ 使用的是 `cc1obj` 。
+
+{% highlight text %}
+$ gcc -S hello.i -o hello.s
+$ gcc -S main.c -o main.s
+{% endhighlight %}
+
+<!-- $ /usr/lib/gcc/i386-linux-gnu/4.7/cc1 main.c -->
+
+### 汇编
+
+汇编器是将汇编代码转化成机器码，每条汇编语句几乎都对应一条机器指令。汇编器不需要复杂的语法语义，也不用进行指令优化，只是根据汇编指令和机器指令的对照表一一翻译即可。
+
+{% highlight text %}
+$ gcc -c hello.s -o hello.o
+$ as main.s -o main.o
+$ gcc -c main.s -o main.o
+$ gcc -c main.c -o main.o
+{% endhighlight %}
+
+### 链接
+
+可以通过 `gcc hello.c -o hello -v` 查看。
+
+{% highlight text %}
+$ gcc hello.o -o hello.exe
+{% endhighlight %}
+
 ## 静态库和动态库
 
 库有动态与静态两种，Linux 中动态通常用 `.so` 为后缀，静态用 `.a` 为后缀，如：`libhello.so` `libhello.a`。为了在同一系统中使用不同版本的库，可以在库文件名后加上版本号为后缀，例如：`libhello.so.1.0`，然后，使用时通过符号链接指向不同版本。
@@ -152,11 +212,11 @@ $ readelf -l a.out | grep interpreter
 
 为了让执行程序顺利找到动态库，有三种方法：
 
-##### 复制到指定路径
+##### 1. 复制到指定路径
 
 把库拷贝到查找路径下，通常为 `/usr/lib` 和 `/lib` 目录下，或者通过 `gcc --print-search-dirs` 查看动态库的搜索路径。
 
-##### 添加链接选项
+##### 2. 添加链接选项
 
 编译时添加链接选项，指定链接库的目录，此时会将该路径保存在二进制文件中。
 
@@ -166,7 +226,7 @@ $ readelf -d test | grep RPATH
 $ objdump -s -j .dynstr test                     // 查看.dynstr段的内容
 {% endhighlight %}
 
-##### 设置环境变量
+##### 3. 设置环境变量
 
 执行时在 `LD_LIBRARY_PATH` 环境变量中加上库所在路径，例如动态库 `libhello.so` 在 `/home/test/lib` 目录下。
 
@@ -174,12 +234,234 @@ $ objdump -s -j .dynstr test                     // 查看.dynstr段的内容
 $ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/test/lib
 {% endhighlight %}
 
-##### 修改配置文件
+##### 4. 修改配置文件
 
 修改 `/etc/ld.so.conf` 文件，把库所在的路径加到文件中，并执行 `ldconfig` 刷新配置。动态链接库通常保存在 `/etc/ld.so.cache` 文件中，执行 `ldconfig` 可以对其进行刷新。
 
 
+### 静态连接库
 
+当要使用静态的程序库时，连接器会找出程序所需的函数，然后将它们拷贝到执行文件，由于这种拷贝是完整的，所以一旦连接成功，静态程序库也就不再需要了，缺点是占用的空间比较大。通常，静态链接的程序要比共享函数库的程序运行速度上快一些，大概 1-5％ 。
+
+<!--
+动态库会在执行程序内留下一个标记指明当程序执行时，首先必须载入这个库。
+-->
+
+注意，对于 CentOS 需要安装 `yum install glibc-static` 库。
+
+Linux 下进行连接的缺省操作是首先连接动态库，也就是说，如果同时存在静态和动态库，不特别指定的话，将与动态库相连接。
+
+现在假设有一个 hello 程序开发包，它提供一个静态库 `libhello.a`，一个动态库 `libhello.so`，一个头文件 `hello.h`，头文件中提供 `foobar()` 这个函数的声明。
+
+下面这段程序 `main.c` 使用 hello 库中的 `foobar()` 函数。
+
+{% highlight c %}
+/* filename: foobar.c */
+#include "hello.h"
+#include <stdio.h>
+void foobar()
+{
+   printf("FooBar!\n");
+}
+{% endhighlight %}
+
+{% highlight c %}
+/* filename: hello.c */
+#include "hello.h"
+#include <stdio.h>
+void hello()
+{
+   printf("Hello world!\n");
+}
+{% endhighlight %}
+
+{% highlight c %}
+/* filename: hello.h */
+#ifndef _HELLO_H__
+#define _HELLO_H__
+void hello();
+void foobar();
+#endif
+{% endhighlight %}
+
+{% highlight c %}
+/* filename: main.c */
+#include "hello.h"
+int main(int argc, char **argv)
+{
+   foobar();
+   hello();
+   return 0;
+}
+{% endhighlight %}
+
+生成静态库，先对源文件进行编译；然后使用 `ar(archive)` 命令连接成静态库。
+
+{% highlight text %}
+$ gcc -c hello.c -o hello.o
+$ gcc -c foobar.c -o foobar.o
+$ ar crv libhello.a hello.o foobar.o
+$ ar -t libhello.a                              // 查看打包的文件
+{% endhighlight %}
+
+`ar` 实际是一个打包工具，可以用来打包常见文件，不过现在被 `tar` 替代，目前主要是用于生成静态库，详细格式可以参考 [ar(Unix) wiki](http://en.wikipedia.org/wiki/Ar_(Unix)) 。
+
+{% highlight text %}
+$ echo "hello" > a.txt && echo "world" > b.txt
+$ ar crv text.a a.txt b.txt
+$ cat text.a
+{% endhighlight %}
+
+与静态库连接麻烦一些，主要是参数问题。
+
+{% highlight text %}
+$ gcc main.c -o test -lhello                    // 库在默认路径下，如/usr/lib
+$ gcc main.c -lhello -L. -static -o main        // 通过-L指定库的路径
+
+$ gcc main.o -o main -WI,-Bstatic -lhello       // 报错，显示找不到-lgcc_s
+{% endhighlight %}
+
+注意：这个特别的 `"-WI,-Bstatic"` 参数，实际上是传给了连接器 `ld`，指示它与静态库连接，如果系统中只有静态库可以不需要这个参数； 如果要和多个库相连接，而每个库的连接方式不一样，比如上面的程序既要和 `libhello` 进行静态连接，又要和 `libbye` 进行动态连接，其命令应为：
+
+{% highlight text %}
+$ gcc testlib.o -o test -WI,-Bstatic -lhello -WI,-Bdynamic -lbye
+{% endhighlight %}
+
+最好不要进行分别编译、链接，因为在生成可执行文件时往往需要很多的其他文件，可以通过 `-v` 选项进行查看，如果通过如下方式进行编译通常会出现错误。
+
+{% highlight text %}
+$ gcc -c main.c
+$ ld main.o -L. -lhello
+{% endhighlight %}
+
+### 动态库
+
+用 gcc 编绎该文件，在编绎时可以使用任何编绎参数，例如 `-g` 加入调试代码等；`-fPIC` 生成与位置无关的代码（可以在任何地址被连接和装载）。
+
+{% highlight text %}
+$ gcc -c -fPIC hello.c -o hello.o
+
+$ gcc -shared -Wl,-soname,libhello.so.1 -o libhello.so.1.0 hello.o // 生成动态库，可能存在多个版本，通常指定版本号
+
+$ ln  -s  libhello.so.1.0  libhello.so.1                           // 另外再建立两个符号连接
+$ ln  -s  libhello.so.1  libhello.so
+
+$ gcc -fPIC -shared -o libhello.so hello.c                         // 当然对于上述的步骤可以通过一步完成
+
+$ readelf -d libhello.so.1.0 | grep SONAME                         // 查看对应的soname
+$ nm -D libhello.so                                                // 查看符号
+{% endhighlight %}
+
+最重要的是传 `-shared` 参数使其生成是动态库而不是普通执行程序； `-Wl` 表示后面的参数也就是 `-soname,libhello.so.1` 直接传给连接器 `ld` 进行处理。
+
+实际上，每一个库都有一个 `soname` ，当连接器发现它正在查找的程序库中有这样一个名称，连接器便会将 `soname` 嵌入连结中的二进制文件内，而不是它正在运行的实际文件名，在程序执行期间，程序会查找拥有 `soname` 名字的文件，而不是库的文件名，换句话说，`soname` 是库的区分标志。
+
+其目的主要是允许系统中多个版本的库文件共存，习惯上在命名库文件的时候通常与 `soname` 相同 `libxxxx.so.major.minor` 其中，`xxxx` 是库的名字， `major` 是主版本号， `minor` 是次版本号。
+
+### 查看库中的符号
+
+有时候可能需要查看一个库中到底有哪些函数，`nm` 命令可以打印出库中的涉及到的所有符号，库既可以是静态的也可以是动态的。
+
+`nm` 列出的符号有很多，常见的有三种：
+
+* 在库中被调用，但并没有在库中定义(表明需要其他库支持)，用U表示；
+* 库中定义的函数，用T表示，这是最常见的；
+* 所谓的“弱态”符号，它们虽然在库中被定义，但是可能被其他库中的同名符号覆盖，用W表示。
+
+例如，希望知道上文提到的 `hello` 库中是否定义了 `printf()` 。
+
+{% highlight text %}
+$ nm libhello.so
+{% endhighlight %}
+
+发现其中没有 `printf()` 的定义，取而代之的是 `puts()` 函数，而且为 `U` ，表示符号 `puts` 被引用，但是并没有在函数内定义，由此可以推断，要正常使用 `hello` 库，必须有其它库支持，再使用 `ldd` 命令查看 `hello` 依赖于哪些库：
+
+{% highlight text %}
+$ ldd -v hello
+$ readelf -d hello     直接使用readelf
+{% endhighlight %}
+
+每行 `=>` 前面的，为动态链接程序所需的动态链接库的名字；而 `=>` 后面的，则是运行时系统实际调用的动态链接库的名字。所需的动态链接库在系统中不存在时，`=>` 后面将显示 `"not found"`，括号所括的数字为虚拟的执行地址。
+
+常用的系统动态链接库有：
+
+{% highlight text %}
+libc.so.x        基本C库
+ld-linux.so.2    动态装入库(用于动态链接库的装入及运行)
+{% endhighlight %}
+
+## 常用命令
+
+### objdump
+
+详细参考 `man objdump` 。
+
+{% highlight text %}
+-h, --section-headers, --headers
+  查看目标文件的头部信息。
+-x, --all-headers
+  显示所有的头部信息，包括了符号表和重定位表，等价于 -a -f -h -p -r -t 。
+-s, --full-contents
+  显示所请求段的全部信息，通常用十六进制表示，默认只会显示非空段。
+-d, --disassemble
+  反汇编，一般只反汇编含有指令的段。
+-t, --syms
+  显示符号表，与nm类似，只是显示的格式不同，当然显示与文件的格式相关，对于ELF如下所示。
+  00000000 l    d  .bss   00000000 .bss
+  00000000 g       .text  00000000 fred
+
+{% endhighlight %}
+
+<!--
+第一列为符号的值，有时是地址；下一个是用字符表示的标志位；接着是与符号相关的段，*ABS* 表示段是绝对的（没和任何段相关联）， *UND* 表示未定义；对于普通符号(Common Symbols)表示对齐，其它的表示大小；最后是符号的名字。<br><br>
+
+对于标志组的字符被分为如下的 7 组。
+<ol type="A"><li>
+    "l(local)" "g(global)" "u(unique global)" " (neither global nor local)" "!(both global and local)"<br>
+    通常一个符号应该是 local 或 global ，但还有其他的一些原因，如用于调试、"!"表示一个bug、"u"是 ELF 的扩展，表示整个进程中只有一个同类型同名的变量。</li><br><li>
+
+    "w(weak)" " (strong)"<br>
+    表示强或弱符号。</li><br><li>
+
+    "C(constructor)" " (ordinary)"<br>
+    为构造函数还是普通符号。</li><br><li>
+
+    "W(warning)" " (normal symbol)"<br>
+    如果一个含有警告标志的符号被引用时，将会输出警告信息。</li><br><li>
+
+    "I"
+   "i" The symbol is an indirect reference to another symbol (I), a function to be evaluated
+       during reloc processing (i) or a normal symbol (a space).
+
+   "d(debugging symbol)" "D(dynamic symbol)" " (normal symbol)"<br>
+    表示调试符号、动态符号还是普通的符号。</li><br><li>
+
+   "F(function)" "f(file)" "O(object)" " (normal)"<br>
+    表示函数、文件、对象或只是一个普通的符号。
+-->
+
+
+### objcopy
+
+用于转换目标文件。
+
+<!--
+-S / --strip-all<br>
+不从源文件中拷贝重定位信息和符号信息到输出文件（目的文件）中去。</li><br><li>
+
+-I bfdname / --input-target=bfdname<br>
+明确告诉 Objcopy ，源文件的格式是什么， bfdname 是 BFD 库中描述的标准格式名。</li><br><li>
+
+-O bfdname / --output-target=bfdname<br>
+使用指定的格式来写输出文件（即目标文件）， bfdname 是 BFD 库中描述的标准格式名，如 binary(raw binary 格式)、srec (s-record 文件) 。</li><br><li>
+
+-R sectionname / --remove-section=sectionname<br>
+从输出文件中删掉所有名为 sectionname 的段。
+-->
+
+
+
+## 参考
 
 {% highlight text %}
 {% endhighlight %}

@@ -1,19 +1,25 @@
-" {1   Some global functions
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-function! GetSystem()               " test the platform operation system
-    if (has("win32") || has("win95") || has("win64") || has("win16"))
-        return "windows"
-    elseif has("unix")
-        return "linux"
-    elseif has("mac")
-        return "mac"
-    endif
-endfunction
-
-let g:PlatformOS = GetSystem()
-
-
-" }1
+"" {1   Some global functions, deprecated.
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"function! GetSystem()               " test the platform operation system
+"    if (has("win32") || has("win95") || has("win64") || has("win16"))
+"        return "windows"
+"    elseif has("unix")
+"        return "linux"
+"    elseif has("mac")
+"        return "mac"
+"    endif
+"endfunction
+"
+"let g:PlatformOS = GetSystem()
+"" }1
+"
+"function ShortTabLabel ()
+"    let bufnrlist = tabpagebuflist (v:lnum)
+"    let label = bufname (bufnrlist[tabpagewinnr (v:lnum) -1])
+"    let filename = fnamemodify (label, ':t')
+"    return filename
+"endfunction
+"set guitablabel=%{ShortTabLabel()}
 
 " {1   folder
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -59,13 +65,14 @@ if has("autocmd")
 endif
 " }1
 
-" {1   misscellance
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"" {1   misscellance
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 autocmd! bufwritepost .vimrc source %        "Automatic reloading of .vimrc
 if has('mouse')               " in many terminal emulators the mouse works just fine, so enable it
   set mouse=nv                " Mouse only works in 'Normal' and 'Visual' Mode, a indicate all Mode.
 endif
-autocmd BufEnter * cd %:p:h   " Change word dir to current dir
+"autocmd BufEnter * cd %:p:h   " Change word dir to current dir
+set autochdir                 " change directory, base on the opened file
 set history=50	              " keep 50 lines of command line history
 set confirm                   " when deal with unsaved of readonly file, a confirm window occur
 set noerrorbells              " donot bells when error occurs
@@ -77,7 +84,6 @@ set wildmenu                  " show autocomplete menus
 set wildignore=*.o,*~,*.pyc   " ignore compiled files
 set showmode                  " how editing mode
 set visualbell                " error bells are displayed visually
-"set autochdir                 " change directory, base on the opened file
 set backspace=eol,start,indent " Configure backspace so it acts as it should act
 set whichwrap+=<,>,h,l         " Configure backspace so it acts as it should act
 set cmdheight=2               " height of the command bar
@@ -176,15 +182,6 @@ autocmd BufReadPost *
     \ endif
 " Remember info about open buffers on close
 set viminfo^=%
-
-"function ShortTabLabel ()
-"    let bufnrlist = tabpagebuflist (v:lnum)
-"    let label = bufname (bufnrlist[tabpagewinnr (v:lnum) -1])
-"    let filename = fnamemodify (label, ':t')
-"    return filename
-"endfunction
-"set guitablabel=%{ShortTabLabel()}
-
 " }1
 
 " {1   buffers
@@ -261,7 +258,7 @@ match WhitespaceEOL /\s\+$/
 
 " {1   grep-related
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-set grepprg=grep\ -nH   " grep -n $* /dev/null(default), grep command.
+"set grepprg=grep\ -nH   " grep -n $* /dev/null(default), grep command.
 "set grepformat=        " %f:%l%m,%f  %l%m(default), output format.
 " }1
 

@@ -14,38 +14,205 @@ HAProxy 是一个免费的负载均衡软件，可以运行于大部分主流的
 
 <!-- more -->
 
-
-<!--
 ## 简介
 
+相比 Nginx 来说，HAProxy 支持自定义 URL 健康监测；会话保持除了可以使用 `IP_HASH` 外，还可以使用 `URL_HASH` 算法；支持多种负载均衡等等，如下是 HAProxy 提供的主要功能：
 
-另外，相比 Nginx 来说，HAProxy 自身可以支持自定义 URL 健康监测；会话保持除了可以使用 IP_HASH 外，还可以使用 URL_HASH 算法；支持多种负载均衡等等，如下是 HAProxy 提供的主要功能：
-* 负载均衡。提供 L4 和 L7 两种模式，支持 RoundRobin、Static RoundRobin、LeastConnection、Source IP Hash、URI Hash、URL_PARAM Hash、HTTP_HEADER Hash等丰富的负载均衡算法；
-* 健康检查。支持 TCP、HTTP、SSL、MySQL、Redis 等多种健康检查模式；
-* 会话保持。对于未实现会话共享的应用集群，可通过 Insert Cookie、Rewrite Cookie、Prefix Cookie 以及上述的多种 Hash 方式实现会话保持；
-* SSL 支持。HAProxy可以解析HTTPS协议，并能够将请求解密为HTTP后向后端传输；
-* HTTP。可以对请求进行重写与重定向，支持多种 HTTP 模式；
-* 监控与统计：HAProxy提供了基于Web的统计信息页面，展现健康状态和流量数据。基于此功能，使用者可以开发监控程序来监控HAProxy的状态；
+* 负载均衡。提供 L4 和 L7 两种模式，支持 `RoundRobin`、`Static RoundRobin`、`LeastConnection`、`Source IP Hash`、`URI Hash`、`URL_PARAM Hash`、`HTTP_HEADER Hash` 等丰富的负载均衡算法；
+* 健康检查。支持 `TCP`、`HTTP`、`SSL`、`MySQL`、`Redis` 等多种健康检查模式；
+* 会话保持。对于未实现会话共享的应用集群，可通过 `Insert Cookie`、`Rewrite Cookie`、`Prefix Cookie` 以及上述的多种 `Hash` 方式实现会话保持；
+* SSL 支持。可以解析 `HTTPS` 协议，并能够将请求解密为 `HTTP` 后向后端传输；
+* HTTP。可以对请求进行重写与重定向，支持多种 `HTTP` 模式；
+* 监控与统计。提供了基于 Web 的统计页面，展现健康状态和流量数据。
 
-https://www.haproxy.com/doc/aloha/7.0/haproxy/healthchecks.html
-在配置文件中通过balance指定算法，如下仅介绍一些常用的算法：
+在配置文件中可以通过 `balance` 参数指定算法，如下仅介绍一些常用的算法：
+
+{% highlight text %}
 roundrobin:
   轮询，适用于短链接，会根据权重比选择服务器，支持4096个后端服务器；注意，这里的权重信息可以动态修改。
 static-rr:
   与上类似，只是这里的服务器权重不能动态修改，而且对于服务器的数量没有限制，消耗CPU相对也较少。
 leastconn:
-  选择链接数最少的服务器建立链接，通常在使用长连接时，例如MySQL、LDAP等，对于短链接HTTP不建议使用；这里的服务器权重可以动态调整。
+  选择链接数最少的服务器建立链接，通常在使用长连接时，例如MySQL、LDAP等，对于短链接HTTP不建议使用；
+  这里的服务器权重可以动态调整。
 first:
-  忽略权重信息，选择第一个可用服务器，需要设置服务器的最大连接数，适用于长连接；常用于动态扩容的场景，一般有工具用于动态监测，提供动态伸缩服务。
+  忽略权重信息，选择第一个可用服务器，需要设置服务器的最大连接数，适用于长连接；常用于动态扩容的场景，
+  一般有工具用于动态监测，提供动态伸缩服务。
 source
   源地址算法，通过客户端的原IP地址进行hash，只要没有服务器宕机，那么一个客户端的请求都会由同一台服务器处理。
 uri
   算法，需要使用HTTP服务，通过 HTTP URI 地址来选择对应服务器。
 hdr
   通过 HTTP eder 内容来选择对应服务器。
-在源码中，其实现在lb_XXX.c文件中。
+{% endhighlight %}
+
+在源码中，其实现在 `lb_XXX.c` 文件中，关于 HAProxy 的健康检查可以参考 [Health checking](https://www.haproxy.com/doc/aloha/7.0/haproxy/healthchecks.html) 。
+
+## 配置文件
+
+详细可以查看官方的文档 [doc/configuration.txt](http://www.haproxy.org/download/1.7/doc/configuration.txt) ，这里简单介绍常见的概念。
+
+如下是常见的运维操作。
+
+{% highlight text %}
+----- 测试配置文件是否有语法错误
+# haproxy -c -f /etc/haproxy/haproxy.cfg
+----- 没有问题则尝试启动
+# haproxy -f /etc/haproxy/haproxy.cfg
+----- 重新加载
+# haproxy -f /etc/haproxy/haproxy.cfg -sf `cat /var/run/haproxy.pid`
+{% endhighlight %}
+
+在通过 `systemctl status haproxy` 启动时，也就是使用 systemd 时，实际会有一个 wrap 程序启动，所以会看到有多个进程启动。
+
+HAProxy 配置文件由全局配置+代理配置两部分组成，又分为五段：global、defaults、frontend、backend、listen。
+
+{% highlight text %}
+global:
+  全局配置内容，用于定义全局参数，属于进程级的配置，通常和操作系统配置有关。
+default:
+  作为frontend、backend、listen的默认配置参数。
+frontend:
+  接收请求的前端虚拟节点，在1.3版本引入，用于简化haproxy配置文件复杂度，可以通过ACL规则指定要使用的后端backend。
+backend:
+  后端服务器配置。
+listen:
+  frontend+backend结合体，1.3版本之前使用，主要为了保持兼容性。
+{% endhighlight %}
+
+### 日志配置
+
+在 `global` 中设置日志的级别，然后通过 syslog 进行保存。
+
+{% highlight text %}
+$ cat /etc/haproxy/haproxy.conf
+global
+  log 127.0.0.1 local2 info
+{% endhighlight %}
+
+使用 `rsyslog` 保存。
+
+{% highlight text %}
+----- 确认添加了include子目录，因为如下的HAProxy配置会放置到子目录下。
+cat /etc/rsyslog.conf | grep "IncludeConfig"
+----- 修改rsyslog的主配置文件，开启远程日志，查看是否开启UDP端口
+cat /etc/sysconfig/rsyslog | grep "SYSLOGD_OPTIONS"
+SYSLOGD_OPTIONS="-c 2 -r -m 0"
+#-c 2 使用兼容模式，默认是 -c 5
+#-r 开启远程日志
+#-m 0 标记时间戳。单位是分钟，为0时，表示禁用该功能
+
+----- 添加HAProxy配置文件，需要注意最后一行，否则会同时写入haproxy.log和message文件
+cat /etc/rsyslog.d/haproxy.conf
+$ModLoad imudp
+$UDPServerRun 514
+local2.*     /var/log/haproxy.log
+&~
+{% endhighlight %}
+
+### 配置文件
 
 
+{% highlight text %}
+#---------------------------------------------------------------------
+# Global settings
+#---------------------------------------------------------------------
+global
+    # to have these messages end up in /var/log/haproxy.log you will
+    # need to:
+    # 1) configure syslog to accept network log events.  This is done
+    #    by adding the '-r' option to the SYSLOGD_OPTIONS in
+    #    /etc/sysconfig/[r]syslog
+    # 2) configure local2 events to go to the /var/log/haproxy.log
+    #   file. A line like the following can be added to
+    #   /etc/sysconfig/syslog
+    #    local2.*                       /var/log/haproxy.log
+    log         127.0.0.1 local2 debug
+
+
+    chroot      /var/lib/haproxy
+    pidfile     /var/run/haproxy.pid
+    maxconn     4000
+    user        haproxy
+    group       haproxy
+    daemon
+
+    # turn on stats unix socket
+    stats socket /var/run/haproxy.sock level admin process 1
+    stats timeout 5m                   # 设置等待输入超时时间为5min
+
+#---------------------------------------------------------------------
+# common defaults that all the 'listen' and 'backend' sections will
+# use if not designated in their block
+#---------------------------------------------------------------------
+defaults
+    mode                    http
+    log                     global
+    option                  tcplog                 # 默认只打印很少的信息，指定打印详细信息
+    option                  httplog
+    option                  dontlognull            # 默认会将保活等信息记录到日志，可通过该选项关闭
+    option http-server-close
+    option                  redispatch             # 使用cookies后会发送到指定服务器，如果服务器不可用则重新调度
+    retries                 3                      # 3次连接失败则认为服务不可用
+    timeout http-request    10s                    # 默认http请求超时时间
+    timeout queue           1m                     # 默认队列超时时间
+    timeout connect         10s                    # 默认连接超时时间
+    timeout client          1m                     # 默认客户端超时时间
+    timeout server          1m                     # 默认服务器超时时间
+    timeout http-keep-alive 10s                    # 默认持久连接超时时间
+    timeout check           10s                    # 默认检查时间间隔
+    maxconn                 3000                   # 最大连接数
+
+#---------------------------------------------------------------------
+# main frontend which proxys to the backends
+#---------------------------------------------------------------------
+frontend  main *:5000
+    # 新建acl策略path_beg以/static /images等开头的访问路径，-i忽略大小写 
+    acl url_static       path_beg       -i /static /images /javascript /stylesheets
+    # 新建acl策略path_end以.jpg .gif等结尾的访问路径，-i忽略大小写 
+    acl url_static       path_end       -i .jpg .gif .png .css .js
+
+    # 如果匹配url_static这个acl策略，则使用static这个后端 
+    use_backend static          if url_static
+    # 没有任何配置的情况下，使用默认的后端app 
+    default_backend             app
+
+#---------------------------------------------------------------------
+# static backend for serving up images, stylesheets and such
+#---------------------------------------------------------------------
+backend static
+    balance     roundrobin
+    server      static 127.0.0.1:4331 check
+
+#---------------------------------------------------------------------
+# round robin balancing between the various backends
+#---------------------------------------------------------------------
+backend app
+    balance     roundrobin
+    server  app1 127.0.0.1:5001 check
+    server  app2 127.0.0.1:5002 check
+    server  app3 127.0.0.1:5003 check
+    server  app4 127.0.0.1:5004 check
+
+#---------------------------------------------------------------------
+# 1.3之前使用，为了保持向后兼容，建议使用frontend+backend代替
+# 关于server的详细配置选项可以参考Server and default-server options
+#  * maxconn NUM 每个后端服务器的最大链接数，超过该值则保存在队列中
+#  * maxqueue NUM 超过该队列后会重新选择后端服务器
+#---------------------------------------------------------------------
+listen http-proxy 192.168.1.201:80
+    mode http
+    option httpchk GET /test
+    balance roundrobin
+    timeout server 30s
+    timeout client 30s
+    server server-01 192.168.1.101:80 check inter 2s
+    server server-02 192.168.1.102:80 check inter 2s
+    server server-03 192.168.1.103:80 check inter 2s
+{% endhighlight %}
+
+
+<!--
 ### HTTPS 配置 (SSL Termination With HAProxy)
 
 对 http://www.foobar.com 域名的访问会自动跳转为 https://www.foobar.com ，而对 http://haproxy.foobar.com 访问走 http 协议。
@@ -65,8 +232,6 @@ http://www.oschina.net/translate/getting-the-most-of-haproxy?print
 
 可以通过haproxy -vv查看详细的编译参数。
 
-
-HAProxy is a single-threaded, event-driven, non-blocking daemon.
 
 ## 监控信息
 
@@ -585,20 +750,6 @@ stick table
 
 /usr/bin/python /usr/local/bin/denyhosts.py --daemon --config=/usr/share/denyhosts/denyhosts.cfg
 
-defaults
-    acl url_static       path_beg       -i /static /images /javascript /stylesheets #新建acl策略 path_beg:以/static /images等开头的访问路径，-i 忽略大小写 
-    acl url_static       path_end       -i .jpg .gif .png .css .js  #新建acl策略 path_end：以.jpg .gif等结尾的访问路径，-i 忽略大小写 
- 
-    use_backend static          if url_static   #如果匹配url_static这个acl策略，则使用static这个后端 
-    default_backend             app #没有任何配置的情况下，使用默认的后端app 
- 
-backend static 
-    balance     roundrobin  #轮询访问 
-    server      static 192.168.3.128:80 check  # 详见Declare a server in a backend
- 
-backend app 
-    balance  roundrobin  #轮询访问 
-    server   app2 192.168.3.129:80 check inter 2000 rise 30 fall 15
  
 ### 服务器状态检测
 用于检查后台的服务器是否正常，可以根据不同服务类型进行检测。
@@ -610,178 +761,6 @@ fall:
   多少次检测失败后认为该服务器异常；
 inter:
   设置检测的时间间隔，另外还可以定义fastinter、downinter参数，根据不同的状态设置检测时间间隔；
-
-
-
-
-启动非常简单，只需要一个可执行文件+配置文件即可，启动之后基本处理如下的三个操作：
-1. 处理链接；
-  1.1 从frontend指定的监听端口创建链接；
-  1.2 应用frontend指定的规则，包括了阻塞、修改头部信息、统计等；
-  1.3 将链接传递给backend指定的服务器；
-  1.4 应用backend指定的规则；
-  1.5 根据策略决定将链接发送给那个服务器；
-  1.6 对响应数据应用backend指定的规则；
-  1.7 对响应数据应用frontend指定的规则；
-  1.8 发送日志；
-  1.9 如果是HTTP那么会等待新请求，否则就关闭链接；
-2. 周期性检查服务器的状态；
-3. 与其它HAProxy节点交换数据；
-
-HAProxy配置文件由全局配置+代理配置两部分组成，又分为五段：global、defaults、frontend、backend、listen。
-global:
-  全局配置内容，用于定义全局参数，属于进程级的配置，通常和操作系统配置有关。
-default:
-  作为frontend、backend、listen的默认配置参数。
-frontend:
-  接收请求的前端虚拟节点，在1.3版本引入，用于简化haproxy配置文件复杂度，可以通过ACL规则指定要使用的后端backend。
-backend:
-  后端服务器配置。
-listen:
-  frontend+backend结合体，1.3版本之前使用，主要为了保持兼容性。
-
-http://www.haproxy.org/download/1.7/doc/configuration.txt
-
------ 测试配置文件是否有语法错误
-haproxy -c -f /etc/haproxy/haproxy.cfg
------ 没有问题则尝试启动
-haproxy -f /etc/haproxy/haproxy.cfg
------ 重新加载
-haproxy -f /etc/haproxy/haproxy.cfg -sf `cat /var/run/haproxy.pid`
-
-systemctl status haproxy 使用systemd时为什么会启动两个进程
-
-
-???### 日志配置
-
-$ cat /etc/haproxy/haproxy.conf
-global
-  log 127.0.0.1 local2 info
-
-#### rsyslog
-
-
-
-
------ 确认添加了include子目录，因为如下的HAProxy配置会放置到子目录下。
-cat /etc/rsyslog.conf | grep "IncludeConfig"
------ 修改rsyslog的主配置文件，开启远程日志，查看是否开启UDP端口
-cat /etc/sysconfig/rsyslog | grep "SYSLOGD_OPTIONS"
-SYSLOGD_OPTIONS="-c 2 -r -m 0"
-#-c 2 使用兼容模式，默认是 -c 5
-#-r 开启远程日志
-#-m 0 标记时间戳。单位是分钟，为0时，表示禁用该功能
-
------ 添加HAProxy配置文件，需要注意最后一行，否则会同时写入haproxy.log和message文件
-cat /etc/rsyslog.d/haproxy.conf
-$ModLoad imudp
-$UDPServerRun 514
-local2.*     /var/log/haproxy.log
-&~
-
-#---------------------------------------------------------------------
-# Global settings
-#---------------------------------------------------------------------
-global
-    # to have these messages end up in /var/log/haproxy.log you will
-    # need to:
-    # 1) configure syslog to accept network log events.  This is done
-    #    by adding the '-r' option to the SYSLOGD_OPTIONS in
-    #    /etc/sysconfig/[r]syslog
-    # 2) configure local2 events to go to the /var/log/haproxy.log
-    #   file. A line like the following can be added to
-    #   /etc/sysconfig/syslog
-    #    local2.*                       /var/log/haproxy.log
-    log         127.0.0.1 local2 debug
-
-
-    chroot      /var/lib/haproxy
-    pidfile     /var/run/haproxy.pid
-    maxconn     4000
-    user        haproxy
-    group       haproxy
-    daemon
-
-    # turn on stats unix socket
-    stats socket /var/run/haproxy.sock level admin process 1
-    stats timeout 5m # 设置等待输入超时时间为5min
-
-#---------------------------------------------------------------------
-# common defaults that all the 'listen' and 'backend' sections will
-# use if not designated in their block
-#---------------------------------------------------------------------
-defaults
-    mode                    http
-    log                     global
- option                  tcplog                 # 默认只打印很少的信息，指定打印详细信息
-    option                  httplog
-    option                  dontlognull            # 默认会将保活等信息记录到日志，可通过该选项关闭
-    option http-server-close
-    option                  redispatch             # 使用cookies后会发送到指定服务器，如果服务器不可用则重新调度
-    retries                 3                      # 3次连接失败则认为服务不可用
-    timeout http-request    10s                    # 默认http请求超时时间
-    timeout queue           1m                     # 默认队列超时时间
-    timeout connect         10s                    # 默认连接超时时间
-    timeout client          1m                     # 默认客户端超时时间
-    timeout server          1m                     # 默认服务器超时时间
-    timeout http-keep-alive 10s                    # 默认持久连接超时时间
-    timeout check           10s                    # 默认检查时间间隔
-    maxconn                 3000                   # 最大连接数
-
-##---------------------------------------------------------------------
-## main frontend which proxys to the backends
-##---------------------------------------------------------------------
-#frontend  main *:5000
-#    acl url_static       path_beg       -i /static /images /javascript /stylesheets
-#    acl url_static       path_end       -i .jpg .gif .png .css .js
-#
-#    use_backend static          if url_static
-#    default_backend             app
-#
-##---------------------------------------------------------------------
-## static backend for serving up images, stylesheets and such
-##---------------------------------------------------------------------
-#backend static
-#    balance     roundrobin
-#    server      static 127.0.0.1:4331 check
-#
-##---------------------------------------------------------------------
-## round robin balancing between the various backends
-##---------------------------------------------------------------------
-#backend app
-#    balance     roundrobin
-#    server  app1 127.0.0.1:5001 check
-#    server  app2 127.0.0.1:5002 check
-#    server  app3 127.0.0.1:5003 check
-#    server  app4 127.0.0.1:5004 check
-
-listen MyRdp
-    mode tcp
-    bind *:3389
-    server myRdp1 192.168.1.100:3389 maxconn 32
-    option tcplog
-
-listen web_vip 0.0.0.0:80
-    mode http
-    option httplog
-    option forwardfor  except 127.0.0.0/8
-    stats  uri         /haproxy-stats
-
-#---------------------------------------------------------------------
-# 1.3之前使用，为了保持向后兼容，建议使用frontend+backend代替
-# 关于server的详细配置选项可以参考Server and default-server options
-#  * maxconn NUM 每个后端服务器的最大链接数，超过该值则保存在队列中
-#  * maxqueue NUM 超过该队列后会重新选择后端服务器
-#---------------------------------------------------------------------
-listen http-proxy 192.168.1.201:80
-    mode http
-    option httpchk GET /test
-    balance roundrobin
-    timeout server 30s
-    timeout client 30s
-    server server-01 192.168.1.101:80 check inter 2s
-    server server-02 192.168.1.102:80 check inter 2s
-    server server-03 192.168.1.103:80 check inter 2s
 
 
 
@@ -797,7 +776,8 @@ timeout server                            X     
 timeout server-fin                        X          -         X         X
 timeout tarpit                            X          X         X         X
 timeout tunnel                            X          -         X         X
- haproxy 负责处理请求的核心数据结构是 struct session，本文不对该数据结构进行分析。
+
+haproxy 负责处理请求的核心数据结构是 struct session，本文不对该数据结构进行分析。
 
 从业务的处理的角度，简单介绍一下对 session 的理解：
 
@@ -809,96 +789,119 @@ timeout tunnel                            X     
 struct proxy {
   struct lbprm lbprm;  // 负载均衡参数
 };
+-->
 
+## 源码解析
 
+`HAProxy is a single-threaded, event-driven, non-blocking daemon.`
+
+启动非常简单，只需要一个可执行文件+配置文件即可，启动之后基本处理如下的三个操作：
+
+{% highlight text %}
+1. 处理链接；
+   1.1 从frontend指定的监听端口创建链接；
+   1.2 应用frontend指定的规则，包括了阻塞、修改头部信息、统计等；
+   1.3 将链接传递给backend指定的服务器；
+   1.4 应用backend指定的规则；
+   1.5 根据策略决定将链接发送给那个服务器；
+   1.6 对响应数据应用backend指定的规则；
+   1.7 对响应数据应用frontend指定的规则；
+   1.8 发送日志；
+   1.9 如果是HTTP那么会等待新请求，否则就关闭链接；
+2. 周期性检查服务器的状态；
+3. 与其它HAProxy节点交换数据；
+{% endhighlight %}
+
+然后，直接看下源码解析过程。
+
+{% highlight text %}
 main()
- |-init() 所有的初始化操作，包括各个模块初始化、命令行解析、
- | |-cfgfiles_expand_directories() 处理配置文件，参数解析会将配置文件保存在cfg_cfgfiles
- | |-init_default_instance() 初始化默认配置
- | |-readcfgfile() 读取配置文件，并调用sections->section_parser()对应的函数
- | | |-cfg_parse_listen() 对于frontend、backend、listen段的参数解析验证
+ |-init()                                  ← 所有的初始化操作，包括各个模块初始化、命令行解析等
+ | |-cfgfiles_expand_directories()         ← 处理配置文件，参数解析会将配置文件保存在cfg_cfgfiles
+ | |-init_default_instance()               ← 初始化默认配置
+ | |-readcfgfile()                         ← 读取配置文件，并调用sections->section_parser()对应的函数
+ | | |-cfg_parse_listen()                  ← 对于frontend、backend、listen段的参数解析验证
  | |   |-str2listener()
  | |     |-l->frontend=curproxy
- | |     |-tcpv4_add_listener() 添加到proto_tcpv4对象中的链表，真正监听会在proto_XXX.c文件中
- | |       |-listener->proto = &proto_tcpv4 会设置该变量，后续的接收链接也就对应了accept变量
- | |-check_config_validity() 配置文件格式校验
- | | |-listener->frontend=curproxy在上面解析，实际上curporxy->accept=frontend_accept
+ | |     |-tcpv4_add_listener()            ← 添加到proto_tcpv4对象中的链表，真正监听会在proto_XXX.c文件中
+ | |       |-listener->proto=&proto_tcpv4  ← 会设置该变量，后续的接收链接也就对应了accept变量
+ | |-check_config_validity()               ← 配置文件格式校验
+ | | |-listener->frontend=curproxy         ← 在上面解析，实际上curporxy->accept=frontend_accept
  | | |-listener->accept=session_accept_fd
  | | |-listener->handler=process_stream
- | | |
  | | |-根据不同的后端服务器选择算法选择
  | |
+ | | <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<解析完配置文件>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
  | |
- | |<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<解析完配置文件>>>>>>>>>>>>
- | |
- | |
- | |-start_checks() 执行后端检查任务
+ | |-start_checks()                        ← 执行后端检查任务
  | | |-start_check_task()
  | |   |-process_chk()
  | |     |-process_chk_conn()
  | |       |-connect_conn_chk()
- | |         |-event_srv_chk_r() 执行健康检查，在check_conn_cb变量中定义，通过conn_attach()函数绑定
- | |           |-tcpcheck_main() 如果是TCP检查PR_O2_TCPCHK_CHK
+ | |         |-event_srv_chk_r()           ← 健康检查，在check_conn_cb变量中定义，通过conn_attach()绑定
+ | |           |-tcpcheck_main()           ← 如果是TCP检查PR_O2_TCPCHK_CHK
  | |
- | |-init_pollers() 选择多路复用方法，也就是设置cur_poller
- |   |-calloc() 分配资源fd_cache+fd_updt，其大小是global.maxsock
- |   |-bp->init() 调用各个可用poll方法的初始化函数，选择第一个可用方法
- |   |-memcpy() 复制到cur_poller全局变量中
+ | |-init_pollers()                        ← 选择多路复用方法，也就是设置cur_poller
+ |   |-calloc()                            ← 分配资源fd_cache+fd_updt，其大小是global.maxsock
+ |   |-bp->init()                          ← 调用各个可用poll方法的初始化函数，选择第一个可用方法
+ |   |-memcpy()                            ← 复制到cur_poller全局变量中
  |
- |-start_proxies() 开始启动，会调用各个协议的bind接口，对于TCPv4也就是tcp_bind_listener()
+ |-start_proxies()                         ← 开始启动，调用各协议bind接口，对TCPv4就是tcp_bind_listener()
  |-protocol_bind_all()
- |-protocol_enable_all() 启动各个协议，例如ipv4/ipv6/unix等
- |-run_poll_loop() **主循环处理流程**
+ |-protocol_enable_all()                   ← 启动各个协议，例如ipv4/ipv6/unix等
+ |
+ | <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<主循环处理流程>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+ |
+ |-run_poll_loop()
  | |-tv_update_date()
  | | ###WHILE###BEGIN
- | |-process_runnable_tasks() 调用可运行任务
- | | |-process_stream() 一般是调用该函数，也可以执行struct task.process中自定义的函数
+ | |-process_runnable_tasks()              ← 调用可运行任务
+ | | |-process_stream()                    ← 一般是调用该函数，也可执行struct task.process中自定义函数
  | |   |
- | |   | <<PHASE:解析请求>> 会根据定义的各种规则选择后端
- | |   |-process_switching_rules() 除了默认使用的后端服务器之外，会根据规则再次选择<<RULES>>
- | |   | |-stream_set_backend() 选择该后端，<<STAT:be->beconn>>
- | |   |   |-proxy_inc_be_ctr() 后端统计值的更新
+ | |   | <<PHASE:解析请求>>                ← 会根据定义的各种规则选择后端
+ | |   |-process_switching_rules()         ← 除了默认使用的后端服务器之外，会根据规则再次选择<<RULES>>
+ | |   | |-stream_set_backend()            ← 选择该后端，<<STAT:be->beconn>>
+ | |   |   |-proxy_inc_be_ctr()            ← 后端统计值的更新
  | |   |-http_process_tarpit()
  | |   |
  | |   | <<PHASE:解析响应>>
- | |   |-process_store_rules() 处理规则
+ | |   |-process_store_rules()             ← 处理规则
  | |   |
  | |   | <<PAHSE:正式处理请求>>
- | |   |-sess_prepare_conn_req() 选择后端的服务器
+ | |   |-sess_prepare_conn_req()           ← 选择后端的服务器
  | |     |-srv_redispatch_connect()
- | |       |-assign_server_and_queue() 选择后端的服务器，并添加到队列中
- | |         |-assign_server() 根据负载均衡配置选择后端服务器
+ | |       |-assign_server_and_queue()     ← 选择后端的服务器，并添加到队列中
+ | |         |-assign_server()             ← 根据负载均衡配置选择后端服务器
  | |         | |-get_server_sh()
- | |         |   |-chash_get_server_hash() 使用一致性hash算法
+ | |         |   |-chash_get_server_hash() ← 使用一致性hash算法
  | |         |-sess_change_server()
- | |         |-pendconn_add() 如果后端服务器已满，则添加到proxy队列中<<STAT:px->nbpend++>>
+ | |         |-pendconn_add()              ← 如果后端服务器已满，则添加到proxy队列中<<STAT:px->nbpend++>>
  | |
- | |-signal_process_queue() 信号队列，如果捕获了信号则处理
- | |-wake_expired_tasks() 超时任务
- | |-cur_poller.poll() 不同平台的多路复用技术
- | | |-_do_poll() 以ev_epoll.c中的epoll为例
+ | |-signal_process_queue()                ← 信号队列，如果捕获了信号则处理
+ | |-wake_expired_tasks()                  ← 超时任务
+ | |-cur_poller.poll()                     ← 不同平台的多路复用技术
+ | | |-_do_poll()                          ← 以ev_epoll.c中的epoll为例
  | |   |-epoll_wait()
  | |   |-fd_may_recv()
- | |   | |-fd_update_cache() 在处理函数中只添加到cache中，真正的处理过程在后面
+ | |   | |-fd_update_cache()               ← 在处理函数中只添加到cache中，真正的处理过程在后面
  | |   |-fd_may_send()
  | |     |-fd_update_cache()
  | |
- | |-fd_process_cached_events() 真正处理epoll()中触发的事件
- | | |-fdtab[fd].iocb(fd) 调用注册的回调函数，一般是conn_fd_handler() **
- | |   |-conn->data->recv(conn) 实际调用si_conn_recv_cb()函数，也就是负责接收的函数
- | |   | |-conn->xprt->rcv_pipe() 如果不启用SSL则调用raw_sock_to_pipe()，否则调用下面的buff函数
- | |   | |-conn->xprt->rcv_buf() 不启用SSL则调用raw_sock_to_buf()，否则调用ssl_sock_to_buf()
- | |   |-conn->data->recv(conn) 实际调用si_conn_send_cb()函数，也就是负责发送的函数
+ | |-fd_process_cached_events()            ← 真正处理epoll()中触发的事件
+ | | |-fdtab[fd].iocb(fd)                  ← 调用注册的回调函数，一般是conn_fd_handler()
+ | |   |-conn->data->recv(conn)            ← 实际调用si_conn_recv_cb()函数，也就是负责接收的函数
+ | |   | |-conn->xprt->rcv_pipe()          ← 如果不启用SSL则调用raw_sock_to_pipe()，否则调用下面的buff函数
+ | |   | |-conn->xprt->rcv_buf()           ← 不启用SSL则调用raw_sock_to_buf()，否则调用ssl_sock_to_buf()
+ | |   |-conn->data->recv(conn)            ← 实际调用si_conn_send_cb()函数，也就是负责发送的函数
  | |
  | |-applet_run_active()
  | | ###WHILE###END
  |-deinit() 清理操作
-
--->
+{% endhighlight %}
 
 ## 参考
 
-官方网站为 [http://www.haproxy.org/](http://www.haproxy.org/)，不过需要翻墙；关于源码可以直接从 [https://github.com/haproxy/haproxy](https://github.com/haproxy/haproxy) 下载，很多帮助文档可以直接查看源码中的 doc 目录。
+官方网站为 [www.haproxy.org](http://www.haproxy.org/)，源码可以直接从 [https://github.com/haproxy/haproxy](https://github.com/haproxy/haproxy) 下载，很多帮助文档可以直接查看源码中的 doc 目录。
 
 关于帮助文档也可以查看 [haproxy-dconv](http://cbonte.github.io/haproxy-dconv/)，另外有个监控工具 [HATop](http://feurix.org/projects/hatop/) 。
 
