@@ -328,9 +328,9 @@ let g:ycm_key_list_previous_completion=[]
 "let g:ycm_complete_in_comments = 1
 "let g:ycm_complete_in_strings = 1
 "
-"nnoremap <leader>gl :YcmCompleter GoToDeclaration<CR>
-"nnoremap <leader>gf :YcmCompleter GoToDefinition<CR>
-"nnoremap <leader>gg :YcmCompleter GoToDefinitionElseDeclaration<CR>
+nnoremap <leader>gl :YcmCompleter GoToDeclaration<CR>
+nnoremap <leader>gf :YcmCompleter GoToDefinition<CR>
+nnoremap <leader>gg :YcmCompleter GoToDefinitionElseDeclaration<CR>
 "nnoremap <F5> :YcmForceCompileAndDiagnostics<CR>" force recomile with syntastic
 "nmap <F6> :YcmDiags<CR>
 " }1

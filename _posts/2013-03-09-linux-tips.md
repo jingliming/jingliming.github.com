@@ -286,8 +286,8 @@ $ man -k httpd
 
 如下是一个备份用的脚本，不过 email 没有调试使用过，暂时记录下。
 
-* ~/.backuprc 配置文件，列举出那些文件需要备份，使用 # 做注释；
-* 使用 ~/tmp 作为临时目录；
+* `~/.backuprc` 配置文件，列举出那些文件需要备份，使用 `#` 做注释；
+* 使用 `~/tmp` 作为临时目录；
 
 另外，在使用 tar 备份打包+解压时，默认为相对路径，为了使用绝对路径可以在压缩+解压时都使用 ```-P``` 参数，这样直接解压即可覆盖原有文件。
 
@@ -323,6 +323,7 @@ if [ "$IN" == "" ]; then
 fi
 
 $TAR -zcPf ~/tmp/$OUT $IN >/dev/null
+
 ## create message for mail
 #echo "Backup successfully done. Please see attached file." > $MES
 #echo "" >> $MES
