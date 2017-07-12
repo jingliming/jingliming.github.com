@@ -834,16 +834,15 @@ set laststatus=2
 ""nmap <F4> a<C-R>=strftime("%Y-%m-%d %a %I:%M %p")<CR><Esc>
 ""imap <F4> <C-R>=strftime("%Y-%m-%d %a %I:%M %p")<CR>
 "" delete the white space in the end of line
-"nmap <F2> :%s/\s\+$//g<CR>
-"imap <F2> :%s/\s\+$//g<CR>
-"" to save, ctrl-s
-"nmap <C-S> :w<CR>
-"imap <C-S> <Esc>:w<CR>a
-"vmap <C-S> <Esc>:w<CR>
-"" when try to paste codes, errors will occur, 'set paste' before paste
-"" or 'set nopaste'.
-"set pastetoggle=<F9>
-"
+nmap <F2> :%s/\s\+$//g<CR>
+imap <F2> :%s/\s\+$//g<CR>
+" to save, ctrl-s
+nmap <C-S> :w<CR>
+imap <C-S> <Esc>:w<CR>a
+vmap <C-S> <Esc>:w<CR>
+" when try to paste codes, errors will occur, 'set paste' before paste
+" or 'set nopaste'.
+set pastetoggle=<F9>
 "
 "augroup vimrc_autocmds
 "    autocmd!

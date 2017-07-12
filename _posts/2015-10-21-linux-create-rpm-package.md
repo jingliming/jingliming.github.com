@@ -91,6 +91,10 @@ $ rpmbuild --bb mysql.spec   
    -bi 执行install段
 
    --quiet 默认会输出每次执行的shell命令，此时忽略
+
+
+----- 通过源码包重新编译
+$ rpmbuild --rebuild package-0.0-0.src.rpm
 {% endhighlight %}
 
 一般来说，执行的顺序为 rpmbuild -bp，再 -bc 再 -bi，如果没问题，rpmbuild -ba 生成 src 包与二进制包，使用时通过 ```rpm -ivh xxx.rpm;``` 以及 ```rpm -e xxx.rpm``` 进行安装卸载。
@@ -607,6 +611,9 @@ http://laoguang.blog.51cto.com/6013350/1103628
 
 一个collectd创建的示例
 http://giovannitorres.me/how-to-build-rpms-collectd-example.html
+
+rpm mock
+https://leo108.com/pid-2207.asp
 -->
 
 {% highlight text %}

@@ -665,18 +665,7 @@ $ gcc sample.c -o sample `pkg-config --cflags --libs glib-2.0`
 关于 CMake 相关的文档可以参考 [CMake 实践](/reference/linux/CMake_Practice.pdf) ，或者参考 [CMake 入门实战](http://hahack.com/codes/cmake/) 。
 
 
-
-
-
-
-
-
-
-
-
-
 <!--
-
 The new guide of the conversation in Autoconf and Make
 http://www.edwardrosten.com/code/autoconf/
 
@@ -699,12 +688,15 @@ https://github.com/nukc/how-to-use-travis-ci
 https://scarletsky.github.io/2016/07/29/use-gitlab-ci-for-continuous-integration/
 http://xinsuiyuer.github.io/blog/2014/02/24/jenkins-c-plus-plus-ci-env/
 
-
 Linux源码标准检测
-
 http://www.tuxradar.com/content/newbies-guide-hacking-linux-kernel
-
 http://www.cnblogs.com/wwang/archive/2011/02/24/1960283.html
+
+AC_CHECK_FUNCS
+AC_CHECK_LIB
+https://autotools.io/autoconf/finding.html
+概念：GNU构建系统和Autotool
+http://www.pchou.info/linux/2016/09/16/gnu-build-system-1.html
 -->
 
 

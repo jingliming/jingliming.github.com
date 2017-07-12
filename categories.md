@@ -99,7 +99,8 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Linux 系统调用](/post/kernel-syscall.html)，简单介绍下 Linux 中系统调用相关的内容。
 * [Linux 调度系统](/post/linux-kernel-scheduler.html)，与内核的进程调度相关的内容。
 * [Linux 共享内存](/post/linux-shared-memory-program.html)，Linux 中与共享内存相关的内容。
-* [Linux 内存映射](/post/kernel-memory-virtual-physical-map.html)，x86 中逻辑地址到物理地址的映射关系，包括了具体的实验。
+* [Linux 物理映射](/post/kernel-memory-virtual-physical-map.html)，x86 中逻辑地址到物理地址的映射关系，包括了具体的实验。
+* [Linux 映射文件](/post/kernel-memory-mmap-introduce.html)，也就是 mmap() 函数的使用方法。
 * [Linux 内存-用户空间](/post/kernel-memory-management-from-userspace-view.html)，用户空间的内存管理，包括了内存的布局、内存申请等操作。
 * [Linux 内存-内核空间](/post/kernel-memory-management-from-kernel-view.html)，包括了内核中与内存相关内容，包括了初始化、内存分配等。
 * [Kernel 内存杂项](/post/kernel-memory-tips.html)，简单介绍下内核中与内存相关的内容。
@@ -153,7 +154,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [RPM 包制作](/post/linux-create-rpm-package.html)，如何在 CentOS 中创建 RPM 包。
 * [Linux 常用技巧](/post/linux-tips.html)，简单记录了一些在 Linux 中常用的技巧。
 * [Linux 常用命令 \-\- 文本处理](/post/linux-commands-text.html)，简单介绍下 Linux 常用的文本处理方式。
-* [TMUX](/post/tmux-introduce.html)，一个终端复用工具，类似 screen 但是更加方便使用，更加高端。
+* [TMUX 简介](/post/tmux-introduce.html)，一个终端复用工具，类似 screen 但是更加方便使用，更加高端。
 * [Linux 绘图工具](/post/linux-gnuplot.html)，这是一个命令行驱动的绘图工具，支持多个平台。
 * [Logrotate 使用方法](/post/logrotate-usage.html)，一个不错的日志切割管理程序。
 * [Linux 后台服务管理](/post/linux-daemon-tools.html)，介绍目前常用的后台服务管理。

@@ -406,6 +406,17 @@ period 也没有用变量来保存，用 __sched_period() 计算得到，sysctl_
 
 <!--
 http://linuxperf.com/?p=42
+
+linux cfs调度器_理论模型
+http://www.cnblogs.com/openix/archive/2013/08/13/3254394.html
+ Linux内核学习笔记（一）CFS完全公平调度类
+http://blog.chinaunix.net/uid-24757773-id-3266304.html
+Linux内核-CFS进程调度器
+https://wongxingjun.github.io/2015/09/09/Linux%E5%86%85%E6%A0%B8-CFS%E8%BF%9B%E7%A8%8B%E8%B0%83%E5%BA%A6%E5%99%A8/
+Completely Fair Scheduler
+http://www.linuxjournal.com/magazine/completely-fair-scheduler
+linux内核分析——CFS
+http://muyunzhe.blog.51cto.com/9164050/1651853
 -->
 
 {% highlight text %}

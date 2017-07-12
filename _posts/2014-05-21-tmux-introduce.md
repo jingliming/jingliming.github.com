@@ -1,5 +1,5 @@
 ---
-title: TMUX
+title: TMUX 简介
 layout: post
 comments: true
 language: chinese
@@ -542,6 +542,13 @@ $ tmux move-window -s processes:1 -t editor
 
 当然也可以通过 [tmux-powerline](https://github.com/erikw/tmux-powerline) 配置状态栏；关于按键的绑定可以参考 [Moving The Ctrl Key](https://www.emacswiki.org/emacs/MovingTheCtrlKey)，以及参考配置文件 [tmux.conf](/reference/linux/tmux.conf) 。
 
+<!--
+set -g status-utf8 on
+Mouse Settings
+set the default bash
+set -g utf8
+set-window-option -g utf8 on
+-->
 
 {% highlight text %}
 {% endhighlight %}

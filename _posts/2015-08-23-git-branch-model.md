@@ -213,6 +213,11 @@ $ git status
 $ git branch -v
 $ git branch --merged
 $ git branch --no-merged
+
+----- 获取某个分支
+$ git clone http://github.com/project/foobar.git    # 只能获取默认的分支，一般是master，可以手动设置
+$ git branch -a                                     # 查看所有分支
+$ git checkout -b dev origin/dev                    # 获取其它分支
 {% endhighlight %}
 
 
