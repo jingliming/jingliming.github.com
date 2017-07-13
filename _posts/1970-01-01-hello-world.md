@@ -1623,6 +1623,30 @@ Time:
   rtime (v1.5+) 过去1024个请求在队里中的平均响应时间
 
 
+
+
+
+
+
+
+
+http://savannah.nongnu.org/projects/nss-mysql
+https://github.com/NigelCunningham/pam-MySQL
+http://lanxianting.blog.51cto.com/7394580/1767113
+https://stackoverflow.com/questions/7271939/warning-ignoring-return-value-of-scanf-declared-with-attribute-warn-unused-r
+https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
+https://stackoverflow.com/questions/30813452/how-to-ignore-all-warnings-in-c
+http://www.jianshu.com/p/7e84a33b46e9
+https://github.com/flike/kingshard/blob/master/doc/KingDoc/kingshard_admin_api.md   微博
+__attribute__((warn_unused_result))
+/post/mysql-introduce.html
+通过 RPM 包安装时，默认是保存到 `/var/lib/mysql` 目录下。
+rpmbuild -bb SPECS/librdkafka.spec --define "__version 0.9.4" --define "__release 1"
+
+
+
+
+
 ←
 -->
 

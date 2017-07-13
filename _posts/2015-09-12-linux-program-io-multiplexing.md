@@ -216,25 +216,174 @@ close(fd);
 
 对于 epoll_data ，如一个 client 连接到服务器时，服务器通过调用 accept 函数可以得到 client 对应的 socket 文件描述符，并通过 epoll_data 的 fd 字段返回。
 
+epoll_event 结构体的 events 字段是表示感兴趣的事件和被触发的事件，可能的取值为：
+
+{% highlight text %}
+EPOLLIN ：对应的文件描述符可以读；
+EPOLLOUT：对应的文件描述符可以写；
+EPOLLPRI：对应的文件描述符有紧急的数据可读；
+EPOLLERR：对应的文件描述符发生错误；
+EPOLLHUP：对应的文件描述符被挂断；
+EPOLLET ：对应的文件描述符有事件发生。
+{% endhighlight %}
+
 <!--
-epoll_event 结构体的 events 字段是表示感兴趣的事件和被触发的事件，可能的取值为：<ul><li>
-EPOLLIN： 表示对应的文件描述符可以读；</li><li>
-EPOLLOUT：表示对应的文件描述符可以写；</li><li>
-EPOLLPRI：表示对应的文件描述符有紧急的数据可读；</li><li>
-EPOLLERR：表示对应的文件描述符发生错误；</li><li>
-EPOLLHUP：表示对应的文件描述符被挂断；</li><li>
-EPOLLET：表示对应的文件描述符有事件发生；
-</li></ul>
+LT(level triggered)，默认的工作方式，同时支持 block 和 no-block socket。对于该模式，内核告诉你一个文件描述符是否就绪了，然后你可以对这个就绪的 fd 进行 IO 操作。如果你不作任何操作，或者还没有处理完，内核还会继续通知你的，所以，这种模式编程出错误可能性要小一点。传统的 select/poll 都是这种模型的代表。
 
-LT(level triggered)，默认的工作方式，同时支持 block 和 no-block socket。对于该模式，内核告诉你一个文件描述符是否就绪了，然后你可以对这个就绪的 fd 进行 IO 操作。如果你不作任何操作，或者还没有处理完，内核还会继续通知你的，所以，这种模式编程出错误可能性要小一点。传统的 select/poll 都是这种模型的代表。<br><br>
+ET(edge-triggered)，高速工作方式，只支持 no-block socket。在这种模式下，当描述符从未就绪变为就绪时，内核通过 epoll 告诉你，然后它会假设你知道文件描述符已经就绪，并且不会再为那个文件描述符发送更多的就绪通知，直到你做了某些操作导致那个文件描述符不再为就绪状态了，比如，你在发送、接收或者接收请求，或者发送接收的数据少于一定量时导致了一个 EWOULDBLOCK 错误。但是请注意，如果一直不对这个 fd 作 IO 操作（从而导致它再次变成未就绪），内核不会发送更多的通知(only once)，不过在TCP协议中，ET模式的加速效用仍需要更多的benchmark确认。
 
-ET(edge-triggered)，高速工作方式，只支持 no-block socket。在这种模式下，当描述符从未就绪变为就绪时，内核通过 epoll 告诉你，然后它会假设你知道文件描述符已经就绪，并且不会再为那个文件描述符发送更多的就绪通知，直到你做了某些操作导致那个文件描述符不再为就绪状态了，比如，你在发送、接收或者接收请求，或者发送接收的数据少于一定量时导致了一个 EWOULDBLOCK 错误。但是请注意，如果一直不对这个 fd 作 IO 操作（从而导致它再次变成未就绪），内核不会发送更多的通知(only once)，不过在TCP协议中，ET模式的加速效用仍需要更多的benchmark确认。<br><br>
+ET和LT的区别在于LT事件不会丢弃，而是只要读buffer里面有数据可以让用户读，则不断的通知你。而ET则只在事件发生之时通知。可以简单理解为LT是水平触发，而ET则为边缘触发。
 
-ET和LT的区别在于LT事件不会丢弃，而是只要读buffer里面有数据可以让用户读，则不断的通知你。而ET则只在事件发生之时通知。可以简单理解为LT是水平触发，而ET则为边缘触发。<br><br>
-
-ET模式仅当状态发生变化的时候才获得通知,这里所谓的状态的变化并不包括缓冲区中还有未处理的数据,也就是说,如果要采用ET模式,需要一直read/write直到出错为止,很多人反映为什么采用ET模式只接收了一部分数据就再也得不到通知了,大多因为这样;而LT模式是只要有数据没有处理就会一直通知下去的.<br><br>
+ET模式仅当状态发生变化的时候才获得通知,这里所谓的状态的变化并不包括缓冲区中还有未处理的数据,也就是说,如果要采用ET模式,需要一直read/write直到出错为止,很多人反映为什么采用ET模式只接收了一部分数据就再也得不到通知了,大多因为这样;而LT模式是只要有数据没有处理就会一直通知下去的.
 -->
 
+### 内核实现
+
+epoll 的几个接口实际都对应于 kernel 的 API ，主要位于 `fs/eventpoll.c` 文件中。在分析 epoll 时发现有 `fs_initcall()` 这样的调用，以此为例分析一下 Linux 的初始化。
+
+
+<!--
+<pre style="font-size:0.8em; face:arial;">
+fs_initcall(eventpoll_init);                                      // fs/eventpoll.c
+#define fs_initcall(fn) __define_initcall(fn, 5)                  // include/linux/init.h
+#define __define_initcall(fn, id) \                               // 同上
+      static initcall_t __initcall_##fn##id __used \
+      __attribute__((__section__(".initcall" #id ".init"))) = fn
+
+// 最后展开为
+static initcall_t __initcall_eventpoll_init5 __used __attribute__((__section__(".initcall5.init"))) = eventpoll_init;
+</pre>
+也就是在 .initcall5.init 段中定义了一个变量 __initcall_eventpoll_init5 并将改变量赋值为 eventpoll_init 。内核中对初始化的调用过程如下。
+<pre style="font-size:0.8em; face:arial;">
+arch/x86/kernel/head_64.S
+   x86_64_start_kernel();                    arch/x86/kernel/head[64|32].c
+      start_kernel();                        init/main.c
+         rest_init();                        init/main.c
+            kernel_init();                   init/main.c，通过内核线程实现
+               kernel_init_freeable();       init/main.c
+                  do_basic_setup();          init/main.c
+                      do_initcalls();        init/main.c
+</pre>
+对于 epoll 来说，实际是在初始化过程中对变量进行初始化。<br><br><br>
+
+
+
+
+
+当某一进程调用 epoll_create() 方法时，内核会创建一个 eventpoll 结构体，这个结构体中有两个成员与 epoll 的使用方式密切相关。
+<pre style="font-size:0.8em; face:arial;">
+struct eventpoll{
+    struct rb_root  rbr;        // 红黑树的根节点，这颗树中存储着所有添加到epoll中的需要监控的事件
+    struct list_head rdlist;    // 双链表中则存放着将要通过epoll_wait返回给用户的满足条件的事件
+};
+</pre>
+每一个 epoll 对象都有一个独立的 eventpoll 结构体，用于存放通过 epoll_ctl() 方法向 epoll 对象中添加进来的事件，这些事件都会挂载在红黑树中。<br><br>
+
+而所有添加到 epoll 中的事件都会与设备+网卡驱动程序建立回调关系，也就是说，当相应的事件发生时会调用这个回调方法。这个回调方法在内核中就是 ep_poll_callback() 它会将发生的事件添加到 rdlist 双链表中。<br><br>
+
+在 epoll 中，对于每一个事件，都会建立一个 epitem 结构体。
+<pre style="font-size:0.8em; face:arial;">
+struct epitem{
+    struct rb_node rbn;         // 红黑树节点
+    struct list_head rdllink;   // 双向链表节点
+    struct epoll_filefd ffd;    // 事件句柄信息
+    struct eventpoll *ep;       // 指向其所属的eventpoll对象
+    struct epoll_event event;   // 期待发生的事件类型
+}
+</pre>
+当调用 epoll_wait() 检查是否有事件发生时，只需要检查 eventpoll 对象中的 rdlist 双链表中是否有 epitem 元素即可。如果 rdlist 不为空，则把发生的事件复制到用户态，同时将事件数量返回给用户。<br><br>
+<center><img src="pictures/polletc/epoll_data_structure.jpg"></center><br><br>
+
+其中 epoll_create()、epoll_ctl() 的函数调用如下所示。
+<pre style="font-size:0.8em; face:arial;">
+epoll_create();
+    ep_alloc();                 // 分配struct eventpoll变量，由epoll_create返回的fd在内核中对应该变量
+    get_unused_fd_flags();      // 返回一个有效的fd
+    anon_inode_getfile();       // 返回一个file，同时注册eventpoll_fops
+    fd_install();               // 将上述的两者关联起来并返回fd
+
+epoll_ctl()
+    switch(op)
+        EPOLL_CTL_ADD:                         // 处理不同的事件
+            epds.events |= POLLERR | POLLHUP;  // 默认会包含两个事件
+            ep_insert()
+        ... ...
+</pre>
+
+
+ep_ptable_queue_proc 当有事件发生时会调用该函数。
+
+
+
+select需要驱动程序实现fops内的poll函数，通过每个设备文件对应的poll函数提供的信息判断当前是否有资源可用(如可读或写)，如果有的话则返回可用资源的文件描述符个数，没有的话则睡眠，等待有资源变为可用时再被唤醒继续执行。
+
+select就是巧妙的利用等待队列机制让用户进程适当在没有资源可读/写时睡眠，有资源可读/写时唤醒。
+
+select会循环遍历它所监测的fd_set内的所有文件描述符对应的驱动程序的poll函数。驱动程序提供的poll函数首先会将调用select的用户进程插入到该设备驱动对应资源的等待队列(如读/写等待队列)，然后返回一个bitmask告诉select当前资源哪些可用。当select循环遍历完所有fd_set内指定的文件描述符对应的poll函数后，如果没有一个资源可用(即没有一个文件可供操作)，则select让该进程睡眠，一直等到有资源可用为止，进程被唤醒(或者timeout)继续往下执行。
+
+
+
+
+
+
+
+
+
+
+
+每次操作时poll会将所有的fd复制到内核，而epoll在epoll_ctl时添加，epoll_wait时不需要重复拷贝，
+
+
+
+epoll的实现主要依赖于一个迷你文件系统：eventpollfs。此文件系统通过eventpoll_init初始化。在初始化的过程中，eventpollfs create两个slub分别是：epitem和eppoll_entry。
+
+epoll使用过程中有几个基本的函数分别是epoll_create，epoll_ctl，epoll_wait。涉及到四个重要的数据结构： struct eventpoll ， struct epitem， struct epoll_event ，struct eppoll_entry。(作者：黄江伟，will.huang@aliyun-inc.com)
+
+1、epoll_create和epoll_ctl
+
+其中eventpoll是通过epoll_create生成，epoll_create传入一个size参数，size参数只要>0即可，没有任何意义。epoll_create调用函数sys_epoll_create1实现eventpoll的初始化。sys_epoll_create1通过ep_alloc生成一个eventpoll对象，并初始化eventpoll的三个等待队列，wait，poll_wait以及rdlist （ready的fd list）。同时还会初始化被监视fs的rbtree 根节点。
+
+epollcreate在调用ep_alloc通过anon_inode_getfd创建一个名字为“[eventpoll]”的eventpollfs文件描述符号并将file->private_data指定为指向前面生成的eventpoll。这样就将eventpoll和文件id关联。最后返回文件描述符id。
+
+通过epoll_create生成一个eventpoll后，可以通过epoll_ctl提供的相关操作对eventpoll进行ADD，MOD，DEL操作。epoll_ctl有四个参数，分别是：int epfd（需要操作的eventpoll）, int op（操作类型）, int fd（需要被监视的文件）, struct epoll_event *event（被监视文件的相关event）。epoll_ctl首先通过epfd的private_data域获取需要操作的eventpoll，然后通过ep_find确认需要操作的fd是否已经在被监视的红黑树中（eventpoll->rbr）。然后根据op的类型分别作ADD（ep_insert），MOD（ep_modify），DEL（ep_remove）操作。
+
+首先分析ep_insert，ep_insert有四个参数分别为： struct eventpoll *ep（需要操作的eventpoll）, struct epoll_event *event（epoll_create传入的event参数，当然得从user空间拷贝过来）, struct file *tfile（被监视的文件描述符）, int fd（被监视的文件id）。ep_insert首先从slub中分配一个epitem的对象epi。并初始化epitem的三个list头指针，rdllink（指向eventpoll的rdlist），fllist指向（struct file的f_ep_links），pwqlist（指向包含此epitem的所有poll wait queue）。并将epitem的ep指针，指向传入的eventpoll，并通过传入参数event对ep内部变量event赋值。然后通过ep_set_ffd将目标文件和epitem关联。这样epitem本身就完成了和eventpoll以及被监视文件的关联。下面还需要做两个动作：将epitem插入目标文件的polllist并注册回调函数；将epitem插入eventpoll的rbtree。
+
+为了完成第一个动作，还需要一个数据结构ep_pqueue帮忙，ep_pqueue主要包含两个变量一个是epitem还有一个是callback函数（ep_ptable_queue_proc）相关的一个数据结构poll_table，ep_pqueue主要完成epitem和callback函数的关联。然后通过目标文件的poll函数调用callback函数ep_ptable_queue_proc。Poll函数一般由设备驱动提供，以网络设备为例，他的poll函数为sock_poll然后根据sock类型调用不同的poll函数如：packet_poll。packet_poll在通过datagram_poll调用sock_poll_wait，最后在poll_wait实际调用callback函数（ep_ptable_queue_proc）。
+
+ep_ptable_queue_proc函数完成epitem加入到特定文件的wait队列任务。ep_ptable_queue_proc有三个参数：struct file *file（目标文件）, wait_queue_head_t *whead（目标文件的waitlist）, poll_table *pt（前面生成的poll_table）。在函数中，引入了另外一个非常重要的数据结构eppoll_entry。eppoll_entry主要完成epitem和epitem事件发生时的callback（ep_poll_callback）函数之间的关联，并将上述两个数据结构包装成一个链表节点，挂载到目标文件file的waithead中。这两还得完成两个动作，首先将eppoll_entry的whead指向目标文件的waitlist（传入的参数2），然后初始化base变量指向epitem，最后通过add_wait_queue将epoll_entry挂载到目标文件的waitlist。完成这个动作后，epoll_entry已经被挂载到waitlist，然后还有一个动作必须完成，就是将eppoll_entry挂载到epitem的pwqlist上面。现在还剩下一个动作，就是将epitem的fllink链接到目标文件的f_ep_links上，这部分工作将在poll函数返回后在ep_insert中完成。当然ep_insert除了完成这个动作外，还会完成前面提到的第二步，epitem插入eventpoll的rbtree。完成以上动作后，将还会判断当前插入的event是否刚好发生，如果是，那么做一个ready动作，将epitem加入到rdlist中，并对epoll上的wait队列调用wakeup。
+
+到此为止基本完成了epoll_create以及epoll_ctl最重要的ADD函数的工作介绍。下面进入epoll_wait函数介绍。(作者：黄江伟，will.huang@aliyun-inc.com)
+
+2、epoll_wait
+
+epoll_wait有四个参数int epfd（被wait的epoll所关联的epollfs的fd）, struct epoll_event __user * events（返回监视到的事件）, int maxevents（每次return的events最大值）, int timeout（最大wait时间）。epoll_wait首先会检测传入参数的合法性，包括maxevents有没有超过范围（0<=maxevents<EP_MAX_EVENTS（(INT_MAX / sizeof(struct epoll_event))））；events指向的空间是否可写；epfd是否合法等。参数合法性检测都通过后，将通过epfd获取锁依赖的struct file，然后通过file->private_data获取eventpoll。获取epoll后调用ep_poll函数完成真正的epoll_wait工作。ep_poll函数也是四个参数和epoll_wait唯一的差别就是第一参数是前面获取的eventpoll指针。ep_poll首先根据timeout的值判断是否是无限等待，如果不是将timeout（ms）转换为jiffs。然后判断eventpoll的rdlist是否为空，如果为空，那么将current进程通过一个waitquene entry加入eventpoll的waitlist（wq）。并将task的状态改为TASK_INTERRUPTIBLE；并通过schedule_timeout让出处理器。如果rdlist非空，那么通过ep_send_events将event转发到userspace。
+
+ep_send_events通过ep_scan_ready_list对ready_list进行扫描，由于现在在对ready_list进行操作，这个时候必须保证rdlist数据的一致性，如果此时又有新的event ready，那么我们必须提供临时的存储空间，eventpoll提供了一个ovflist用来存储这种event。ep_send_events获取了rdlist后通过ep_send_events_proc完成真正的转发工作。完成转发后，ep_send_events还需要去判断ovflist，如果ovflist中有events，那么还需要将这些events转移到rdlist中。
+
+ep_send_events_proc扫描rdlist从头上面拿出epitem，然后调用epollfs的poll函数（ep_eventpoll_poll），判断拿出来的那个events是否真的已经ready（这部分比较难理解，没怎么看懂）。如果ready，那么将数据封装到uevent里面，同事这里还需要判断epitem的类型是否是Level Triggered如果是，那么还需要把event再次插入队列尾部。(作者：黄江伟，will.huang@aliyun-inc.com)
+
+3、ep_poll_callback
+
+以上描述中还缺少关键的一环，就是如何在被监视文件发生event的时候，如何将epitem加入rdlist并唤醒调用epoll_wait进程。这个工作由ep_poll_callback函数完成。前面提到eppoll_entry完成一个epitem和ep_poll_callback的关联，同时eppoll_entry会被插入目标文件file的（private_data）waithead中。以scoket为例，当socket数据ready，终端会调用相应的接口函数比如rawv6_rcv_skb，此函数会调用sock_def_readable然后，通过sk_has_sleeper判断sk_sleep上是否有等待的进程，如果有那么通过wake_up_interruptible_sync_poll函数调用ep_poll_callback。
+
+ep_poll_callback函数首先会判断是否rdlist正在被使用（通过ovflist是否等于EP_UNACTIVE_PTR），如果是那么将epitem插入ovflist。如果不是那么将epitem插入rdlist。然后调用wake_up函数唤醒epitem上wq的进程。这样就可以返回到epoll_wait的调用者，将他唤醒。(作者：黄江伟，will.huang@aliyun-inc.com)
+
+http://www.embeddedlinux.org.cn/html/yingjianqudong/201405/11-2860.html poll&&epoll实现分析（一）—poll实现
+http://blog.csdn.net/xiajun07061225/article/details/9250579
+http://www.cnblogs.com/apprentice89/p/3234677.html
+http://www.cnblogs.com/debian/archive/2012/02/16/2354454.html
+http://blog.csdn.net/justlinux2010/article/details/8506890
+http://blog.chinaunix.net/uid-20687780-id-2105154.html
+http://www.cnblogs.com/apprentice89/archive/2013/05/09/3068274.html
+http://blog.chinaunix.net/uid-20687780-id-2105157.html
+http://blog.chinaunix.net/uid-29339876-id-4070572.html
+http://bbs.chinaunix.net/thread-2021810-1-1.html
+http://blog.csdn.net/sunpyliu/article/details/6761614
+http://blog.chinaunix.net/uid-26339466-id-3292595.html
+http://blog.csdn.net/russell_tao/article/details/7160071
+
+ptmalloc,tcmalloc和jemalloc内存分配策略研究 -->
 
 
 {% highlight text %}

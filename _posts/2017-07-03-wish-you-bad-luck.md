@@ -1,5 +1,5 @@
 ---
-title: 【转发】祝你霉运
+title: 【转】祝你霉运
 layout: post
 comments: true
 language: chinese

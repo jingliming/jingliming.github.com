@@ -1,5 +1,5 @@
 ---
-title: 【转发】关于终身成长的13个忠告
+title: 【转】关于终身成长的13个忠告
 layout: post
 comments: true
 language: chinese
