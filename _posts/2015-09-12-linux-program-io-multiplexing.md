@@ -239,11 +239,77 @@ ET模式仅当状态发生变化的时候才获得通知,这里所谓的状态�
 
 ### 内核实现
 
-epoll 的几个接口实际都对应于 kernel 的 API ，主要位于 `fs/eventpoll.c` 文件中。在分析 epoll 时发现有 `fs_initcall()` 这样的调用，以此为例分析一下 Linux 的初始化。
+如下是与 epoll 相关的结构设计，先看下与结构体相关的结构图。
 
+![io epoll structure]({{ site.url }}/images/linux/kernel/io-epoll-structure.png "io epoll structure"){: .pull-center width="80%" }
+
+其中 `struct epitem` 是 epoll 的基本单元，对于每一个事件，都会建立一个 epitem 结构体，下面分别介绍一下几个主要的变量的含义：
+
+{% highlight c %}
+struct epitem{
+    struct rb_node rbn;         // 红黑树节点
+    struct list_head rdllink;   // 双向链表节点，当epitem对应fd已经ready时，会在ep_poll_callback()函数中将该
+                                //   结点链接到eventpoll中的rdllist循环链表中去，这样就将ready的epitem都串连起来了
+    struct epoll_filefd ffd;    // 事件句柄信息，包含了一个fd以及fd对应的file指针
+    struct eventpoll *ep;       // 指向其所属的eventpoll对象，用于获取与epitem对应的eventpoll
+    struct epoll_event event;   // 期待发生的事件类型，对应了epoll_ctl()中的指针，用于存储用户空间的epoll_event拷贝
+}
+
+int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
+{% endhighlight %}
+
+当某一进程调用 `epoll_create()` 方法时，内核会创建一个 `eventpoll` 结构体，这个结构体中有两个成员与 epoll 的使用方式密切相关。
+
+{% highlight c %}
+struct eventpoll{
+    struct rb_root  rbr;        // 红黑树的根节点，这颗树中存储着所有添加到epoll中的需要监控的事件
+                                //   它的结点都为epitem变量，通过它可以很方便的增删改查epitem
+    struct list_head rdlist;    // 双链表中则存放着将要通过epoll_wait返回给用户的满足条件的事件
+                                //   链表中的每个结点即为epitem中的rdllink
+};
+{% endhighlight %}
+
+每一个 epoll 对象都有一个独立的 `eventpoll` 结构体，用于存放通过 `epoll_ctl()` 方法向 epoll 对象中添加进来的事件，这些事件都会挂载在红黑树中。
+
+而所有添加到 epoll 中的事件都会与设备+网卡驱动程序建立回调关系，也就是说，当相应的事件发生时会调用这个回调方法。这个回调方法在内核中就是 `ep_poll_callback()` 它会将发生的事件添加到 rdlist 双链表中。
+
+<br>
+
+接着再看下 `struct eppoll_entry` 结构体，它主要有这样几个变量：
+
+{% highlight c %}
+struct eppoll_entry {
+    struct epitem *base;       // 指向其对应的epitem
+    wait_queue_t wait;         // 等待队列的项，wait中有一个唤醒回调函数指针，该指针被初始化为ep_poll_callback
+};
+{% endhighlight %}
+
+如上的 wait 成员会被挂在到设备的等待队列中，等待设备的唤醒，当设备因状态改变唤醒 wait 时，会执行 `ep_poll_callback`，而该函数会做这样一件事 `list_add_tail(&epi->rdllink,&ep->rdllist)` 。
 
 <!--
-<pre style="font-size:0.8em; face:arial;">
+，其中epi即为epitem变量，通过wait偏移拿到eppoll_entry，然后可以拿到base指针，即拿到了对应的epitem，而ep即为eventpoll变量，通过epitem的ep指针即可拿到，list_add_tail将epi的rdllink链到ep的rdllist中
+
+
+下面结合这幅图大致讲解一下epoll_create、epoll_ctl、epoll_wait都在做些什么：
+
+    首先，epoll_create会创建一个epoll的文件（epfd），同时创建并初始化一个struct eventpoll，其中file的private_data指针即指向了eventpoll变量，因此，知道epfd就可以拿到file，即拿到了eventpoll变量,这就是epoll_create所做的工作
+    epoll_ctl又做了什么事呢？首先大家看到了eventpoll中的rb_root红黑树吗？epoll_ctl其实就是在操作这颗红黑树，epoll_ctl有三种操作：
+
+    EPOLL_CTL_ADD：往红黑树中创建并添加一个epitem，对应处理函数为ep_insert
+    在添加epitem时，也就是在ep_insert过程中，会创建一个eppoll_entry，并将其wait_queue挂载到设备的等待队列上，其中该wait_queue的唤醒回调函数为ep_poll_callback，当设备有事件ready而唤醒wait_queue时，就会执行ep_poll_callback将当前epitem链接到eventpoll中的rdllist中去，另外，如果在挂载wait_queue时就发现设备有事件ready了，同样会将epitem链接到rdllist中去。若每次调用poll函数,操作系统都要把current(当前进程)挂到fd对应的所有设备的等待队列上,可以想象,fd多到上千的时候,这样“挂”法很费事;而每次调用epoll_wait则没有这么罗嗦,epoll只在epoll_ctl时把current挂一遍(这第一遍是免不了的)并给每个fd一个命令“好了就调回调函数”,如果设备有事件了,通过回调函数,会把fd放入rdllist,而每次调用epoll_wait就只是收集rdllist里的fd就可以了——epoll巧妙的利用回调函数,实现了更高效的事件驱动模型
+
+    EPOLL_CTL_MOD：修改对应的epitem，对应处理函数为ep_modify
+    在ep_modify过程中，处理会修改epitem对应的event值，同样会先查看一下对应设备的当前状态，如果有ready事件发生，则会将当前epitem链接到rdllist中去
+    EPOLL_CTL_DEL：从红黑树中删除对应的epitem，对应处理函数为ep_remove
+    释放钩子、链接、资源空间等，如epitem所占的空间
+    其实epoll_ctl已经将绝大部分事情都做了，epoll_wait有只需要收集结果就行了，它的目标也很单一，就看rdllist中是否有元素即可，当然，它还需要控制timeout，及结果转移，因为对于rdllist链接的epitem，只能说明其对应的fd有事件ready，但是哪些事件是不知道的，因此epoll_ctl再收集结果时，会亲自查看一下对应file的ready状态来写回events
+-->
+
+#### 初始化
+
+epoll 的几个接口实际都对应于 kernel 的 API ，主要位于 `fs/eventpoll.c` 文件中。在分析 epoll 时发现有 `fs_initcall()` 这样的调用，以此为例分析一下 Linux 的初始化。
+
+{% highlight c %}
 fs_initcall(eventpoll_init);                                      // fs/eventpoll.c
 #define fs_initcall(fn) __define_initcall(fn, 5)                  // include/linux/init.h
 #define __define_initcall(fn, id) \                               // 同上
@@ -251,140 +317,432 @@ fs_initcall(eventpoll_init);                                      // fs/eventpol
       __attribute__((__section__(".initcall" #id ".init"))) = fn
 
 // 最后展开为
-static initcall_t __initcall_eventpoll_init5 __used __attribute__((__section__(".initcall5.init"))) = eventpoll_init;
-</pre>
-也就是在 .initcall5.init 段中定义了一个变量 __initcall_eventpoll_init5 并将改变量赋值为 eventpoll_init 。内核中对初始化的调用过程如下。
-<pre style="font-size:0.8em; face:arial;">
+static initcall_t __initcall_eventpoll_init5 __used
+     __attribute__((__section__(".initcall5.init"))) = eventpoll_init;
+{% endhighlight %}
+
+也就是在 `.initcall5.init` 段中定义了一个变量 `__initcall_eventpoll_init5` 并将改变量赋值为 `eventpoll_init`，内核中对初始化的调用过程如下。
+
+{% highlight text %}
 arch/x86/kernel/head_64.S
-   x86_64_start_kernel();                    arch/x86/kernel/head[64|32].c
-      start_kernel();                        init/main.c
-         rest_init();                        init/main.c
-            kernel_init();                   init/main.c，通过内核线程实现
-               kernel_init_freeable();       init/main.c
-                  do_basic_setup();          init/main.c
-                      do_initcalls();        init/main.c
-</pre>
-对于 epoll 来说，实际是在初始化过程中对变量进行初始化。<br><br><br>
+ |-x86_64_start_kernel()                 arch/x86/kernel/head[64|32].c
+   |-start_kernel()                      init/main.c
+     |-rest_init()
+       |-kernel_init()                   通过内核线程实现
+         |-kernel_init_freeable()
+           |-do_basic_setup()
+             |-do_initcalls()
+{% endhighlight %}
 
+对于 epoll 来说，实际是在初始化过程中对变量进行初始化。
 
+{% highlight c %}
+static int __init eventpoll_init(void)
+{
+    struct sysinfo si;
 
+    si_meminfo(&si);
+    /*
+     * Allows top 4% of lomem to be allocated for epoll watches (per user).
+     */
+    max_user_watches = (((si.totalram - si.totalhigh) / 25) << PAGE_SHIFT) /
+        EP_ITEM_COST;
+    BUG_ON(max_user_watches < 0);
 
+    /*
+     * Initialize the structure used to perform epoll file descriptor
+     * inclusion loops checks.
+     */
+    ep_nested_calls_init(&poll_loop_ncalls);
 
-当某一进程调用 epoll_create() 方法时，内核会创建一个 eventpoll 结构体，这个结构体中有两个成员与 epoll 的使用方式密切相关。
-<pre style="font-size:0.8em; face:arial;">
-struct eventpoll{
-    struct rb_root  rbr;        // 红黑树的根节点，这颗树中存储着所有添加到epoll中的需要监控的事件
-    struct list_head rdlist;    // 双链表中则存放着将要通过epoll_wait返回给用户的满足条件的事件
-};
-</pre>
-每一个 epoll 对象都有一个独立的 eventpoll 结构体，用于存放通过 epoll_ctl() 方法向 epoll 对象中添加进来的事件，这些事件都会挂载在红黑树中。<br><br>
+    /* Initialize the structure used to perform safe poll wait head wake ups */
+    ep_nested_calls_init(&poll_safewake_ncalls);
 
-而所有添加到 epoll 中的事件都会与设备+网卡驱动程序建立回调关系，也就是说，当相应的事件发生时会调用这个回调方法。这个回调方法在内核中就是 ep_poll_callback() 它会将发生的事件添加到 rdlist 双链表中。<br><br>
+    /* Initialize the structure used to perform file's f_op->poll() calls */
+    ep_nested_calls_init(&poll_readywalk_ncalls);
 
-在 epoll 中，对于每一个事件，都会建立一个 epitem 结构体。
-<pre style="font-size:0.8em; face:arial;">
-struct epitem{
-    struct rb_node rbn;         // 红黑树节点
-    struct list_head rdllink;   // 双向链表节点
-    struct epoll_filefd ffd;    // 事件句柄信息
-    struct eventpoll *ep;       // 指向其所属的eventpoll对象
-    struct epoll_event event;   // 期待发生的事件类型
+    /*
+     * We can have many thousands of epitems, so prevent this from
+     * using an extra cache line on 64-bit (and smaller) CPUs
+     */
+    BUILD_BUG_ON(sizeof(void *) <= 8 && sizeof(struct epitem) > 128);
+
+    /* Allocates slab cache used to allocate "struct epitem" items */
+    epi_cache = kmem_cache_create("eventpoll_epi", sizeof(struct epitem),
+            0, SLAB_HWCACHE_ALIGN | SLAB_PANIC, NULL);
+
+    /* Allocates slab cache used to allocate "struct eppoll_entry" */
+    pwq_cache = kmem_cache_create("eventpoll_pwq",
+            sizeof(struct eppoll_entry), 0, SLAB_PANIC, NULL);
+
+    return 0;
 }
-</pre>
-当调用 epoll_wait() 检查是否有事件发生时，只需要检查 eventpoll 对象中的 rdlist 双链表中是否有 epitem 元素即可。如果 rdlist 不为空，则把发生的事件复制到用户态，同时将事件数量返回给用户。<br><br>
-<center><img src="pictures/polletc/epoll_data_structure.jpg"></center><br><br>
+{% endhighlight %}
 
-其中 epoll_create()、epoll_ctl() 的函数调用如下所示。
-<pre style="font-size:0.8em; face:arial;">
-epoll_create();
-    ep_alloc();                 // 分配struct eventpoll变量，由epoll_create返回的fd在内核中对应该变量
-    get_unused_fd_flags();      // 返回一个有效的fd
-    anon_inode_getfile();       // 返回一个file，同时注册eventpoll_fops
-    fd_install();               // 将上述的两者关联起来并返回fd
+主要是进行一些初始化配置，同时创建了 2 个内核 cache 用于存放 epitem 和 epoll_entry 。
 
-epoll_ctl()
-    switch(op)
-        EPOLL_CTL_ADD:                         // 处理不同的事件
-            epds.events |= POLLERR | POLLHUP;  // 默认会包含两个事件
-            ep_insert()
-        ... ...
-</pre>
+#### 创建对象
+
+通过 `epoll_create()` 创建一个 epoll 实例，同时创建并初始化一个 `struct eventpoll`，其中返回值 epfd 所对应的 file 的 `private_data` 指针即指向了 `eventpoll` 变量，因此，知道 epfd 就可以拿到 file，即拿到了 `eventpoll` 变量。
+
+{% highlight c %}
+SYSCALL_DEFINE1(epoll_create, int, size)  // epoll_create函数带一个整型参数
+{
+	if (size <= 0)
+		return -EINVAL;
+
+	return sys_epoll_create1(0);          // 实际上是调用epoll_create1
+}
+/* Open an eventpoll file descriptor.  */
+SYSCALL_DEFINE1(epoll_create1, int, flags)
+{
+    int error;
+    struct eventpoll *ep = NULL;
+    
+    /* Check the EPOLL_* constant for consistency.  */
+    BUILD_BUG_ON(EPOLL_CLOEXEC != O_CLOEXEC);
+    
+    if (flags & ~EPOLL_CLOEXEC)
+    	return -EINVAL;
+    /* Create the internal data structure ("struct eventpoll").  */
+    error = ep_alloc(&ep);   // 分配eventpoll结构体
+    if (error < 0)
+    	return error;
+    /*
+     * Creates all the items needed to setup an eventpoll file. That is,
+     * a file structure and a free file descriptor.
+     */
+    // 创建与eventpoll结构体相对应的file结构，ep保存在file->private_data结构中，其中
+    // eventpoll_fops 为该文件所对应的操作函数
+    error = anon_inode_getfd("[eventpoll]", &eventpoll_fops, ep, O_RDWR | (flags & O_CLOEXEC));
+    if (error < 0)
+    	ep_free(ep);        // 如果出错则释放该eventpoll结构体
+    
+    return error;
+}
+{% endhighlight %}
+
+`anon_inode_getfd()` 创建与 `struct eventpoll` 对应的 file 结构，其中 ep 保存在 `file->private_data` 结构中，同时为该新文件定义操作函数。
+
+从这几行代码可以看出，`epoll_create()` 主要做了两件事：
+
+* 创建并初始化一个 `struct eventpoll` 变量；
+* 创建 epoll 的 file 结构，并指定 file 的 `private_data` 指针指向刚创建的 `eventpoll` 变量，这样，只要根据 `epoll` 文件描述符 epfd 就可以拿到 file 进而就拿到了 `eventpoll` 变量，该 `eventpoll` 就是 `epoll_ctl()` 和 `epoll_wait()` 工作的场所。
+
+对外看来，`epoll_create()` 就做了一件事，那就是创建一个 epoll 文件，事实上，更关键的是，它创建了一个 `struct eventpoll` 变量，该变量为 `epoll_ctl()` 和 `epoll_wait()` 的工作打下了基础。
+
+#### 添加监控
+
+`epoll_ctl()` 主要是针对 epfd 所对应的 epoll 实例进行增、删、改操作，一个新创建的 epoll 文件带有一个 `struct eventpoll` ，同时该结构体上再挂一个红黑树，红黑树上的每个节点挂的是 `struct epitem`，这个红黑树就是每次 `epoll_ctl()` 时 fd 存放的地方。
+
+{% highlight c %}
+/*
+ * epfd为该epoll套接字实例,op表示对应的操作，fd表示新加入的套接字，
+ * 结构体epoll_event 用于注册fd所感兴趣的事件和回传在fd上所发生待处理的事件
+ */
+SYSCALL_DEFINE4(epoll_ctl, int, epfd, int, op, int, fd,
+		struct epoll_event __user *, event)
+{
+    int error;
+    int did_lock_epmutex = 0;
+    struct file *file, *tfile;
+    struct eventpoll *ep;
+    struct epitem *epi;
+    struct epoll_event epds;
+    
+    error = -EFAULT;
+    // 将用户传入的event_poll拷贝到epds中
+    if (ep_op_has_event(op) && copy_from_user(&epds, event, sizeof(struct epoll_event)))
+        goto error_return;
+
+    /* Get the "struct file *" for the eventpoll file */
+    error = -EBADF;
+    file = fget(epfd); // 获取该epoll套接字实例所对应的文件描述符
+    if (!file)
+        goto error_return;
+
+    /* Get the "struct file *" for the target file */
+    tfile = fget(fd);
+    if (!tfile)
+        goto error_fput;
+
+    /* The target file descriptor must support poll */
+    error = -EPERM;
+    if (!tfile->f_op || !tfile->f_op->poll)
+        goto error_tgt_fput;
+
+    /*
+     * We have to check that the file structure underneath the file descriptor
+     * the user passed to us _is_ an eventpoll file. And also we do not permit
+     * adding an epoll file descriptor inside itself.
+     */
+    error = -EINVAL;
+    if (file == tfile || !is_file_epoll(file))
+        goto error_tgt_fput;
+
+    /*
+     * At this point it is safe to assume that the "private_data" contains
+     * our own data structure.
+     */
+    ep = file->private_data; // 获取epoll实例所对应的eventpoll结构体
+
+    /*
+     * When we insert an epoll file descriptor, inside another epoll file
+     * descriptor, there is the change of creating closed loops, which are
+     * better be handled here, than in more critical paths.
+     *
+     * We hold epmutex across the loop check and the insert in this case, in
+     * order to prevent two separate inserts from racing and each doing the
+     * insert "at the same time" such that ep_loop_check passes on both
+     * before either one does the insert, thereby creating a cycle.
+     */
+    if (unlikely(is_file_epoll(tfile) && op == EPOLL_CTL_ADD)) {
+        mutex_lock(&epmutex);
+        did_lock_epmutex = 1;
+        error = -ELOOP;
+        if (ep_loop_check(ep, tfile) != 0)
+            goto error_tgt_fput;
+    }
+
+    mutex_lock(&ep->mtx);
+
+    /*
+     * Try to lookup the file inside our RB tree, Since we grabbed "mtx"
+     * above, we can be sure to be able to use the item looked up by
+     * ep_find() till we release the mutex.
+     * ep_find即从ep中的红黑树中根据tfile和fd来查找epitem
+     */
+    epi = ep_find(ep, tfile, fd);
+
+    error = -EINVAL;
+    switch (op) {
+    case EPOLL_CTL_ADD: // 对应于socket上事件注册
+        if (!epi) {     // 红黑树中不存在这个节点
+            // 确保"出错、连接挂起"被当做事件，将出错信息返回给应用
+            epds.events |= POLLERR | POLLHUP;
+            error = ep_insert(ep, &epds, tfile, fd);
+        } else
+            error = -EEXIST;
+        break;
+    case EPOLL_CTL_DEL: // 删除
+        if (epi)        // 存在则删除这个节点，不存在则报错
+            error = ep_remove(ep, epi);
+        else
+            error = -ENOENT;
+        break;
+    case EPOLL_CTL_MOD: // 修改
+        if (epi) {      // 存在则修改该fd所对应的事件，不存在则报错
+            epds.events |= POLLERR | POLLHUP;
+            error = ep_modify(ep, epi, &epds);
+        } else
+            error = -ENOENT;
+        break;
+    }
+    mutex_unlock(&ep->mtx);
+    
+error_tgt_fput:
+    if (unlikely(did_lock_epmutex))
+    mutex_unlock(&epmutex);
+    fput(tfile);
+error_fput:
+    fput(file);
+error_return:
+    
+    return error;
+}
+{% endhighlight %}
+
+对于往 epoll 实例中添加新的套接字，其实现主要通过 `ep_insert()` 完成，先分析 `epoll_wait` 再回过头来分析 `ep_insert()` 。
+
+#### 等待事件
+
+`epoll_wait()` 用来等待 epoll 文件上的 IO 事件发生，其代码如下：
+
+{% highlight c %}
+/*
+ * Implement the event wait interface for the eventpoll file. It is the kernel
+ * part of the user space epoll_wait(2).
+ */
+SYSCALL_DEFINE4(epoll_wait, int, epfd, struct epoll_event __user *, events,
+        int, maxevents, int, timeout)
+{
+    int error;
+    struct file *file;
+    struct eventpoll *ep;
+
+    /* The maximum number of event must be greater than zero */
+    if (maxevents <= 0 || maxevents > EP_MAX_EVENTS)
+        return -EINVAL;
+
+    /* Verify that the area passed by the user is writeable */
+    if (!access_ok(VERIFY_WRITE, events, maxevents * sizeof(struct epoll_event))) {
+        error = -EFAULT;
+        goto error_return;
+    }
+
+    /* Get the "struct file *" for the eventpoll file */
+    error = -EBADF;
+    file = fget(epfd);
+    if (!file)
+        goto error_return;
+
+    /*
+     * We have to check that the file structure underneath the fd
+     * the user passed to us _is_ an eventpoll file.
+     */
+    error = -EINVAL;
+    if (!is_file_epoll(file))
+        goto error_fput;
+
+    /*
+     * At this point it is safe to assume that the "private_data" contains
+     * our own data structure.
+     */
+    ep = file->private_data;  // 获取struct eventpoll结构
+
+    /* Time to fish for events ... */
+    error = ep_poll(ep, events, maxevents, timeout); // 核心代码
+
+error_fput:
+    fput(file);
+error_return:
+
+    return error;
+}
+{% endhighlight %}
+
+可以看出该函数主要时通过 epfd 获取对应的 `struct eventpoll` 结构，然后调用 `ep_poll()` 函数，下面来看 `ep_poll()` 的实现。
 
 
-ep_ptable_queue_proc 当有事件发生时会调用该函数。
+{% highlight c %}
+/**
+ * ep_poll - Retrieves ready events, and delivers them to the caller supplied
+ *           event buffer.
+ *
+ * @ep: Pointer to the eventpoll context.
+ * @events: Pointer to the userspace buffer where the ready events should be
+ *          stored.
+ * @maxevents: Size (in terms of number of events) of the caller event buffer.
+ * @timeout: Maximum timeout for the ready events fetch operation, in
+ *           milliseconds. If the @timeout is zero, the function will not block,
+ *           while if the @timeout is less than zero, the function will block
+ *           until at least one event has been retrieved (or an error
+ *           occurred).
+ *
+ * Returns: Returns the number of ready events which have been fetched, or an
+ *          error code, in case of error.
+ */
+static int ep_poll(struct eventpoll *ep, struct epoll_event __user *events,
+           int maxevents, long timeout)
+{
+    int res = 0, eavail, timed_out = 0;
+    unsigned long flags;
+    long slack = 0;
+    wait_queue_t wait;
+    ktime_t expires, *to = NULL;
 
+    /* The call waits for a maximum time of timeout milliseconds.
+     * Specifying a timeout of -1 makes epoll_wait() wait indefinitely,
+     * while specifying a timeout equal to zero makes epoll_wait()
+     * to return immediately even if no events are available (return
+     * code equal to zero).
+     */
+    if (timeout > 0) {
+        struct timespec end_time = ep_set_mstimeout(timeout);
 
+        slack = select_estimate_accuracy(&end_time);
+        to = &expires;
+        *to = timespec_to_ktime(end_time);
+    } else if (timeout == 0) {
+        /*
+         * Avoid the unnecessary trip to the wait queue loop, if the
+         * caller specified a non blocking operation.
+         */
+        timed_out = 1;
+        spin_lock_irqsave(&ep->lock, flags);
+        goto check_events;
+    }
 
-select需要驱动程序实现fops内的poll函数，通过每个设备文件对应的poll函数提供的信息判断当前是否有资源可用(如可读或写)，如果有的话则返回可用资源的文件描述符个数，没有的话则睡眠，等待有资源变为可用时再被唤醒继续执行。
+fetch_events:
+    spin_lock_irqsave(&ep->lock, flags);
+    // 如果rdllist中还没有epitem时，就开始等待了
+    if (!ep_events_available(ep)) {
+        /*
+         * We don't have any available event to return to the caller.
+         * We need to sleep here, and we will be wake up by
+         * ep_poll_callback() when events will become available.
+         */
+        // 初始化等待队列，等待队列项对应的线程即为当前线程
+        init_waitqueue_entry(&wait, current);
+        // 先将当前线程挂到等待队列上，之后在调用schedule_timeout时，就开始了超时等待了
+        __add_wait_queue_exclusive(&ep->wq, &wait);
 
-select就是巧妙的利用等待队列机制让用户进程适当在没有资源可读/写时睡眠，有资源可读/写时唤醒。
+        for (;;) {
+            /*
+             * We don't want to sleep if the ep_poll_callback() sends us
+             * a wakeup in between. That's why we set the task state
+             * to TASK_INTERRUPTIBLE before doing the checks.
+             */
+             // 因为会被阻塞，这里先设置线程状态为可中断
+            set_current_state(TASK_INTERRUPTIBLE);
+            // 整个循环的核心，其实就在看rdllist中是否有数据，或者等待超时
+            // 应征了前面的说明，epoll_wait只需要等着收集数据即可
+            if (ep_events_available(ep) || timed_out)
+                break;
+            if (signal_pending(current)) {
+                res = -EINTR;
+                break;
+            }
 
-select会循环遍历它所监测的fd_set内的所有文件描述符对应的驱动程序的poll函数。驱动程序提供的poll函数首先会将调用select的用户进程插入到该设备驱动对应资源的等待队列(如读/写等待队列)，然后返回一个bitmask告诉select当前资源哪些可用。当select循环遍历完所有fd_set内指定的文件描述符对应的poll函数后，如果没有一个资源可用(即没有一个文件可供操作)，则select让该进程睡眠，一直等到有资源可用为止，进程被唤醒(或者timeout)继续往下执行。
+            spin_unlock_irqrestore(&ep->lock, flags);
+            if (!schedule_hrtimeout_range(to, slack, HRTIMER_MODE_ABS))
+                timed_out = 1;
 
+            spin_lock_irqsave(&ep->lock, flags);
+        }
+        __remove_wait_queue(&ep->wq, &wait);
 
+        set_current_state(TASK_RUNNING);
+    }
+check_events:
+    /* Is it worth to try to dig for events ? */
+    eavail = ep_events_available(ep);
 
+    spin_unlock_irqrestore(&ep->lock, flags);
 
+    /*
+     * Try to transfer events to user space. In case we get 0 events and
+     * there's still timeout left over, we go trying again in search of
+     * more luck.
+     */
+    if (!res && eavail &&
+        !(res = ep_send_events(ep, events, maxevents)) && !timed_out)
+        goto fetch_events;
 
+    return res;
+}
+{% endhighlight %}
 
+<!--
+29-43行：主要是超时时间的处理，若超时时间为0，则直接检查有没有准备好的I/O事件，有则立即发送给用户空间去处理；若超时时间大于0，计算好精确的超时时间后，等待事件的发生，45-86行等待指定的时间直到有I/O事件出现；
 
+54-58行：如果还没有I/O事件出现，则准备休眠。先初始化等待队列，把当前线程挂在该队列上，同时把这个队列挂在eventpoll结构的wq上，
 
+60-82行：在指定的超时时间内循环检测有没有I/O事件发生，有事件发生、超时或者收到信号都会跳出循环。
 
+83行：运行到此处有I/O事件发生，不用再等待，则移除该队列
+-->
 
+调用 `epoll_wait()` 检查是否有事件发生时，只需检查 `eventpoll` 中 `rdlist` 链表是否有 `epitem` 元素即可。如果 rdlist 不为空，则把发生的事件复制到用户态，同时将事件数量返回给用户。
 
-每次操作时poll会将所有的fd复制到内核，而epoll在epoll_ctl时添加，epoll_wait时不需要重复拷贝，
+![epoll data structure]({{ site.url }}/images/linux/kernel/epoll-data-structure.jpg "epoll data structure"){: .pull-center width="60%" }
 
+## 参考
 
-
-epoll的实现主要依赖于一个迷你文件系统：eventpollfs。此文件系统通过eventpoll_init初始化。在初始化的过程中，eventpollfs create两个slub分别是：epitem和eppoll_entry。
-
-epoll使用过程中有几个基本的函数分别是epoll_create，epoll_ctl，epoll_wait。涉及到四个重要的数据结构： struct eventpoll ， struct epitem， struct epoll_event ，struct eppoll_entry。(作者：黄江伟，will.huang@aliyun-inc.com)
-
-1、epoll_create和epoll_ctl
-
-其中eventpoll是通过epoll_create生成，epoll_create传入一个size参数，size参数只要>0即可，没有任何意义。epoll_create调用函数sys_epoll_create1实现eventpoll的初始化。sys_epoll_create1通过ep_alloc生成一个eventpoll对象，并初始化eventpoll的三个等待队列，wait，poll_wait以及rdlist （ready的fd list）。同时还会初始化被监视fs的rbtree 根节点。
-
-epollcreate在调用ep_alloc通过anon_inode_getfd创建一个名字为“[eventpoll]”的eventpollfs文件描述符号并将file->private_data指定为指向前面生成的eventpoll。这样就将eventpoll和文件id关联。最后返回文件描述符id。
-
-通过epoll_create生成一个eventpoll后，可以通过epoll_ctl提供的相关操作对eventpoll进行ADD，MOD，DEL操作。epoll_ctl有四个参数，分别是：int epfd（需要操作的eventpoll）, int op（操作类型）, int fd（需要被监视的文件）, struct epoll_event *event（被监视文件的相关event）。epoll_ctl首先通过epfd的private_data域获取需要操作的eventpoll，然后通过ep_find确认需要操作的fd是否已经在被监视的红黑树中（eventpoll->rbr）。然后根据op的类型分别作ADD（ep_insert），MOD（ep_modify），DEL（ep_remove）操作。
-
-首先分析ep_insert，ep_insert有四个参数分别为： struct eventpoll *ep（需要操作的eventpoll）, struct epoll_event *event（epoll_create传入的event参数，当然得从user空间拷贝过来）, struct file *tfile（被监视的文件描述符）, int fd（被监视的文件id）。ep_insert首先从slub中分配一个epitem的对象epi。并初始化epitem的三个list头指针，rdllink（指向eventpoll的rdlist），fllist指向（struct file的f_ep_links），pwqlist（指向包含此epitem的所有poll wait queue）。并将epitem的ep指针，指向传入的eventpoll，并通过传入参数event对ep内部变量event赋值。然后通过ep_set_ffd将目标文件和epitem关联。这样epitem本身就完成了和eventpoll以及被监视文件的关联。下面还需要做两个动作：将epitem插入目标文件的polllist并注册回调函数；将epitem插入eventpoll的rbtree。
-
-为了完成第一个动作，还需要一个数据结构ep_pqueue帮忙，ep_pqueue主要包含两个变量一个是epitem还有一个是callback函数（ep_ptable_queue_proc）相关的一个数据结构poll_table，ep_pqueue主要完成epitem和callback函数的关联。然后通过目标文件的poll函数调用callback函数ep_ptable_queue_proc。Poll函数一般由设备驱动提供，以网络设备为例，他的poll函数为sock_poll然后根据sock类型调用不同的poll函数如：packet_poll。packet_poll在通过datagram_poll调用sock_poll_wait，最后在poll_wait实际调用callback函数（ep_ptable_queue_proc）。
-
-ep_ptable_queue_proc函数完成epitem加入到特定文件的wait队列任务。ep_ptable_queue_proc有三个参数：struct file *file（目标文件）, wait_queue_head_t *whead（目标文件的waitlist）, poll_table *pt（前面生成的poll_table）。在函数中，引入了另外一个非常重要的数据结构eppoll_entry。eppoll_entry主要完成epitem和epitem事件发生时的callback（ep_poll_callback）函数之间的关联，并将上述两个数据结构包装成一个链表节点，挂载到目标文件file的waithead中。这两还得完成两个动作，首先将eppoll_entry的whead指向目标文件的waitlist（传入的参数2），然后初始化base变量指向epitem，最后通过add_wait_queue将epoll_entry挂载到目标文件的waitlist。完成这个动作后，epoll_entry已经被挂载到waitlist，然后还有一个动作必须完成，就是将eppoll_entry挂载到epitem的pwqlist上面。现在还剩下一个动作，就是将epitem的fllink链接到目标文件的f_ep_links上，这部分工作将在poll函数返回后在ep_insert中完成。当然ep_insert除了完成这个动作外，还会完成前面提到的第二步，epitem插入eventpoll的rbtree。完成以上动作后，将还会判断当前插入的event是否刚好发生，如果是，那么做一个ready动作，将epitem加入到rdlist中，并对epoll上的wait队列调用wakeup。
-
-到此为止基本完成了epoll_create以及epoll_ctl最重要的ADD函数的工作介绍。下面进入epoll_wait函数介绍。(作者：黄江伟，will.huang@aliyun-inc.com)
-
-2、epoll_wait
-
-epoll_wait有四个参数int epfd（被wait的epoll所关联的epollfs的fd）, struct epoll_event __user * events（返回监视到的事件）, int maxevents（每次return的events最大值）, int timeout（最大wait时间）。epoll_wait首先会检测传入参数的合法性，包括maxevents有没有超过范围（0<=maxevents<EP_MAX_EVENTS（(INT_MAX / sizeof(struct epoll_event))））；events指向的空间是否可写；epfd是否合法等。参数合法性检测都通过后，将通过epfd获取锁依赖的struct file，然后通过file->private_data获取eventpoll。获取epoll后调用ep_poll函数完成真正的epoll_wait工作。ep_poll函数也是四个参数和epoll_wait唯一的差别就是第一参数是前面获取的eventpoll指针。ep_poll首先根据timeout的值判断是否是无限等待，如果不是将timeout（ms）转换为jiffs。然后判断eventpoll的rdlist是否为空，如果为空，那么将current进程通过一个waitquene entry加入eventpoll的waitlist（wq）。并将task的状态改为TASK_INTERRUPTIBLE；并通过schedule_timeout让出处理器。如果rdlist非空，那么通过ep_send_events将event转发到userspace。
-
-ep_send_events通过ep_scan_ready_list对ready_list进行扫描，由于现在在对ready_list进行操作，这个时候必须保证rdlist数据的一致性，如果此时又有新的event ready，那么我们必须提供临时的存储空间，eventpoll提供了一个ovflist用来存储这种event。ep_send_events获取了rdlist后通过ep_send_events_proc完成真正的转发工作。完成转发后，ep_send_events还需要去判断ovflist，如果ovflist中有events，那么还需要将这些events转移到rdlist中。
-
-ep_send_events_proc扫描rdlist从头上面拿出epitem，然后调用epollfs的poll函数（ep_eventpoll_poll），判断拿出来的那个events是否真的已经ready（这部分比较难理解，没怎么看懂）。如果ready，那么将数据封装到uevent里面，同事这里还需要判断epitem的类型是否是Level Triggered如果是，那么还需要把event再次插入队列尾部。(作者：黄江伟，will.huang@aliyun-inc.com)
-
-3、ep_poll_callback
-
-以上描述中还缺少关键的一环，就是如何在被监视文件发生event的时候，如何将epitem加入rdlist并唤醒调用epoll_wait进程。这个工作由ep_poll_callback函数完成。前面提到eppoll_entry完成一个epitem和ep_poll_callback的关联，同时eppoll_entry会被插入目标文件file的（private_data）waithead中。以scoket为例，当socket数据ready，终端会调用相应的接口函数比如rawv6_rcv_skb，此函数会调用sock_def_readable然后，通过sk_has_sleeper判断sk_sleep上是否有等待的进程，如果有那么通过wake_up_interruptible_sync_poll函数调用ep_poll_callback。
-
-ep_poll_callback函数首先会判断是否rdlist正在被使用（通过ovflist是否等于EP_UNACTIVE_PTR），如果是那么将epitem插入ovflist。如果不是那么将epitem插入rdlist。然后调用wake_up函数唤醒epitem上wq的进程。这样就可以返回到epoll_wait的调用者，将他唤醒。(作者：黄江伟，will.huang@aliyun-inc.com)
-
-http://www.embeddedlinux.org.cn/html/yingjianqudong/201405/11-2860.html poll&&epoll实现分析（一）—poll实现
-http://blog.csdn.net/xiajun07061225/article/details/9250579
-http://www.cnblogs.com/apprentice89/p/3234677.html
-http://www.cnblogs.com/debian/archive/2012/02/16/2354454.html
-http://blog.csdn.net/justlinux2010/article/details/8506890
-http://blog.chinaunix.net/uid-20687780-id-2105154.html
-http://www.cnblogs.com/apprentice89/archive/2013/05/09/3068274.html
-http://blog.chinaunix.net/uid-20687780-id-2105157.html
+<!--
+Linux设备驱动程序——高级字符驱动程序操作(poll机制)
 http://blog.chinaunix.net/uid-29339876-id-4070572.html
-http://bbs.chinaunix.net/thread-2021810-1-1.html
-http://blog.csdn.net/sunpyliu/article/details/6761614
-http://blog.chinaunix.net/uid-26339466-id-3292595.html
-http://blog.csdn.net/russell_tao/article/details/7160071
-
-ptmalloc,tcmalloc和jemalloc内存分配策略研究 -->
-
+-->
 
 {% highlight text %}
 {% endhighlight %}

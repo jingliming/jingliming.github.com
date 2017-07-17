@@ -447,12 +447,62 @@ $ locale -a
 注意，图形界面可能需要更多的设置，暂时先不讨论了。
 
 
+## 历史命令
+
+
+{% highlight text %}
+----- 去除重复命令，包括不连续的命令，通过ignoredups去除连续重复的命令
+export HISTCONTROL=erasedups
+{% endhighlight %}
+
+<!--
+https://linuxtoy.org/archives/history-command-usage-examples.html
+-->
+
+
 ## 杂项
+
+### 目录合并
+
+可以将两个目录通过 `cp -r dir1/* dir2/* merged/` 进行合并，由于是复制，对于较大的文件会导致速度较慢。如果通过 `mv` 则会报 `Directory not empty` 的错误。
+
+可以通过如下命令采用硬链接的方式进行复制，通过 `tree --inodes` 命令查看文件的 inode 号。
+
+{% highlight text %}
+$ cp -r --link dir1/* dir2/* merged/
+{% endhighlight %}
+
+### shell 操作
+
+{% highlight text %}
+----- 查看当前所有shell
+$ chsh -l
+$ cat /etc/shells
+{% endhighlight %}
+
+查看当前的 Shell ，可以查看 `SHELL` 变量，不过如果是通过 bash dash sh 等直接运行的话，那么 SHELL 不变，可以通过如下方式查看。
+
+{% highlight text %}
+$ ps | grep $$ | awk '{print $4}'
+$ echo $0
+$ tom                                # 输入没有的命令
+{% endhighlight %}
+
+`chsh -s /bin/dash` 实际修改的是 `/etc/passwd` 文件里和你的用户名相对应的那一行，重启 Shell 后即可。
+
+### 其它
 
 {% highlight text %}
 ----- 生成随机文件
 $ head -c 10M < /dev/random > /tmp/foobar.txt
+
+----- 日期转换
+$ date +%s -d "04/24/2014 15:30:00"         // 将日期转换成时间戳
+$ date -d @1398324600                       // 将时间戳转换成日期
+$ date +%s                                  // 将当前日期转换成时间戳
+$ date -d "1970-01-01 UTC `echo "$(date +%s)-$(cat /proc/uptime|cut -f 1 -d' ')+12288812.926194"|bc ` seconds"
 {% endhighlight %}
+
 
 {% highlight text %}
 {% endhighlight %}

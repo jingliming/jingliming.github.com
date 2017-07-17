@@ -6,8 +6,10 @@ language: chinese
 usemath: true
 category: [linux,misc]
 keywords: linux,network,snmp
-description:
+description: 简单记录下 Linux 常见的通讯协议，如 SNMP 协议。
 ---
+
+简单记录下 Linux 常见的通讯协议，如 SNMP 协议。
 
 <!-- more -->
 
@@ -46,7 +48,6 @@ $ snmpwalk -v 2c -c public 127.1 system.sysDescr.0
 <!--
 https://kb.op5.com/display/HOWTOs/Configure+a+Linux+server+for+SNMP+monitoring
 https://www.ibm.com/developerworks/cn/linux/l-cn-snmp/
-
 iReasoning MIB Browser 启用SNMP的网络设备。
 -->
 

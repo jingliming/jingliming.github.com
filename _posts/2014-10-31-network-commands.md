@@ -4,10 +4,11 @@ layout: post
 comments: true
 language: chinese
 category: [linux, network]
-keywords: hello world,示例,sample,markdown
-description: 简单记录一下一些与 Markdown 相关的内容，包括了一些使用模版。
+keywords: linux,network,tcpdump,netcat
+description: 简单记录一下 Linux 中的常用网络命令，如 tcpdump、netcat 等。
 ---
 
+简单记录一下 Linux 中的常用网络命令，如 tcpdump、netcat 等。
 
 <!-- more -->
 

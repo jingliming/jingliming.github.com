@@ -431,7 +431,117 @@ $ curl 'http://localhost:80/hello'
 * $server_port<br>请求到达服务器的端口号。
 * $server_protocol<br>请求使用的协议，通常是 HTTP/1.0 或 HTTP/1.1。
 
+## 配置文件
 
+### server_name
+
+根据 HTTP 请求的 header Host 选择 nginx 配置文件里符合条件的 server_name 的 server 配置，也就是说一个配置文件里可以配置多个不同域名的服务。
+
+其匹配的顺序如下： 1) 完全匹配 (www.example.com)；2) 后缀匹配 (\*.example.com)；3) 前缀匹配 (www.example.\*)；4) 正则匹配。
+
+若前面四项都没匹配上，则根据以下顺序：1) listen 指令里配置了 default 或 default_server 的 server；2) 第一个匹配上 listen 的 server。
+
+
+
+{% highlight text %}
+server {
+    listen 8000;
+    server_name www;
+    location / {
+        echo "first";
+    }
+}
+
+server {
+    listen  8000;
+    server_name www.example.com;
+    location / {
+        echo "second";
+    }
+}
+
+server {
+    listen 8000;
+    server_name www.example.*;
+    location / {
+        echo "third";
+    }
+}
+
+server {
+    listen 8000;
+    server_name ~\w+.com;
+    location / {
+        echo "forth";
+    }
+}
+
+server {
+    listen 8000;
+    server_name ~.*example.com;
+    location / {
+        echo "fifth";
+    }
+}
+{% endhighlight %}
+
+对于如上的示例，可以通过如下命令进行测试，当然为了测试需要在 /etc/hosts 配置文件中添加如下内容。
+
+{% highlight text %}
+127.1 www www.example.com www.example.org www.foobar.com example.com example.org
+{% endhighlight %}
+
+注意 fifth 实际与 forth 冲突，不会出现 fifth 的。
+
+{% highlight text %}
+$ curl http://www:8000/                 ← 全匹配
+first
+$ curl http://www.example.com:8000/     ← 全匹配
+second
+$ curl http://www.example.org:8000/     ← 前缀匹配
+third
+$ curl http://example.com:8000/         ← 第一个正则匹配
+forth
+$ curl http://www.foobar.com:8000/      ← 同上
+forth
+$ curl http://example.org/              ← 无匹配，返回第一个符合的listen的
+first
+{% endhighlight %}
+
+如果在配置文件里再加入一个配置。
+
+{% highlight text %}
+server {
+    listen 8000 default;
+    server_name _;
+
+    location / {
+        echo "sixth";
+    }
+}
+{% endhighlight %}
+
+则访问 http://example.org/ 返回 sixth 。
+
+### accept_mutex
+
+简单来说，这个参数主要用来处理惊群问题，可以通过如下方式配置。
+
+{% highlight text %}
+events { 
+	accept_mutex off; 
+} 
+{% endhighlight %}
+
+当新连接到达时，如果激活了 `accept_mutex`，那么多个 worker 将以串行方式来处理，只有一个会被唤醒，其它的 worker 继续保持休眠状态；如果没有激活 `accept_mutex`，那么所有的 worker 都被唤醒，不过只有一个 worker 能获取新连接，其它的 worker 会重新进入休眠状态。
+
+不过不像 Apache 会启动成百上千的进程，如果发生惊群问题的话，影响相对较大；但是对 Nginx 而言，一般来说，`worker_processes` 会设置成 CPU 个数，所以最多也就几十个，即便发生惊群问题的话，影响相对也较小。
+
+另外，高版本的 Linux 中，accept 不存在惊群问题，但是 epoll_wait 等操作还有。
+
+如果关闭了它，可能会引起一定程度的惊群问题，表现为上下文切换增多 (`sar -w`) 或者负载上升，但是如果网站访问量比较大，为了系统的吞吐量，建议关闭。
+
+关闭之后一般各个工作进程的负载会更均衡，可以通过 [github ngx-req-distr](https://github.com/openresty/openresty-systemtap-toolkit#ngx-req-distr) 测试。
 
 ## 常用模块
 

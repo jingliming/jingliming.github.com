@@ -313,26 +313,34 @@ let g:UltiSnipsEditSplit="vertical"
 "set completeopt=longest,menu  " let the actions of auto-complete list be same with other IDE.
                               " details VimTip1228.
 let g:acp_enableAtStartup = 0
-let g:ycm_collect_identifiers_from_tags_files = 1             " 使用ctags生成的tags文件
 let g:ycm_server_python_interpreter='/usr/bin/python'
 let g:ycm_global_ycm_extra_conf='~/.vim/.ycm_extra_conf.py'
-let g:ycm_min_num_of_chars_for_completion=1
 
+let g:ycm_server_keep_logfiles = 0
+let g:ycm_server_log_level = 'info'
+
+let g:ycm_cache_omnifunc = 0
+let g:ycm_seed_identifiers_with_syntax = 1
+let g:ycm_min_num_of_chars_for_completion= 2
+let g:ycm_collect_identifiers_from_tags_files = 1             " 使用ctags生成的tags文件
+let g:ycm_collect_identifiers_from_comments_and_strings = 1
 let g:ycm_use_ultisnips_completer=1
 let g:ycm_key_list_select_completion=[]
 let g:ycm_key_list_previous_completion=[]
-            set completeopt-=preview
+let g:ycm_confirm_extra_conf=0
+set completeopt-=preview
 
-"let g:ycm_error_symbol = '>>'
-"let g:ycm_warning_symbol = '>*'
-"let g:ycm_complete_in_comments = 1
-"let g:ycm_complete_in_strings = 1
-"
+let g:ycm_error_symbol = '>>'
+let g:ycm_warning_symbol = '>*'
+let g:ycm_complete_in_comments = 1   " 注释输入中也能补全
+let g:ycm_complete_in_strings = 1    " 字符串输入中也能补全
+let g:ycm_collect_identifiers_from_comments_and_strings = 0   " 注释和字符串中的文字不会被收入补全
+
 nnoremap <leader>gl :YcmCompleter GoToDeclaration<CR>
 nnoremap <leader>gf :YcmCompleter GoToDefinition<CR>
 nnoremap <leader>gg :YcmCompleter GoToDefinitionElseDeclaration<CR>
-"nnoremap <F5> :YcmForceCompileAndDiagnostics<CR>" force recomile with syntastic
-"nmap <F6> :YcmDiags<CR>
+nnoremap <F5> :YcmForceCompileAndDiagnostics<CR>" force recomile with syntastic
+nmap <F6> :YcmDiags<CR>
 " }1
 
 " {1   plugin: Syntastic
@@ -340,28 +348,20 @@ nnoremap <leader>gg :YcmCompleter GoToDefinitionElseDeclaration<CR>
 let g:syntastic_ignore_files=[".*\.py$"]    " ignore python files
 " }1
 
-
-
-
-
-
-
-
-
-" {1   plugin: vim-togglelist  quickfix:<leader>q, location:<leader>l
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-let g:toggle_list_no_mappings=1
-nmap <script> <silent> <leader>l :call ToggleLocationList()<CR>
-nmap <script> <silent> <leader>q :call ToggleQuickfixList()<CR>
-" specify the command to open quickfix, always open at bottom(default on the right bottom),
-" 'botright copen 10' specify the height.
-let g:toggle_list_copen_command="botright copen"
-" After opening or closing either list, the previous window is restored so you can still use `<C-w>p`.
-" }1
-
 " {1   plugin: tags...
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 set tags+=./tags,./../tags,./../../tags,./../../../tags,./../../../../tags,./../../../../../tags
+" generate and include system tags.
+"ctags -I __THROW -I __attribute_pure__ -I __nonnull -I __attribute__ \
+"  --file-scope=yes              \
+"  --langmap=c:+.h               \
+"  --languages=c,c++             \
+"  --links=yes                   \
+"  --c-kinds=+p --c++-kinds=+p   \
+"  --fields=+iaS --extra=+q -R -f ~/.vim/systags /usr/include /usr/local/include
+set tags+=~/.vim/systags
+" use Ctrl-F12 to generate tags.
+map <C-F12> :!ctags -R --c-kinds=+px --fields=+iaS --extra=+q <CR>
 function! AutoLoadCTagsAndCScope()
     let max = 10
     let dir = './'
@@ -391,6 +391,28 @@ endf
 nmap <F7> :call AutoLoadCTagsAndCScope()<CR>
 " call AutoLoadCTagsAndCScope()
 " http://vifix.cn/blog/vim-auto-load-ctags-and-cscope.html
+" }1
+
+
+
+
+
+
+
+
+
+
+
+
+" {1   plugin: vim-togglelist  quickfix:<leader>q, location:<leader>l
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+let g:toggle_list_no_mappings=1
+nmap <script> <silent> <leader>l :call ToggleLocationList()<CR>
+nmap <script> <silent> <leader>q :call ToggleQuickfixList()<CR>
+" specify the command to open quickfix, always open at bottom(default on the right bottom),
+" 'botright copen 10' specify the height.
+let g:toggle_list_copen_command="botright copen"
+" After opening or closing either list, the previous window is restored so you can still use `<C-w>p`.
 " }1
 
 

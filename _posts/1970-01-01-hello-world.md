@@ -1639,13 +1639,34 @@ https://stackoverflow.com/questions/30813452/how-to-ignore-all-warnings-in-c
 http://www.jianshu.com/p/7e84a33b46e9
 https://github.com/flike/kingshard/blob/master/doc/KingDoc/kingshard_admin_api.md   微博
 __attribute__((warn_unused_result))
-/post/mysql-introduce.html
-通过 RPM 包安装时，默认是保存到 `/var/lib/mysql` 目录下。
-rpmbuild -bb SPECS/librdkafka.spec --define "__version 0.9.4" --define "__release 1"
+
+
+协程
+http://blog.163.com/shu_wang/blog/static/1721704112016114113331412
+https://stackoverflow.com/questions/28977302/how-do-stackless-coroutines-differ-from-stackful-coroutines
+http://www.infoq.com/cn/articles/CplusStyleCorourtine-At-Wechat
+https://www.iamle.com/archives/1865.html
+https://github.com/mcxiaoke/mqtt
+http://www.infoq.com/cn/articles/fine-tuned-haproxy-to-achieve-concurrent-ssl-connections?utm_campaign=rightbar_v2&utm_source=infoq&utm_medium=articles_link&utm_content=link_text
 
 
 
+JMX(Java Management Extensions) 是一个为应用程序植入管理功能的框架，是一套标准的代理和服务，实际上，用户可以在任何 Java 应用程序中使用这些代理和服务实现管理。
+http://blog.csdn.net/derekjiang/article/details/4532375
+http://tomcat.apache.org/tomcat-6.0-doc/monitoring.html#Enabling_JMX_Remote
+http://comeonbabye.iteye.com/blog/1463104
+https://visualvm.github.io/
+http://blog.csdn.net/kingzone_2008/article/details/50865350
 
+
+Buddy 和  Slub 是 Linux 内核中的内存管理算法。Buddy 防止内存的 "外碎片"，即防止内存块越分越小，而不能满足大块内存分配的需求。Slub 防止内存的 "内碎片"，即尽量按请求的大小分配内存块，防止内存块使用上的浪费。https://github.com/chenfangxin/buddy_slub
+
+https://stackoverflow.com/questions/9873061/how-to-set-the-source-port-in-the-udp-socket-in-c
+http://www.binarytides.com/programming-udp-sockets-c-linux/
+https://www.cyberciti.biz/faq/linux-unix-open-ports/
+https://www.cs.cmu.edu/afs/cs/academic/class/15213-f99/www/class26/udpclient.c
+https://www.cs.rutgers.edu/~pxk/417/notes/sockets/udp.html
+https://www.digitalocean.com/community/tutorials/how-to-use-netcat-to-establish-and-test-tcp-and-udp-connections-on-a-vps
 
 ←
 -->

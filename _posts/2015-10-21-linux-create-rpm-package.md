@@ -92,12 +92,14 @@ $ rpmbuild --bb mysql.spec   
 
    --quiet 默认会输出每次执行的shell命令，此时忽略
 
-
 ----- 通过源码包重新编译
 $ rpmbuild --rebuild package-0.0-0.src.rpm
+
+----- 编译时指定参数
+$ rpmbuild -bb SPECS/librdkafka.spec --define "__version 0.9.4" --define "__release 1"
 {% endhighlight %}
 
-一般来说，执行的顺序为 rpmbuild -bp，再 -bc 再 -bi，如果没问题，rpmbuild -ba 生成 src 包与二进制包，使用时通过 ```rpm -ivh xxx.rpm;``` 以及 ```rpm -e xxx.rpm``` 进行安装卸载。
+一般来说，执行的顺序为 `rpmbuild -bp`，再 `-bc` 再 `-bi`，如果没问题，`rpmbuild -ba` 生成 src 包与二进制包，使用时通过 `rpm -ivh xxx.rpm;` 以及 `rpm -e xxx.rpm` 进行安装卸载。
 
 ## SPEC 文件
 

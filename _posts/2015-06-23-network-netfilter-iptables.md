@@ -5,8 +5,8 @@ comments: true
 language: chinese
 usemath: true
 category: [linux, network]
-keywords: hello world,示例,sample,markdown
-description: 简单记录一下一些与 Markdown 相关的内容，包括了一些使用模版。
+keywords: linux,防火墙,netfilter,iptables
+description: Linux 防火墙是由 Netfilter 和 iptables 两个组件组成，其中前者在内核空间中；后者是一个用户程序，用于插入、修改和删除相应的防火墙规则。通过 Netfilter+iptables 可以实现数据包过滤、网络地址转换和数据报文处理等功能。
 ---
 
 Linux 防火墙是由 Netfilter 和 iptables 两个组件组成，其中前者在内核空间中；后者是一个用户程序，用于插入、修改和删除相应的防火墙规则。

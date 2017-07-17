@@ -93,7 +93,7 @@ mysql> ALTER USER 'root'@'localhost' IDENTIFIED BY 'new_password';           ←
 mysql> FLUSH PRIVILEGES;
 {% endhighlight %}
 
-注意，需要保证上级目录权限为 755，否则可能会报 Permission denied 错误。
+通过 RPM 包安装时，默认是保存到 `/var/lib/mysql` 目录下。另外，需要注意，需要保证上级目录权限为 755，否则可能会报 Permission denied 错误。
 
 当然也可以从 [MySQL 官网](http://dev.mysql.com/downloads/)、[MariaDB 官网](https://downloads.mariadb.org/) 或者 [Percona 官网](https://www.percona.com/) 下载相应的安装包，或者源码。对于 CentOS 7 来说，可以从 [MySQL Community Downloads](https://dev.mysql.com/downloads/) 下载 server、client、common、libs 对应的 RPM 包，也可从 [sohu 镜像](http://mirrors.sohu.com/mysql/) 下载，然后安装即可。
 

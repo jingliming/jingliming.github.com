@@ -756,8 +756,30 @@ let g:ycm_key_list_previous_completion=[]
 
     nnoremap <leader>jd :YcmCompleter GoToDefinitionElseDeclaration<CR> " 跳转到定义处-->
 
+#### 配置文件
 
+YCM 中需要在 flags 中添加编译时的参数定义，例如 `-Wall`、`-Wextra` 等，然后通过 `-isystem` 指定系统的头文件，通过 `-I` 指定自定义的头文件。
 
+注意，在使用相对路径时是 YCM 的安装路径。
+
+#### YCM错误日志及调试信息
+
+在 vim 配置文件中加上下面的选项，打开调试信息。
+
+{% highlight text %}
+let g:ycm_server_keep_logfiles = 1
+let g:ycm_server_log_level = 'debug'
+{% endhighlight %}
+
+几个常用命令:
+
+{% highlight text %}
+:YcmToggleLogs   查看到错误日志及调试信息，输出到哪些文件中
+:YcmDebugInfo    可以查看ycm相关的信息,包括编译标志,版本等等
+:YcmDiags        查看当前文件中的错误信息
+{% endhighlight %}
+
+然后调试时就可以通过 print 打印，然后输出到 stdout 指定的文件中。
 
 #### 常见问题
 
@@ -936,6 +958,210 @@ Old text                  Command     New text ~
 主题在目录 `autoload/Powerline/Themes` 下，配色在 `autoload/Powerline/Colorschemes`，`vim-airline` 与 `vim-powerline` 类似但是更小，更轻便。
 
 推荐使用后者，可以参考 [vim-airline](https://github.com/vim-airline/vim-airline)，其中主题 themes 已经单独拆出来了。
+
+### tags
+
+tags 记录了关于一个标识符在哪里被定义的信息，比如 C/C++ 程序中的一个函数定义。vim 默认是支持 tags 的，那么可以让 vim 从任何位置跳转到相应的标示位置。
+
+{% highlight text %}
+ctags -R --c++-kinds=+px --fields=+iaS --extra=+q .
+
+常用参数：
+-R
+   遍历循环子目录生成tags；
+--fields=+iaS
+  将可用扩展域添加到tags中，
+    i) 如有继承，则标识出父类；
+    a) 标明类成员的权限，如public、private等；
+    S) 函数的信息，如原型、参数列表等；
+-I identifier-list
+   通常用于处理一些宏，如果只列出了那么则会忽略；
+--c++-kinds=+px
+   记录c++文件中的函数声明和各种外部和前向声明，使用p时同时也会添加extern的声明；
+--extra=+q
+  是否将特定信息添加到tags中，q) 类成员信息，包括结构体；
+
+其它常用命令：
+----- 列举出当前支持的语言，也可以自定义，具体没研究过
+$ ctags --list-languages
+----- 查看扩展名跟语言的映射关系，从而可以使用正确的分析器
+$ ctags --list-maps
+----- 可识别的语法元素，默认打印所有，在生成时可以通过--c-kinds指定
+$ ctags --list-kinds=c
+
+生成的文件格式如下：
+{tagname} {TAB} {tagfile} {TAB} {tagaddress} {term} {field} ..
+   {tagname}     标识符名字，例如函数名、类名、结构名、宏等，不能含TAB符。
+   {tagfile}     包含 {tagname} 的文件。
+   {tagaddress}  可以定位到 {tagname} 光标位置的 Ex 命令，通常只包含行号或搜索命令。
+                 出于安全的考虑，会限制其中某些命令的执行。
+   {term}        设为 ;” ，主要是为了兼容vi编辑器，使vi忽略后面的{field}字段。
+   {field} ..    也就是扩展字段，可选，用于表示此 {tagname} 的类型是函数、类、宏或是其它。
+
+常见快捷键如下：
+Ctrl+]       跳转到定义处；
+Ctrl+T       跳转到上次tags处；
+Ctrl+i       (in)跳转下一个；
+Ctrl+o       (out)退回原来的地方；
+gd           转到当前光标所指的局部变量的定义；
+gf           打开头文件；
+:ju          显示所有可以跳转的地方；
+:set tags    查看加载的tags；
+:tag name    调转到name处；
+:stag name   等价于split+tag name
+:ta XXX      跳转到符号XXX定义处，如果有多个符号，直接跳转到第一处；
+:ts XXX      列出符号XXX的定义；
+:tj XXX      可看做上面两个命令的合并，如果只找到一个符号定义，那么直接跳转，有多个，则让用户自行选择；
+:ptag name   预览窗口显示name标签，光标跳到标签处；
+Ctrl-W + }   预览窗口显示当前光标下单词的标签，光标跳到标签处；
+:pclose      关闭预览窗口；
+:pedit file.h 在预览窗口中编辑文件file.h，在编辑头文件时很有用；
+:psearch atoi 查找当前文件和头文件中的单词并在预览窗口中显示匹配，在使用没有标签文件的库函数时十分有用。
+{% endhighlight %}
+
+如果有多个可以使用 `tfirst` `tlast` `tprevious` `tnext` `tselect` 选择，也可以 `:tag name_<TAB>` 自动补全，或者使用 `tselect /^write` 正则表达式。
+
+#### 生成系统tags
+
+{% highlight text %}
+----- 添加系统的tags
+$ ctags --fields=+iaS --extra=+q -R -f ~/.vim/systags /usr/include /usr/local/include
+:set tags+=~/.vim/systags
+{% endhighlight %}
+
+此时，基本可以跳转到系统函数，不过仍有部分函数未添加到tags中，常见的有如下的示例。
+
+{% highlight c %}
+extern int listen (int __fd, int __n) __THROW;
+extern int strcmp (__const char *__s1, __const char *__s2)
+     __THROW __attribute_pure__ __nonnull ((1, 2));
+{% endhighlight %}
+
+也就是因为存在 `__THROW` `attribute_pure` `nonull` 等属性，导致认为上述的声明不是函数，都需要忽略。如果需要 `#if 0` 里面的定义，可以使用 `-if0=yes` 来忽略 `#if 0` 这样的定义。
+
+{% highlight text %}
+$ ctags -I __THROW -I __attribute_pure__ -I __nonnull -I __attribute__ \   忽略这里的定义
+    --file-scope=yes              \     例如对于static声明只在一个文件中可见
+    --langmap=c:+.h               \     定义扩展名和语言的映射关系，可以通过--list-maps查看
+    --languages=c,c++             \     使能哪些语言
+    --links=yes                   \     是否跟踪符号链接指向的文件
+    --c-kinds=+p --c++-kinds=+p   \     指定生成哪些C语言的tag信息
+    --fields=+iaS --extra=+q -R -f ~/.vim/systags /usr/include /usr/local/include
+{% endhighlight %}
+
+可以在配置文件中添加如下的内容，然后在源码目录内可以通过 `Ctrl-F12` 生成 tags 文件。
+
+{% highlight text %}
+map <C-F12> :!ctags -R --c-kinds=+px --fields=+iaS --extra=+q <CR>
+{% endhighlight %}
+
+### cscope
+
+{% highlight text %}
+:help if_cscop
+:cscope show       查看已经加载的数据库
+:cscope add        添加数据库
+:cscope kill       关闭已加载的数据库
+:cscope reset      重新初始化所有连接
+{% endhighlight %}
+
+可以将 cscope 看做是 ctags 的升级版本，提供交互式查询语言符号功能，如查询哪些地方使用某个变量或调用某个函数。
+
+和 tags 一样，默认支持，可以通过 `:version` 查看，没有则增加 `--enable-cscope` 编译选项，详细可查看官方网址为 [cscope.sourceforge.net](http://cscope.sourceforge.net/) 。
+
+确定 Vim 已支持 Cscope 后，将文件 
+[cscope_maps.vim](http://cscope.sourceforge.net/cscope_maps.vim) 下载到 `~/.vim/plugin` 目录下；也可以将其内容添加到 `~/.vimrc` 配置文件中。
+
+在 CentOS 中，可以通过 `yum install cscope` 安装，在第一次解析时扫描全部文件，以后再调用 cscope 只会扫描那些改动过的文件。
+
+进入项目代码根目录运行命令生成 cscope 数据库文件：
+
+{% highlight text %}
+cscope -Rbq -f cscope.out
+
+常用参数：
+  -R     表示递归操作，无该参数则进入基于cureses的GUI界面，通过方向键选择查找类
+           型、TAB键搜索结果和搜索类型中选择、Ctrl-D退出；
+  -b     生成数据库文件后直接退出，否则生成数据库之后会进入 cscope 界面；
+  -q     表示生成 cscope.in.out 和 cscope.po.out 文件，加快 cscope 的索引速度；
+  -C     在搜索时忽略大小写；
+  -Ppath 默认是相对路径，可以在相对路径的文件前加上path。
+  -Idir  在指定的目录中查找头文件；
+{% endhighlight %}
+
+<!--
+-k 在生成数据库时如果在当前项目目录下没有找到头文件，则会自动到/usr/include目录下查找，通过-k选项关闭；
+-i 如果不是cscope.files，则通过该选项指定源文件列表，-表示标准输入；
+-u 扫描所有文件，重新生成交叉索引文件；
+-->
+
+默认只解析 C、lex 和 yacc 文件，如果希望解析 C++ 和 Java 文件，可以通过指定 cscope.files 文件，此时不再需要 -R 选项。
+
+<!--
+  然后可以通过 cscope find 进行查找，vim支持8中cscope的查询功能，如下：<ul><li>
+     0/s, symbol: 查找C语言符号，即查找函数名、宏、枚举值等出现的地方。</li><li>
+     1/g, global: 查找函数、宏、枚举等定义的位置，通常为全局变量，类似ctags所提供的功能。</li><li>
+     2/d, called: 查找本函数所调用的函数。</li><li>
+     3/c, calls: 查找所有调用本函数的函数。</li><li>
+     4/t, text: 查找指定的字符串。</li><li>
+     6/e, egrep: 查找egrep模式，相当于egrep功能，但查找速度快多了。</li><li>
+     7/f, file: 查找并打开文件，类似vim的find功能。</li><li>
+     8/i, includes: 查找包含当前cursor的文件。</li></ul>
+ 如查找调用do_cscope()函数的函数，可以输入 :cs find c do_cscope 或者使用 :cs find s do_cscope 。</li><br><li>
+
+    </li><br><li>
+ Cscope 常用快捷键，此处是通过vimrc配置的<br>
+   Ctrl-\ s 查找所有当前光标所在符号出现过位置。<br>
+   Ctrl-\ c 查找所有调用当前光标所在函数的函数。<br><br>
+
+
+find $PROJECT_HOME -name *.c -o -name "*.cpp" -o -name "*.cc" -o -name "*.h" -o -name "*.hpp" > cscope.files
+cscope -qbR -i cscope.files
+
+
+    vim提供了一些选项可以调整它的cscope功能：<ul><li>
+        cscopeprg选项用于设置cscope程序的位置。</li><br><li>
+
+        cscopequickfix设定是否使用quickfix窗口来显示cscope的结果，这是一组用逗号分隔的值，每项都包含于csope-find命令（s, g, d, c, t, e, f, 或者i）和旗标（+, -或者0）。<!-- ‘+’预示着显示结果必须追加到quickfix窗口。‘-’隐含着清空先前的的显示结果，’0’或者不设置表示不使用quickfix窗口。查找会从开始直到第一条命令出现。默认的值是””（不使用quickfix窗口）。下面的值似乎会很有用：”s-,c-,d-,i-,t-,e-”。 详情请”:help cscopequickfix“。</li><br><li>
+
+        如果你想vim同时搜索tag文件以及cscope数据库，设置cscopetag选项，此时使用的是cstag而不是tag，默认是关闭的set cst/nocst。</li><br><li>
+
+        cscopetagorder选项决定:cstag是先查找tag文件还是先查找cscope数据库。设置为0则先查找cscope数据库，设置为1先查找tag文件。默认是0，set csto=0/1。</li><br><li>
+
+        cscopeverbose是否显示数据库增加/失败，如 set csverb/nocsverb。</li><br><li>
+
+       ‘cspc’的值决定了一个文件的路径的多少部分被显示。默认值是0，所以整个路径都会被显示。值为1的话，那么就只会显示文件名，不带路径。其他值就会显示不同的部分。例如 :set cspc=3 将会显示文件路径的最后3个部分，包含这个文件名本身。 </li></ul>
+
+    vim的手册中给出了使用cscope的建议方法，使用命令”:help cscope-suggestions“查看。
+ </p>
+-->
+
+#### 查看Linux Kernel
+
+对于内核中感兴趣的文件通常需要去除文本、非x86源码、非驱动。
+
+{% highlight text %}
+$ tar -Jxf linux-kernel.tar.xz
+$ LNX=/home/andy/linux-kernel
+$ find  $LNX                                                              \
+    -path "$LNX/arch/*" ! -path "$LNX/arch/i386*" -prune -o               \
+    -path "$LNX/include/asm-*" ! -path "$LNX/include/asm-i386*" -prune -o \
+    -path "$LNX/tmp*" -prune -o                                           \
+    -path "$LNX/Documentation*" -prune -o                                 \
+    -path "$LNX/scripts*" -prune -o                                       \
+    -path "$LNX/drivers*" -prune -o                                       \
+    -name "*.[chxsS]" -print >/home/andy/cscope/cscope.files
+$ cd /home/andy/cscope
+$ cscope -b -q -k                             生成Cscope数据库文件
+$ add some files and 'cscope -b -q -k'        添加新文件重新生成数据库
+{% endhighlight %}
+
+在 find 命令中 `-o` 表示 `or`，`-prune` 表示不包含该目录，如果前面又添加了 `!` 号，则表示只包含该目录。
+
+<!--
+duplicate cscope database not added
+使用Cscope时两次加载cscope，可以通过 grep -rne "cscope.out" 检查 ~/.vim/ 目录和 /etc/ 目录，通常时由于 ~/.vim/plugin
+-->
 
 ### 其它插件
 
@@ -1401,6 +1627,8 @@ Applications->System Tools->Settings->Keyboard->[Cursor Blinking]
 
 一个 vim 的游戏，用于熟悉各种操作，可以参考 [vim adventures](http://vim-adventures.com/) 。
 
+关于如何针对新的语言添加 tags 可以参考 [How to Add Support for a New Language to Exuberant Ctags](http://ctags.sourceforge.net/EXTENDING.html) 。
+
 <!--
 https://raw.githubusercontent.com/nvie/vimrc/master/vimrc
 https://github.com/amix/vimrc
@@ -1411,570 +1639,18 @@ https://github.com/ruchee/vimrc/blob/master/_vimrc
 http://www.cnblogs.com/ma6174/archive/2011/12/10/2283393.html
 https://www.zhihu.com/question/26713049
 
+vim 配置文件，将 F2 等功能添加到 default 文件中。
+
+http://www.yeolar.com/note/2010/01/27/vim/
+https://github.com/vim-airline/vim-airline/wiki/FAQ
+
+<a href="http://python.42qu.com/11180003">使用Vim打造现代化的Python IDE</a>。<br><br>
+<a href="http://python.42qu.com/11165602">如何用python写vim插件</a>
+
 http://ju.outofmemory.cn/entry/79671                      经典插件的介绍
 http://blog.chinaunix.net/uid-24118190-id-4077308.html    VIM终极配置
 /reference/linux/{default.vim, plugin.vim}                本地保存的版本
 -->
-
-
-
-
-
-
-
-
-
-<!--
-	<h2>Ctags</h2>
-	<p>主要是用来产生标记文件以帮助在源文件中定位对象，详细可以参考<a href="http://easwy.com/blog/archives/exuberant-ctags-chinese-manual/">中文文档</a>，或者man ctags。<br><br>
-	Windows版本可以在http://prdownloads.sourceforge.net/ctags/中下载，并解压到c:/Windows/System32/下。CentOS可以使用yum install ctags安装。可以通过ctags --version查看版本号。<br><br>
-
-	其生成的标记文件tags中包括这些对象的列表：用#define定义的宏；枚举型变量的值；函数的定义、原型和声明；名字空间（namespace）；类型定义（typedefs）；变量（包括定义和声明）；类（class）、结构（struct）、枚举类型（enum）和联合（union）；类、结构和联合中成员变量或函数。
-	<pre>ctags -R --c++-kinds=+px --fields=+iaS --extra=+q .</pre>
-	<ul><li>-R<br>
-	ctags循环生成子目录的tags</li><br><li>
-    -I identifier-list<br>
-    主要用于处理一些宏。</li><br><li>
-
-	--c++-kinds=+px<br>
-	ctags记录c++文件中的函数声明和各种外部和前向声明，使用p时同时也会添加extern的声明。</li><br><li>
-
-	--fields=+iaS<br>
-	ctags要求描述的信息，其中i表示如果有继承，则标识出父类；a表示如果元素是类成员的话，要标明其调用权限（即是public还是private）；S表示如果是函数，则标识函数的signature。</li><br><li>
-
-	--extra=+q<br> 强制要求ctags做如下操作—如果某个语法元素是类的一个成员，ctags默认会给其记录一行，可以要求ctags对同一个语法元素再记一行，这样可以保证在VIM中多个同名函数可以通过路径不同来区分。
-	</li></ul>
-
-
-<!--
-ctags 在使用vim编程和浏览代码是非常有用。可以用CTRL+]和CTRL+t 来回跳转关键字。
-先生成自己工作目录的tags。最简单粗暴用法：
-
-$cd yourwork
-$ctags -R *
-
-这样会生成一个tags文件。
-不过，这种有个问题，成员变量没有包含在里面。所以自动完成对象的成员时没有提示。
-解决办法：
-
-$ctags -R --fields=+iaS --extra=+q *
-
-–fields=[+|-]flags
-–fields指定tags的可用扩展域（extension fields），以包含到tags入口。
-i:继承信息Inheritance information
-a：类成员的访问控制信息 Access (or export) of class members
-S： 常规签名信息，如原型或参数表 Signature of routine(e.g. prototype or parameter list)
-–extra=[+|-]flags
-指定是否包含某种扩展信息到tags入口。
-q：包含类成员信息（如c++,java,Eiffel)。
-但就算是C 语言的结构，也需要这两个参数设置才能获取成员信息。
-
-这样就能自动完成结构和类的成员了。
-
-但是，对于系统的函数，还是没有跳转。如socket定义，inetaddr_in这样的结构没有自动变量完成。
-最简单做法：
-
-$ctags --fields=+iaS --extra=+q -R -f ~/.vim/systags /usr/include /usr/local/include
-
-然后在.vimrc里设置
-
-set tags+=~/.vim/systags
-
-这样虽然基本能跳转到系统函数定义，一个问题是某些系统函数并没有加入到systags里。
-如/usr/incluce/socket.h的socket系列函数,memset等很多关键函数都没有到tag里：
-
-extern int listen (int __fd, int __n) __THROW;
-
-这是因为 __THROW的宏定义让ctags不再认为该系列函数是函数。
-同理，如memcpy系列函数：
-如/usr/include/string.h的
-
-extern int strcmp (__const char *__s1, __const char *__s2)
-     __THROW __attribute_pure__ __nonnull ((1, 2));
-
-还有attribute_pure ，nonull等属性，都需要忽略。如果需要#if 0里面的定义，可以–if0=yes来忽略 #if 0这样的定义。
-
-$ctags -I __THROW -I __attribute_pure__ -I __nonnull -I __attribute__ --file-scope=yes --langmap=c:+.h --languages=c,c++ --links=yes --c-kinds=+p --c++-kinds=+p --fields=+iaS --extra=+q -R -f ~/.vim/systags /usr/include /usr/local/include
-
-这样.vim/systags里面是全的，但内容过多。一个函数定义的跳转，会有几十个候选。这时我们可以简化一下，将-R去掉，自己指定目录：
-
-$ctags -I __THROW -I __attribute_pure__ -I __nonnull -I __attribute__ --file-scope=yes --langmap=c:+.h --languages=c,c++ --links=yes --c-kinds=+p --c++-kinds=+p --fields=+iaS --extra=+q  -f ~/.vim/systags /usr/include/* /usr/include/sys/* /usr/include/bits/*  /usr/include/netinet/* /usr/include/arpa/* /usr/include/mysql/*
-
-还可以包含一些自己编程需要的路径。注意后面加*号。
-这样生成的系统tags就少多了。不会有太多不相干的定义。
-
-
-
-	可以在~/.vimrc中添加如下的内容，在源码目录内可以通过Ctrl-F12生成tags文件，注意当修改源码后需要重新执行。
-	<pre>map &lt;C-F12&gt; :!ctags -R --c++-kinds=+px --fields=+iaS --extra=+q .&lt;CR&gt;</pre>
-	也可以通过 <tt>set tags=/home/xxx/qemu/tags</tt> 命令指定需要加载的 tags 文件，可以通过set tags+=./tags进行设置，也可以通过设置的函数添加，详见配置文件。此时可以查看该源码的函数名等。<br><br>
-
-	常见快捷键如下：<ul><li>
-		Ctrl+]跳转到定义处。</li><li>
-		Ctrl+T跳转到上次tags处。</li><li>
-		Ctrl+i(in)跳转下一个。</li><li>
-        Ctrl+o(out)退回原来的地方。</li><li>
-        gd 转到当前光标所指的局部变量的定义，gf打开头文件。</li><li>
-        :ju 显示所有可以跳跃的地方。</li><li>
-        :set tags 查看加载的tags。</li><li>
-        :tag name 调转到name处。
-    </li></ul>
-	如果有多个可以使用tfirst  tlast  tprevious  tnext  tselect，也可以<tt>: tag name_&lt;TAB&gt;</tt>，tselect /^write，查找以write开头的，$表示末尾。<br><br>
-<!--
-:ta x
-
-跳转到符号x的定义处，如果有多个符号，直接跳转到第一处
-
-:ts x
-
-列出符号x的定义
-
-:tj x
-
-可看做上面两个命令的合并，如果只找到一个符号定义，那么直接跳转到符号定义处，如果有多个，则让用户自行选择。
-
-Ctrl+]
-
-跳转到当前光标下符号的定义处，和ta类似。
-
-Ctrl+t
-
-跳转到上一个符号定义处，和上面的配合基本上就能自由跳转了。
-
-:tn和:tp
-
-是在符号的多个定义之间跳转。
-
-    BUGS: 如果出现 Exuberant ctags (http://ctags.sf.net) not found in PATH. Plugin is not loaded 可以在 vimrc 文件中通过 let Tlist_Ctags_Cmd = 'd:\tools\ctags.exe' 指定，Unix 类似。最好不要放在 c:\Windows\System32 或者路径名带有空格的目录下。
-    </p>
-<!--
-一．         ctags 是干什么的
-
-ctags 的功能：扫描指定的源文件，找出其中所包含的语法元素，并将找到的相关内容记录下来。
-
-我用的是 Exuberant Ctags ，在 Windows 上使用，就一个可执行文件，非常绿色，可在 sourceforge 下载。
-二．         ctags 可以识别哪些语言，是如何识别的
-
-ctags 识别很多语言，可以用如下命令来查看：
-
-ctags --list-languages
-
-还可以识别自定义语言，具体没研究过。
-
-    ctags 是可以根据文件的扩展名以及文件名的形式来确定该文件中是何种语言，从而使用正确的分析 器。可以使用如下命令来查看默认哪些扩展名对应哪些语言：
-
-ctags --list-maps
-
-还可以指定 ctags 用特定语言的分析器来分析某种扩展名的文件或者名字符合特定模式的文件。例如如下命令告 知 ctags ，以 inl 为扩展名的文件是 c++ 文件。
-
-ctags --langmap=c++:+.inl –R
-
-    并不十分清楚 ctags 使用何种技术来解析内容，估计包括正则表达式、词法分析、语法分析等等。但 ctags 不是编译器也不是预处理器，它的解析能力是有限的。例如它虽然可以识别宏定义，但对于使 用了宏的语句的识别还是有缺陷的，在一些稍微正规点的代码（例如 ACE 的库或 VC 的头文件等）中的某些常规的宏使用方式会导致 ctags 无法识别，或者识别错误，从而使得 ctags 没有记录 user 想记录的内容，或者记录下的信息不准确。另一方面 ctags 也有聪明的一面，例如在 cpp 文件中扫描到 static 的全局变量时， ctags 会记录这个变量，而且还会标明说这个变量是局限于本文件的，同样的定义，如果放在 h 文件中， ctags 则不会标明说这个变量是局限于本文件的，因为 ctags 认为 h 文件是头文件的一种，会被其他文件 include ，所以在其他文件中可能会用到该 h 文件里定义的这个全局变量。
-三．         ctags 可以识别和记录哪些语法元素
-
-可以用如下命令查看 ctags 可以识别的语法元素：
-
-ctags --list-kinds
-
-或者单独查看可以识别的 c++ 的语法元素
-
-ctags --list-kinds=c++
-
-    ctags 识别很多元素，但未必全都记录，例如“函数声明”这一语法元素默认是不记录的，可以控制 ctags 记录的语法元素的种类。如下命令要求 ctags 记录 c++ 文件中的函数声明和各种外部和前向声明：
-
-ctags -R --c++-kinds=+px
-四．         ctags 是怎么记录的
-
-不管一次扫描多少文件，一条 ctags 命令把记录的内容都记到一个文件里去，默认是当前目录的 tags 文件，当然这是可以更改的。
-
-每个语法元素对应文件里的一行， 学名叫 tag entry 。
-
-1）              开头是 tag 的名字，其实也就是语法元素的名字，例如记录的是函数的话则 tag 名就是函数名，记录的是类的话， tag 名就是类名。
-
-2）              接下来是一个 tab 。
-
-3）              接下来是语法元素所 在的文件名。
-
-4）              又是一个 tab 。
-
-5）              一条“命令”。这个 要解释一下意义： ctags 所记录的内容的一个功能就是要帮助像 vi 这样的编辑器快速定位到语法元素所在的文件中去。前面已经记录了语法元素所在的文件，这 条命令的功能就是一旦在 vi 中打开语法元素所在的文件，并且执行了该“命令”后， vi 的光标就能定位到语法元素在文件中的具体位置。所以该“命令”的内容一般分两种，一种是 一个正则表达式的搜索命令，一种是第几行的指向命令。默认让 ctags 在记录时自行选择命令的种类，选择的依据不详，可以通过命令行参数来强制 ctags 使用某种命令，这里就不多谈了。
-
-6）              对于本 tag entry （简称 tag ）所对应的语法元素的描述，例如语法元素的类型等。具体内容和语法元素的种类密切相关。 显示哪些描述，显示的格式等都是可以在命令行指定的。例如如下命令要求描述信息中要包含： a 表示如果语法元素的类的成员的话，要标明其 access （即是 public 的还是 private 的）； i 表示如果有继承，标明父类； K 表示显示语法元素的类型的全称； S 表示如果是函数，标明函数的 signature ； z 表示在显示语法元素的类型是使用 kind:type 的格式。
-
-ctags -R --fields=+aiKSz
-
-    ctags 除了记录上述的各种内容之外，还可以在 tags 文件中记录本次扫描的各个文件，一个文件名对应一个 tag entry 。默认是不记录的，要强制记录要是使用如下命令：
-
-ctags –R --extra=+f
-
-    还可以强制要求 ctags 做这样一件事情——如果某个语法元素是类的一个成员，当然 ctags 默认会给其记录一个 tag entry （说白了就是在 tags 文件里写一行），可以要求 ctags 对同一个语法元素再记一行。举一个例子来说明：假设语法元素是一个成员函数， ctags 默认记录的 tag entry 中的 tag 的名字就是该函数的名字（不包括类名作为前缀），而我们强制要求 ctags 多记的那个 tag entry 的 tag 的名字是包含了类明作为前缀的函数的全路径名。这样做有什么好处见下文分析。强制 ctags 给类的成员函数多记一行的命令为：
-
-ctags -R --extra=+q
-五．         vi 大概是怎样使用 ctags 生成的 tags 文件的
-
-估计 vi 是这样使用 tags 文件的：我们使用 vi 来定位某个 tag 时， vi 根据我们输入的 tag 的名字在 tags 文件中一行行查找，判断每一行 tag entry 的 tag 名字（即每行的开头）是否和用户给出的相同，如果相同就认为找到一条记录，最后 vi 显示所有找到的记录，或者根据这些记录直接跳转到对应文件的特定位置。
-
-考虑到 ctags 记录的内容和方式，出现同名的 tag entry 是很常见的现象，例如函数声明和函数定义的 tag 名字是一样的，重载函数的 tag 名字是一样的等等。 vi 只是使用 tag 名字来搜索，还没智能到可以根据函数的 signature 来选择相应的 tag entry 。 vi 只能简单的显示 tag entry 的内容给 user ，让 user 自行选择。
-
-ctags 在记录成员函数时默认是把函数的名字（仅仅是函数的名字，不带任何类名和 namespace 作为前缀）作为 tag 的名字的，这样就导致很多不同类但同名的函数所对应的 tag entry 的名字都是一样的，这样 user 在 vi 中使用函数名来定位时就会出现暴多选择，挑选起来十分麻烦。 user 可能会想在 vi 中用函数的全路径名来进行定位，但这样做会失败，因为 tags 文件中没有对应名字的 tag entry 。要满足用户的这种心思，就要求 ctags 在记录时针对类的成员多记录一条 tag entry ，该 tag entry 和已有的 tag entry 的内容都相同，除了 tag 的名字不同，该 tag entry 的名字是类的成员的全路径名（包括了命名空间和类名）。这就解释了 ctags 的 --extra=+q 这样一条命令行选项（见四）。
-六．         我的一条 ctags 命令
-
-ctags -R --languages=c++ --langmap=c++:+.inl -h +.inl --c++-kinds=+px --fields=+aiKSz --extra=+q --exclude=lex.yy.cc --exclude=copy_lex.yy.cc
-
-命令太长了，折成两行了，可以考虑把命令的各个参数写到文件里去了（具体做法就不谈了）。
-
-1.
-
--R
-
-表示扫描当前目录及所有子目录（递归向下）中的源文件。并不是所有文件 ctags 都会扫描，如果用户没有特别指明，则 ctags 根据文件的扩展名来决定是否要扫描该文件——如果 ctags 可以根据文件的扩展名可以判断出该文件所使用的语言，则 ctags 会扫描该文件。
-
-2.
-
---languages=c++
-
-只扫描文件内容判定为 c++ 的文件——即 ctags 观察文件扩展名，如果扩展名对应 c++ ，则扫描该文件。反之如果某个文件叫 aaa.py （ python 文件），则该文件不会被扫描。
-
-3.
-
---langmap=c++:+.inl
-
-告知 ctags ，以 inl 为扩展名的文件是 c++ 语言写的，在加之上述 2 中的选项，即要求 ctags 以 c++ 语法扫描以 inl 为扩展名的文件。
-
-4.
-
--h +.inl
-
-告知 ctags ，把以 inl 为扩展名的文件看作是头文件的一种（ inl 文件中放的是 inline 函数的定义，本来就是为了被 include 的）。这样 ctags 在扫描 inl 文件时，就算里面有 static 的全局变量， ctags 在记录时也不会标明说该变量是局限于本文件的（见第一节描述）。
-
-5.
-
---c++-kinds=+px
-
-记录类型为函数声明和前向声明的语法元素（见第三节）。
-
-6.
-
---fields=+aiKSz
-
-控制记录的内容（见第四节）。
-
-7.
-
---extra=+q
-
-让 ctags 额外记录一些东西（见第四、五节）。
-
-8.
-
---exclude=lex.yy.cc --exclude=copy_lex.yy.cc
-
-告知 ctags 不要扫描名字是这样的文件。还可以控制 ctags 不要扫描指定目录，这里就不细说了。
-
-9.
-
--f tagfile：指定生成的标签文件名，默认是tags. tagfile指定为 - 的话，输出到标准输出。
-
-七．         本文内容来源
-
-    Exuberant Ctags 附带的帮助文档（ ctags.html ）。
-
-
-========================================补充===========================================
-
-"ctags"是一个独立的程序，绝大多数Unix系统上都会预装这个程序。
-
-    1、使用tags
-
-    tag是什么？一个位置。它记录了关于一个标识符在哪里被定义的信息，比如C或C++程序中的一个函数定义。这种tag聚集在一起被放入一个tags文件。这个文件可以让Vim能够从任何位置起跳达到tag所指示的位置－标识符被定义的位置。
-
-    下面的命令可以为当前目录下的所有C程序文件生成对应的tags文件：
-        (shell command) ctags *.c
-
-    现在你在Vim中要跳到一个函数的定义(如startlist)就可以用下面的命令：
-       (ex command) :tag startlist
-这个命令会带你到函数"startlist"的定义处，哪怕它是在另一个文件中。
-
-    CTRL+] 命 令会取当前光标下的word作为tag的名字并直接跳转。这使得在大量C程序中进行探索更容易一些。假设你正看函数"write block"，发现它调用了一个叫"write line"的函数，这个函数是干什么的呢？你可以把光标置于"write_line"上，按下CTRL+] 即可。如果"write_line"函数又调用了 "write_ char".你当然又要知道这个函数又是什么功能。同时，置光标于"write_char"上按下CTRL+]。现在你位于函数"write_char" 的定义处。
-
-    ":tags"命令会列出现在你就已经到过哪些tag了：
-       (ex command):tags
-       #      TO          tag       FROM line          in file/text
-       1       1       write_line        8             write_block.c
-       2       1       write_char        7             write_line.c
-
-    现在往回走。CTRL+T命 令会跳到你前一次的tag处。在上例中它会带你到调用了"write_char"的"write_line"函数的地方。CTRL+T可以带一个命令记 数, 以此作为往回跳的次数, 你已经向前跳过了，现在正在往回跳，我们再往前跳一次。下面的命令可以直接跳转到当前tag序列的最后：
-       (ex command) :tag
-你也可以给它一个前辍, 让它向前跳指定的步长. 比如":3tag"。CTRL+T也可以带一个前辍。这些命令可以让你向下深入一个函数调用树(使用CTRL+]), 也可以回溯跳转(使用CTRL+T). 还可以随时用":tags"看你当前的跳转历史记录。
-
-    2、分隔窗口
-
-    ":tag"命令会在当前窗口中载入包含了目标函数定义的文件。但假设你不仅要查看新的函数定义，还要同时保留当前的上下文呢？你可以在":tag"后使用一个分隔窗口命令":split"。Vim还有一个一举两得的命令：
-      (ex command) :stag tagname
-要分隔当前窗口并跳转到光标下的tag：
-      (normal mode command) CTRL+W+]
-如果同时还指定了一个命令记数, 它会被当作新开窗口的行高.
-
-    3、多个tags文件
-
-    如果你的源文件位于多个目录下，你可以为每个目录都建一个tags文件。Vim会在使用某个目录下的tags文件进行跳转时只在那个目录下跳转。
-
-    要使用更多tags文件，可以通过改变'tags'选项的设置来引入更多的tags文件。如：
-       (ex command) :set tags=./tags, ./../tags, ./*/tags
-这 样的设置使Vim可以使用当前目录下的tags文件，上一级目录下的tags文件，以及当前目录下所有层级的子目录下的tags文件。这样可能会引入很多 的tags文件，但还有可能不敷其用。比如说你正在编辑"~/proj/src"下的一个文件，但又想使用"~/proj/sub/tags"作为 tags文件。对这种Vim情况提供了一种深度搜索目录的形式。如下：(ex command) :set tags=~/proj/**/tags
-
-    4、单个tags文件
-
-    Vim在搜索众多的tags文件时，你可能会听到你的硬盘在咔嗒咔嗒拼命地叫。显然这会降低速度。如果这样还不如花点时间生成一个大一点的tags文件。这需要一个功能丰富的ctags程序，比如上面提到的那个。它有一个参数可以搜索整个目录树：
-       (shell command)cd ~/proj
-        ctags -R
-    用一个功能更强的ctags的好处是它能处理多种类型的文件。不光是C和C++源程序，也能对付Eiffel或者是Vim脚本。你可以参考ctags程序的文件调整自己的需要。现在你只要告诉Vim你那一个tags文件在哪就行了：
-        (ex command) :set tags=~/proj/tags
-
-    5、同名tag
-
-    当一个函数被多次重载(或者几个类里都定义了一些同名的函数)，":tag"命令会跳转到第一个符合条件的。如果当前文件中就有一个匹配的，那又会优先使用它。当然还得有办法跳转到其它符合条件的tag去：
-      (ex command) :tnext
-重复使用这个命令可以发现其余的同名tag。如果实在太多，还可以用下面的命令从中直接选取一个：
-      (ex command) :tselect tagname
-Vim会提供给你一个选择列表，例如：(Display)
-
-#     pri     kind     tag               file
-1      F        f      mch_init     os_amiga.c
-                        mch_init()
-2      F        f      mch_init     os_mac.c
-                        mch_init()
-3      F        f      mch_init     os_msdos.c
-                        mch_init(void)
-4      F        f      mch_init     os_riscos.c
-                        mch_init()
-Enter nr of choice (<CR> to abort):
-
-   现在你只需键入相应的数字(位于第一栏的)。 其它栏中的信息是为了帮你作出决策的。在多个匹配的tag之间移动，可以使用下面这些命令：
-       (ex command):tfirst             go to first match
-                   :[count]tprevious   go to [count] previous match
-                   :[count]tnext       go to [count] next match
-                   :tlast              go to last match
-如果没有指定[count]，默认是1。
-
-    6、tag的名字
-
-    命令补齐真是避免键入一个长tag名的好办法。只要输入开头的几个字符然后按下制表符：
-       (ex command) :tag write_<Tab>
-Vim 会为你补全第一个符合的tag名。如果还不合你意，接着按制表符直到找到你要的。有时候你只记得一个tag名的片段，或者有几个tag开头相同。这里你可以用一个模式匹配来告诉Vim你要找的tag。
-
-    假设你想跳转到一个包含"block"的tag。首先键入命令：(ex command) :tag /block。现在使用命令补齐：按<Tab>。Vim会找到所有包含"block"的tag并先提供给你第一个符合的。"/"告诉Vim下 面的名字不是一五一十的tag名，而是一个搜索模式。通常的搜索技巧都可以用在这里。比如你有一个tag以"write "开始：(ex command) :tselect / ^write_，"^"表示这个tag以"write_"开始。不然在半中间出现write的tag也会被搜索到。同样"$"可以用于告诉Vim要查找的 tag如何结束。
-
-    7、tags的浏览器
-
-    CTRL+]可以直接跳转到以当前光标下的word为tag名的地方去，所以可以在一个tag列表中使用它。下面是一个例子。首先建立一个标识符的列表(这需要一个好的ctags)：
-      (shell command) ctags --c-types=f -f functions *.c
-
-    现在直接启动Vim, 以一个垂直分隔窗口的编辑命令打开生成的文件：
-       (shell command) vim:vsplit functions
-    这个窗口中包含所有函数名的列表。可能会有很多内容，但是你可以暂时忽略它。用一个":setlocal ts=99"命令清理一下显示。在该窗口中，定义这样的一个映射：
-        (ex command):nnoremap <buffer&gt; <CR&gt; 0ye<C-W&gt;w:tag <C-R&gt;"<CR&gt;
-    现在把光标移到你想要查看其定义的函数名上，按下回车键，Vim就会在另一个窗口中打开相应的文件并定位到到该函数的定义上。
-
-    8、其它相关主题
-
-    设置'ignorecase'也可以让tag名的处理忽略掉大小写。'tagsearch'选项告诉Vim当前参考的tags文件是否是排序过的。默认情 况假设该文件是排序过的，这会使tag的搜索快一些，但如果tag文件实际上没有排序就会在搜索时漏掉一些tag。
-
-    'taglength'告诉Vim一个tag名字中有效部分的字符个数。例：
-#include <stdio.h&gt;
-int very_long_variable_1;
-int very_long_variable_2;
-int very_long_variable_3;
-int very_long_variable_4;
-int main()
-{
-    very_long_variable_4 = very_long_variable_1 *
-    very_long_variable_2;
-}
-
-    对于上面这段代码, 4个变量长度都为20, 如果将'taglength'设为10, 则：
-       (ex command):tag very_long_variable_4
-会匹配到4个tag，而不是1个，光标停留在very_long_variable_1所在行上，因为被搜索的tag部分只有前面的10个字符： "very_long_"，相应的显示是(是gvim中文版的真正显示，不是翻译的)：
-      (Display)找到tag: 1/4 或更多 
-
-    <h3>tags格式</h3><p>
-    tags文件是以行为单位的，每行的格式为：{tagname}Tab{tagfile}Tab{tagaddress}，其含义如下：<br><ul><li>
-    {tagname}：标示(identifier)，不含空白字符。</li><li>
-    Tab：一个TAB字符，其实vi可以处理多个空白字符。</li><li>
-    {tagfile}：定义tagname的文件，当前目录或者tags文件锁在路径的相对路径。</li><li>
-    {tagaddress}: 可以通过Ex命令定位到的行，关于Ex命令可以参考<a href="http://blog.csdn.net/hitlion2008/article/details/8799327">
-Vim高级进阶之ex命令集</a>。</li><li>
-    {term}: 设为 ;” ，这是为了兼容Vi编辑器，使Vi忽略后面的{field}字段。</li><li>
-    {field} .. – 此字段可选，通常用于表示此{tagname}的类型是函数、类、宏或是其它。 </li><li>
-    最后，再每行的后面可以添加注释　，注释的格式是分号，双引号后面跟注释;” comment</li></ul>
-
-
-     Tag文件的开头可以包含以”!_TAG_”开头的行，用来在tag文件中加入其它信息，默认是大小写排序的。
-
-
-
-
-
-
-<!--
-ag命令用法：
-Ctrl＋］  跳到当前光标下单词的标签
-Ctrl＋O  返回上一个标签
-Ctrl＋T  返回上一个标签
-:tag TagName 跳到TagName标签
-以上命令是在当前窗口显示标签，当前窗口的文件替代为包标签的文件，当前窗口光标跳到标签位置。如果不希望在当前窗口显示标签，可以使用以下命令：
-:stag TagName 新窗口显示TagName标签，光标跳到标签处
-Ctrl＋W + ］  新窗口显示当前光标下单词的标签，光标跳到标签处
-当一个标签有多个匹配项时（函数 (或类中的方法) 被多次定义），":tags" 命令会跳转到第一处。如果在当前文件中存在匹配，那它将会被首先使用。
-可以用这些命令在各匹配的标签间移动：
-:tfirst    到第一个匹配
-:[count]tprevious 向前 [count] 个匹配
-:[count]tnext  向后 [count] 个匹配
-:tlast    到最后一个匹配
-或者使用以下命令选择要跳转到哪一个
-:tselect TagName
-输入以上命令后，vim会为你展示一个选择列表。然后你可以输入要跳转到的匹配代号 (在第一列)。其它列的信息可以让你知道标签在何处被定义过。
-以下命令将在预览窗口显示标签
-:ptag TagName 预览窗口显示TagName标签，光标跳到标签处
-Ctrl＋W + }  预览窗口显示当前光标下单词的标签，光标跳到标签处
-:pclose   关闭预览窗口
-:pedit file.h 在预览窗口中编辑文件file.h（在编辑头文件时很有用）
-:psearch atoi 查找当前文件和任何包含文件中的单词并在预览窗口中显示匹配，在使用没有标签文件的库函数时十分有用。
-
-</p>
-<h3>参考</h3><p>
-<a href="http://ctags.sourceforge.net/EXTENDING.html">How to Add Support for a New Language to Exuberant Ctags</a>，或者 <a href="reference/vim/Exuberant Ctags: Adding support for a new language.html">本地版本</a> 。<br><br>
-
-<a href="http://python.42qu.com/11180003">使用Vim打造现代化的Python IDE</a>。<br><br>
-
-<a href="http://python.42qu.com/11165602">如何用python写vim插件</a>
-</p>
-<br><br>
-
-
-
-
-
-
-
-
-
-	<h2>Cscope, :help if_cscop</h2><p>
-	Cscope 是 Ctags 的升级版本，提供交互式查询语言符号功能，如查询哪些地方使用某个变量或调用某个函数。 Cscope 已经是 Vim 的标准特性，默认都有支持，官方网址为 http://cscope.sourceforge.net/ 。<ol><li>
-
-	在 Vim 下运行 :version 查看 Vim 支持哪些特性，前面有前缀符号 + 的为支持。如果不支持则需要下载 Cscope 源代码包，添加 --enable-cscope 编译选项。此时只能说明可以支持 cscope 数据库了，生成数据库时仍需要其他文件支持。</li><br><li>
-
-	确定 Vim 已支持 Cscope 后，将文件 http://cscope.sourceforge.net/cscope_maps.vim 下载到 ~/.vim/plugin 目录；也可以将其内容添加到 vimrc 配置文件中。</li><br><li>
-
-	安装cscope，yum install cscope 。</li></ol><br>
-
-	到这里，我们就可以开始使用 Cscope 了，Cscope在第一次解析时扫描全部文件，以后再调用cscope只会扫描那些改动过的文件。
-	<ol><li>
-		使用 Cscope 需要生成 cscope 数据库文件。<br><br>
-		在 Windows 平台下，可以从 <a href="http://sourceforge.net/projects/mslk/files/Cscope/">http://sourceforge.net/projects/mslk/files/Cscope/</a> 下载最新版本的 Cscope 二进制文件(含动态连接库)。解压后将其放置到 $VIMRUNTIME 目录下，如 D:/Program Files/Vim/vim74 ，并将其添加到环境变量中("计算机"->"属性"->"高级系统设置"->"环境变量"，多个便令用 ; 分割)。通过 cscope -V 检查是否按装成功。</li><br><li>
-
-
-		进入项目代码根目录运行命令：<pre>cscope -Rbq -f path/xxx.out</pre>
-        也可以不使用-R选项，此时将会进入基于Cureses的GUI界面，可以通过方向键选择查找类型，通过tab键在搜索结果和搜索类型中选择。Ctrl-D退出。<br><br>
-        命令运行后会生成 xxx.out 文件，即 cscope 数据库文件。<ul><li>
-        -R 表示递归操作；</li><li>
-        -b 生成数据库文件后直接退出，否则生成数据库之后会进入 cscope 界面；</li><li>
-        -q 表示生成 cscope.in.out 和 cscope.po.out 文件，加快 cscope 的索引速度；</li><li>
-        -k 在生成数据库时如果在当前项目目录下没有找到头文件，则会自动到/usr/include目录下查找，通过-k选项关闭；</li><li>
-        -i 如果不是cscope.files，则通过该选项指定源文件列表，-表示标准输入；</li><li>
-        -Idir 在指定的目录中查找头文件；</li><li>
-        -u 扫描所有文件，重新生成交叉索引文件；</li><li>
-        -C 在搜索时忽略大小写；</li><li>
-        -Ppath 在以相对路径表示的文件前加上的path。
-        </li></ul>
-        更多用法参考 man cscope 文档。<br><br>
-        通常Cscope只解析C文件(.c/.h)、lex文件(.l)和yacc文件(.y)，如果希望解析C++和Java文件，可以通过指定cscope.files文件。通常是通过find命令生成，此时不再需要-R选项。find命令输出的文件以相对路径表示，如果想要在其它路径中使用当前的cscope.out，可以使用-P选项。<br><br>
-        在Windows中会出现-q错误，解决方法可以参考http://easwy.com/blog/archives/cscope_sort_option_on_windows/。</li><br><li>
-
-		进入项目代码根目录，在 Vim 下运行命令：<pre>cs add path/xxx.out</pre>此命令将 cscope 数据库载入 Vim ，此时建立起了与数据库的连接，之后可以通过下面的指令进行查找。</li><br><li>
-
-		然后可以通过 cscope find 进行查找，vim支持8中cscope的查询功能，如下：<ul><li>
-	    0/s, symbol: 查找C语言符号，即查找函数名、宏、枚举值等出现的地方。</li><li>
-	    1/g, global: 查找函数、宏、枚举等定义的位置，通常为全局变量，类似ctags所提供的功能。</li><li>
-	    2/d, called: 查找本函数所调用的函数。</li><li>
-	    3/c, calls: 查找所有调用本函数的函数。</li><li>
-	    4/t, text: 查找指定的字符串。</li><li>
-	    6/e, egrep: 查找egrep模式，相当于egrep功能，但查找速度快多了。</li><li>
-	    7/f, file: 查找并打开文件，类似vim的find功能。</li><li>
-	    8/i, includes: 查找包含当前cursor的文件。</li></ul>
-	如查找调用do_cscope()函数的函数，可以输入 :cs find c do_cscope 或者使用 :cs find s do_cscope 。</li><br><li>
-
-    其它常用命令<ul><li>
-    add 添加一个新的数据库。</li><li>
-    cs kill {num|partial_name}杀掉一个cscope链接，-1表示杀掉所有的链接。</li><li>
-    reset 重新初始化所有的cscope链接。</li><li>
-    show 显示cscope的链接。
-    </li></ul>
-
-    </li><br><li>
-	Cscope 常用快捷键，此处是通过vimrc配置的<br>
-			Ctrl-\ s 查找所有当前光标所在符号出现过位置。<br>
-			Ctrl-\ c 查找所有调用当前光标所在函数的函数。<br><br>
-
-    切换时，也可以使用Ctrl-&lt;space&gt;，vim将其解释为Ctrl-@。与Ctags相似，Ctrl-t返回。
-
-
-		为了界面更好看，可以把Cscope的查找结果输出到quickfix窗口，需要在~/.vimrc中加入下面这行：<pre>set cscopequickfix=s-,c-,d-,i-,t-,e-</pre>
-	</li></ol>
-
-
-
-    vim提供了一些选项可以调整它的cscope功能：<ul><li>
-        cscopeprg选项用于设置cscope程序的位置。</li><br><li>
-
-        cscopequickfix设定是否使用quickfix窗口来显示cscope的结果，这是一组用逗号分隔的值，每项都包含于csope-find命令（s, g, d, c, t, e, f, 或者i）和旗标（+, -或者0）。<!-- ‘+’预示着显示结果必须追加到quickfix窗口。‘-’隐含着清空先前的的显示结果，’0’或者不设置表示不使用quickfix窗口。查找会从开始直到第一条命令出现。默认的值是””（不使用quickfix窗口）。下面的值似乎会很有用：”s-,c-,d-,i-,t-,e-”。 详情请”:help cscopequickfix“。</li><br><li>
-
-        如果你想vim同时搜索tag文件以及cscope数据库，设置cscopetag选项，此时使用的是cstag而不是tag，默认是关闭的set cst/nocst。</li><br><li>
-
-        cscopetagorder选项决定:cstag是先查找tag文件还是先查找cscope数据库。设置为0则先查找cscope数据库，设置为1先查找tag文件。默认是0，set csto=0/1。</li><br><li>
-
-        cscopeverbose是否显示数据库增加/失败，如 set csverb/nocsverb。</li><br><li>
-
-       ‘cspc’的值决定了一个文件的路径的多少部分被显示。默认值是0，所以整个路径都会被显示。值为1的话，那么就只会显示文件名，不带路径。其他值就会显示不同的部分。例如 :set cspc=3 将会显示文件路径的最后3个部分，包含这个文件名本身。 </li></ul>
-
-    vim的手册中给出了使用cscope的建议方法，使用命令”:help cscope-suggestions“查看。
-	</p>
-
-
-    <h3>使用cscope查看linux kernel</h3><p>
-	下载源码并保存在/home/andy/linux-kernel，令假设Cscope保存在/home/andy/cscope目录下。对于内核中感兴趣的文件通常需要去除文本、非x86源码、非驱动。
-<pre style="font-size:0.8em; face:arial;">
-$ tar -Jxf linux-kernel.tar.xz
-$ LNX=/home/andy/linux-kernel
-$ find  $LNX                                                              \
-    -path "$LNX/arch/*" ! -path "$LNX/arch/i386*" -prune -o               \
-    -path "$LNX/include/asm-*" ! -path "$LNX/include/asm-i386*" -prune -o \
-    -path "$LNX/tmp*" -prune -o                                           \
-    -path "$LNX/Documentation*" -prune -o                                 \
-    -path "$LNX/scripts*" -prune -o                                       \
-    -path "$LNX/drivers*" -prune -o                                       \
-    -name "*.[chxsS]" -print >/home/andy/cscope/cscope.files
-$ cd /home/andy/cscope
-$ cscope -b -q -k                             生成Cscope数据库文件
-$ add some files and 'cscope -b -q -k'        添加新文件重新生成数据库
-</pre>
-对于OB使用find时一直含有目录，导致cscope: cannot find file script....<br>
-
-在find命令中-o表示or，-prune表示不包含该目录，如果前面又添加了!号，则表示只包含该目录。
-</p><br>
-
-
-
-    <h3>使用cscope</h3><p>
-    cscope 的退出，ctrl+r, ctrl+d,
-    </p><br>
-
-    <h3>Bugs</h3><p>
-        duplicate cscope database not added<br>
-        使用Cscope时两次加载cscope，可以通过 grep -rne "cscope.out" 检查 ~/.vim/ 目录和 /etc/ 目录，通常时由于 ~/.vim/plugin
-    </p><br><br><br>
-    -->
-
 
 {% highlight text %}
 {% endhighlight %}

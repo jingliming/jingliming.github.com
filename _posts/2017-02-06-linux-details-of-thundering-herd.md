@@ -4,18 +4,19 @@ layout: post
 comments: true
 language: chinese
 category: [linux,program,misc]
-keywords: hello world,示例,sample,markdown
-description: 简单记录一下一些与 Markdown 相关的内容，包括了一些使用模版。
+keywords: 惊群,accept,epoll,epoll_wait
+description: 简言之，惊群现象就是当多个进程或线程在同时阻塞等待同一个事件时，如果这个事件发生，会唤醒所有的进程，但最终只可能有一个进程/线程对该事件进行处理，其他进程/线程会在失败后重新休眠，这种性能浪费就是惊群。这里对 Linux 中的惊群现象进行简单介绍。
 ---
 
+简言之，惊群现象就是当多个进程或线程在同时阻塞等待同一个事件时，如果这个事件发生，会唤醒所有的进程，但最终只可能有一个进程/线程对该事件进行处理，其他进程/线程会在失败后重新休眠，这种性能浪费就是惊群。
+
+这里对 Linux 中的惊群现象进行简单介绍。
 
 <!-- more -->
 
 ## 惊群
 
 关于惊群的解释可以查看 Wiki 的解释 [Thundering herd problem](https://en.wikipedia.org/wiki/Thundering_herd_problem) 。
-
-简言之，惊群现象就是当多个进程或线程在同时阻塞等待同一个事件时，如果这个事件发生，会唤醒所有的进程，但最终只可能有一个进程/线程对该事件进行处理，其他进程/线程会在失败后重新休眠，这种性能浪费就是惊群。
 
 ### accept()
 
@@ -192,26 +193,34 @@ int main (int argc, char *argv[])
 
 如上所述，如果采用 epoll，则仍然存在该问题，nginx 就是这种场景的一个典型，我们接下来看看其具体的处理方法。
 
-<!--
-nginx 的每个 worker 进程在函数 ngx_process_events_and_timers() 中处理事件，通过 ngx_process_events() 封装了不同的事件处理机制，在 Linux 上默认采用 epoll_wait()。其中主要在 ngx_process_events_and_timers() 解决惊群现象。
-<pre style="font-size:0.8em; face:arial;">
+nginx 的每个 worker 进程都会在函数 `ngx_process_events_and_timers()` 中处理不同的事件，然后通过 `ngx_process_events()` 封装了不同的事件处理机制，在 Linux 上默认采用 `epoll_wait()`。
+
+主要在 `ngx_process_events_and_timers()` 函数中解决惊群现象。
+
+{% highlight text %}
 void ngx_process_events_and_timers(ngx_cycle_t *cycle)
 {
     ... ...
-    if (ngx_use_accept_mutex) {        // 是否通过对accept加锁来解决惊群问题，需要工作线程数>1且配置文件打开accetp_mutex
-        if (ngx_accept_disabled > 0) { // 超过配置文件中最大连接数的7/8时，该值大于0，此时满负荷不会再处理新连接，简单负载均衡
+    // 是否通过对accept加锁来解决惊群问题，需要工作线程数>1且配置文件打开accetp_mutex
+    if (ngx_use_accept_mutex) {
+        // 超过配置文件中最大连接数的7/8时，该值大于0，此时满负荷不会再处理新连接，简单负载均衡
+        if (ngx_accept_disabled > 0) {
             ngx_accept_disabled--;
         } else {
-            if (ngx_trylock_accept_mutex(cycle) == NGX_ERROR) { // 多个worker仅有一个可以得到这把锁。获得锁不是阻塞过程，都是立刻返回，获取成功的话ngx_accept_mutex_held被置为1。拿到锁，意味着监听句柄被放到本进程的epoll中了，如果没有拿到锁，则监听句柄会被从epoll中取出。
+            // 多个worker仅有一个可以得到这把锁。获取锁不会阻塞过程，而是立刻返回，获取成功的话
+            // ngx_accept_mutex_held被置为1。拿到锁意味着监听句柄被放到本进程的epoll中了，如果
+            // 没有拿到锁，则监听句柄会被从epoll中取出。
+            if (ngx_trylock_accept_mutex(cycle) == NGX_ERROR) {
                 return;
             }
-            if (ngx_accept_mutex_held) {      // 此时意味着ngx_process_events()函数中，任何事件都将延后处理，会把accept事件放到
-                flags |= NGX_POST_EVENTS;     // ngx_posted_accept_events链表中，epollin|epollout事件都放到ngx_posted_events链表中
+            if (ngx_accept_mutex_held) {
+                // 此时意味着ngx_process_events()函数中，任何事件都将延后处理，会把accept事件放到
+                // ngx_posted_accept_events链表中，epollin|epollout事件都放到ngx_posted_events链表中
+                flags |= NGX_POST_EVENTS;
             } else {
-                        //拿不到锁，也就不会处理监听的句柄，这个timer实际是传给epoll_wait的超时时间，修改为最大ngx_accept_mutex_delay意味着epoll_wait更短的超时返回，以免新连接长时间没有得到处理
-                if (timer == NGX_TIMER_INFINITE
-                    || timer > ngx_accept_mutex_delay)
-                {
+                // 拿不到锁，也就不会处理监听的句柄，这个timer实际是传给epoll_wait的超时时间，修改
+                // 为最大ngx_accept_mutex_delay意味着epoll_wait更短的超时返回，以免新连接长时间没有得到处理
+                if (timer == NGX_TIMER_INFINITE || timer > ngx_accept_mutex_delay) {
                     timer = ngx_accept_mutex_delay;
                 }
             }
@@ -232,25 +241,13 @@ void ngx_process_events_and_timers(ngx_cycle_t *cycle)
         ngx_event_expire_timers();
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
-                   "posted events %p", ngx_posted_events);
-            //然后再处理正常的数据读写请求。因为这些请求耗时久，所以在ngx_process_events里NGX_POST_EVENTS标志将事件都放入ngx_posted_events链表中，延迟到锁释放了再处理。
-        if (ngx_posted_events) {
-            if (ngx_threaded) {
-                ngx_wakeup_worker_thread(cycle);
+    ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "posted events %p", ngx_posted_events);
+	// 然后再处理正常的数据读写请求。因为这些请求耗时久，所以在ngx_process_events里NGX_POST_EVENTS标
+    // 志将事件都放入ngx_posted_events链表中，延迟到锁释放了再处理。
+}
+{% endhighlight %}
 
-            } else {
-                ngx_event_process_posted(cycle, &ngx_posted_events);
-            }
-        }
-    ｝
-</pre>
-
-
-关于 ngx_use_accept_mutex、ngx_accept_disabled 的修改可以直接 grep 查看。
--->
-
-
+关于 `ngx_use_accept_mutex`、`ngx_accept_disabled` 的修改可以直接 grep 查看。
 
 ## SO_REUSEPORT
 

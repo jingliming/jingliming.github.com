@@ -49,7 +49,7 @@ int ftime(struct timeb *tp);
 
 ### gettimeofday() 微秒级
 
-gettimeofday() 函数可以获得当前系统的绝对时间。
+`gettimeofday()` 函数可以获得当前系统的绝对时间。
 
 {% highlight c %}
 struct timeval {
@@ -562,6 +562,124 @@ http://en.wikipedia.org/wiki/Year_2038_problem
 http://www.cnblogs.com/wenqiang/p/5678451.html
 http://www.cnblogs.com/xmphoenix/archive/2011/05/09/2041546.html
 -->
+
+
+## gettimeofday() 效率
+
+很多时候需要获取当前时间，如计算 http 耗时，数据库事务 ID 等，那么 `gettimeofday()` 这个函数做了些什么？内核 1ms 一次的时钟中断可以支持微秒精度吗？如果在系统繁忙时，频繁的调用它是否有问题吗？
+
+`gettimeofday()` 是 C 库提供的函数，它封装了内核里的 `sys_gettimeofday()` 系统调用。
+
+在 x86_64 体系上，使用 `vsyscall` 实现了 `gettimeofday()` 这个系统调用，简单来说，就是创建了一个共享的内存页面，它的数据由内核来维护，但是，用户态也有权限访问这个内核页面，由此，不通过中断 `gettimeofday()` 也就拿到了系统时间。
+
+### 函数作用
+
+`gettimeofday()` 会把内核保存的墙上时间和 jiffies 综合处理后返回给用户。<!--解释下墙上时间和jiffies是什么：1、墙上时间就是实际时间（1970/1/1号以来的时间），它是由我们主板电池供电的（装过PC机的同学都了解）RTC单元存储的，这样即使机器断电了时间也不用重设。当操作系统启动时，会用这个RTC来初始化墙上时间，接着，内核会在一定精度内根据jiffies维护这个墙上时间。2、jiffies就是操作系统启动后经过的时间，它的单位是节拍数。有些体系架构，1个节拍数是10ms，但我们常用的x86体系下，1个节拍数是1ms。也就是说，jiffies这个全局变量存储了操作系统启动以来共经历了多少毫秒。-->先看看 `gettimeofday()` 是如何做的，首先它调用了 `sys_gettimeofday()` 系统调用。
+
+{% highlight c %}
+asmlinkage long sys_gettimeofday(struct timeval __user *tv, struct timezone __user *tz)
+{
+    if (likely(tv != NULL)) {
+        struct timeval ktv;
+        do_gettimeofday(&ktv);
+        if (copy_to_user(tv, &ktv, sizeof(ktv)))
+            return -EFAULT;
+    }
+    if (unlikely(tz != NULL)) {
+        if (copy_to_user(tz, &sys_tz, sizeof(sys_tz)))
+            return -EFAULT;
+    }
+    return 0;
+}
+{% endhighlight %}
+
+调用 `do_gettimeofday()` 取得当前时间存储到变量 `ktv` 上，并调用 `copy_to_user()` 复制到用户空间，每个体系都有自己的实现，这里就简单看下 x86_64 体系下 `do_gettimeofday()` 的实现：
+
+{% highlight c %}
+void do_gettimeofday(struct timeval *tv)
+{
+    unsigned long seq, t;
+    unsigned int sec, usec;
+
+    do {
+        seq = read_seqbegin(&xtime_lock);
+
+        sec = xtime.tv_sec;
+        usec = xtime.tv_nsec / 1000;
+
+        /* i386 does some correction here to keep the clock
+           monotonous even when ntpd is fixing drift.
+           But they didn't work for me, there is a non monotonic
+           clock anyways with ntp.
+           I dropped all corrections now until a real solution can
+           be found. Note when you fix it here you need to do the same
+           in arch/x86_64/kernel/vsyscall.c and export all needed
+           variables in vmlinux.lds. -AK */
+
+        t = (jiffies - wall_jiffies) * (1000000L / HZ) +
+            do_gettimeoffset();
+        usec += t;
+
+    } while (read_seqretry(&xtime_lock, seq));
+
+    tv->tv_sec = sec + usec / 1000000;
+    tv->tv_usec = usec % 1000000;
+}
+{% endhighlight %}
+
+可以看到，该函数只是把 `xtime` 与 `jiffies` 修正后返回给用户，而 `xtime` 变量和 `jiffies` 的维护更新频率，就决定了时间精度，而 `jiffies` 一般每 10ms 或者 1ms 才处理一次时钟中断，那么这是不是意味着精度只到 1ms ？
+
+### 微秒级精度
+
+获取时间是通过 High Precision Event Timer 维护，这个模块会提供微秒级的中断，并更新 xtime 和 jiffies 变量；接着，看下 x86_64 体系结构下的维护代码：
+
+{% highlight c %}
+static struct irqaction irq0 = {
+    timer_interrupt, SA_INTERRUPT, CPU_MASK_NONE, "timer", NULL, NULL
+};
+{% endhighlight %}
+
+这个 `timer_interrupt()` 函数会处理 HPET 时间中断，来更新 xtime 变量。
+
+<!--
+三、它的调用成本在所有的操作系统上代价一样吗？如果在系统繁忙时，1毫秒内调用多次有问题吗？
+
+最上面已经说了，对于x86_64系统来说，这是个虚拟系统调用vsyscall！所以，这里它不用发送中断！速度很快，成本低，调用一次的成本大概不到一微秒！
+
+对于i386体系来说，这就是系统调用了！最简单的系统调用都有无法避免的成本：陷入内核态。当我们调用gettimeofday时，将会向内核发送软中断，然后将陷入内核态，这时内核至少要做下列事：处理软中断、保存所有寄存器值、从用户态复制函数参数到内核态、执行、将结果复制到用户态。这些成本至少在1微秒以上！
+
+四、关于jiffies值得一提的两点
+
+先看看它的定义：
+
+[cpp] view plain copy
+
+    volatile unsigned long __jiffies;
+
+
+只谈两点。
+
+1、它用了一个C语言里比较罕见的关键字volatile，这个关键字用于解决并发问题。c语言编译器很喜欢做优化的，它不清楚某个变量可能会被并发的修改，例如上面的jiffies变量首先是0，如果首先一个CPU修改了它的值为1，紧接着另一个CPU在读它的值，例如 __jiffies = 0; while (__jiffies == 1)，那么在内核的C代码中，如果不加volatile字段，那么第二个CPU里的循环体可能不会被执行到，因为C编译器在对代码做优化时，生成的汇编代码不一定每次都会去读内存！它会根据代码把变量__jiffies设为0，并一直使用下去！而加了volatile字段后，就会要求编译器，每次使用到__jiffies时，都要到内存里真实的读取这个值。
+
+
+2、它的类型是unsigned long，在32位系统中，最大值也只有43亿不到，从系统启动后49天就到达最大值了，之后就会清0重新开始。那么jiffies达到最大值时的回转问题是怎么解决的呢？或者换句话说，我们需要保证当jiffies回转为一个小的正数时，例如1，要比几十秒毫秒前的大正数大，例如4294967290，要达到jiffies(1)>jiffies(4294967290)这种效果。
+
+内核是通过定义了两个宏来解决的：
+
+[cpp] view plain copy
+
+    #define time_after(a,b)     \
+        (typecheck(unsigned long, a) && \
+         typecheck(unsigned long, b) && \
+         ((long)(b) - (long)(a) < 0))
+    #define time_before(a,b)    time_after(b,a)
+
+
+很巧妙的设计！仅仅把unsigned long转为long类型后相减比较，就达到了jiffies(1)>jiffies(4294967290)效果，简单的解决了jiffies的回转问题，赞一个。
+-->
+
+
+
 
 {% highlight text %}
 {% endhighlight %}

@@ -173,6 +173,75 @@ explicit_defaults_for_timestamp=true
 
 显然，通过该参数关闭了 timestamp 类型字段所拥有的一些会让人感到奇怪的默认行为，如果仍需要默认行为，则需要在建表的时候指定。
 
+## 外键
+
+<!--
+在使用 foreign key 时需要遵守以下几点规则：
+
+1，有外键约束的表，必须是innodb型
+2，外键约束的二个表，本来就相关系的表，并且要有索引关系，如果没有，创建外键时也可以创建索引。
+3，不支持对外键列的索引前缀。这样的后果之一是BLOB和TEXT列不被包括在一个外键中，这是因为对这些列的索引必须总是包含一个前缀长度。
+4，mysql外键的名子在数据库内要是唯一的
+-->
+
+创建外键的语法规则如下：
+
+{% highlight text %}
+[CONSTRAINT symbol] FOREIGN KEY [id] (index_col_name, ...)
+    REFERENCES tbl_name (index_col_name, ...)
+    [ON DELETE {RESTRICT | CASCADE | SET NULL | NO ACTION}]
+    [ON UPDATE {RESTRICT | CASCADE | SET NULL | NO ACTION}]
+{% endhighlight %}
+
+外键维护数据完整性的 5 种方式：
+
+1. CASCADE: 从父表删除或更新且自动删除或更新子表中匹配的行，可以为 `ON DELETE CASCADE` 和 `ON UPDATE CASCADE` ；
+2. SET NULL: 从父表删除或更新行，设置子表中的外键列为 NULL，需要对应列也可为 NULL 。
+3. NO ACTION: SQL-92 标准中，如果有外键的，那么删除或更新主键时会报错；
+4. RESTRICT: 拒绝对父表的删除或更新操作。一些数据库有延期检查，一般 NO ACTION 是一个延期检查；而在 MySQL 中，外键约束是被立即检查的，所以 RESTRICT 与上述同样。
+5. SET DEFAULT: 这个动作被解析程序识别，但 InnoDB 不支持包含 `ON DELETE SET DEFAULT` 或 `ON UPDATE SET DEFAULT` 子句的表定义。
+
+如下是测试用例：
+
+{% highlight text %}
+----- 创建用户表
+mysql> CREATE TABLE `user` (
+  `id` int(11) NOT NULL auto_increment COMMENT '用户ID',
+  `name` varchar(50) NOT NULL default '' COMMENT '名字',
+  `sex` int(1) NOT NULL default '0' COMMENT '0为男，1为女',
+  PRIMARY KEY  (`id`)
+) ENGINE=innodb DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;
+----- 写入测试数据
+mysql> INSERT INTO user(name, sex) VALUES("andy", 0),("lily", 1);
+
+----- 创建订单表
+mysql> CREATE TABLE `order` (
+  `order_id` INT(11) NOT NULL AUTO_INCREMENT COMMENT '订单ID',
+  `u_id` INT(11) NOT NULL DEFAULT '0' COMMENT '用户ID',
+  `username` VARCHAR(50) NOT NULL DEFAULT '' COMMENT '用户名',
+  `money` INT(11) NOT NULL DEFAULT '0' COMMENT '钱数',
+  `datetime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '生成时间',
+  PRIMARY KEY(`order_id`),
+  INDEX (`u_id`),
+  FOREIGN KEY order_f_key (u_id) REFERENCES user(id)
+) ENGINE=innodb DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;
+mysql> INSERT INTO `order`(`u_id`, `username`, `money`, `datetime`)
+       VALUES('1', 'andy','10', CURRENT_TIMESTAMP);
+
+----- 由于order表中有依赖，导致删除user表时失败
+mysql> DELETE FROM user WHERE id =1;
+----- 写入数据时由于user表中不存在，导致写入失败
+mysql> INSERT INTO `order`(`u_id`, `username`, `money`, `datetime`)
+       VALUES('5', 'foobar', '123', CURRENT_TIMESTAMP);
+
+----- MySQL中没有修改外键操作，需要先删除再重新添加
+mysql> ALTER TABLE `order` DROP FOREIGN KEY order_ibfk_1;
+mysql> ALTER TABLE `order` ADD FOREIGN KEY(u_id) REFERENCES user(id)
+       ON DELETE CASCADE ON UPDATE CASCADE;
+
+mysql> REPLACE INTO `order`(`u_id`, `username`, `money`, `datetime`)
+       VALUES('2', 'andy','10', CURRENT_TIMESTAMP);
+{% endhighlight %}
 
 ## 其它
 

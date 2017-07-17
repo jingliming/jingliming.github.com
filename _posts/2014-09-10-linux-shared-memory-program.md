@@ -359,18 +359,22 @@ kernel.shmmni = 4096
 
 ### POSIX
 
+大多数的 Linux 发行版本中，内存盘默认使用的是 `/dev/shm` 路径，文件系统类型为 tmpfs，默认大小是内存实际的大小，其大小可以通过 `df -h` 查看。
+
 {% highlight text %}
 ----- 查看当前大小
 $ df -h /dev/shm
 Filesystem      Size  Used Avail Use% Mounted on
 tmpfs           3.9G   17M  3.9G   1% /dev/shm
 
------ 修改挂载点的大小
+----- 修改挂载点的大小，然后重新挂载
 $ cat /etc/fstab
 tmpfs /dev/shm tmpfs defaults,size=4096M 0 0
+# mount -o remount /dev/shm
 
 ----- 不用重启重新挂载
 # mount -o remount,size=256M /dev/shm
+# mount -o size=1500M -o nr_inodes=1000000 -o noatime,nodiratime -o remount /dev/shm
 {% endhighlight %}
 
 可以通过示例 [github posix.c]({{ site.example_repository }}/linux/memory/sharedmemory/posix.c) ，将会申请 65M 左右的共享内存。
@@ -390,9 +394,47 @@ $ stat /dev/shm/shm1
 
 虽然 System V 与 POSIX 共享内存都是通过 tmpfs 实现，但是两个不同实例，对于 ```/proc/sys/kernel/shmmax``` 只会影响 SYS V 共享内存，```/dev/shm``` 只会影响 Posix 共享内存。
 
+## tmpfs
+
+tmpfs 是基于内存/交换分区的文件系统，ramdisk 是作为块设备，基于 ext 的文件系统，所以不会绕过 page cache 的内存复制；而 tmpfs 直接操作内存做为文件系统的，而不是基于块设备的。
+
+其源码实现在 `mm/shmem.c` 中，根据 `CONFIG_SHMEM` 是否配置，略微有所区别。
+
+{% highlight c %}
+static struct file_system_type shmem_fs_type = {
+    .owner      = THIS_MODULE,
+    .name       = "tmpfs",
+    .mount      = shmem_mount,
+    .kill_sb    = kill_litter_super,
+    .fs_flags   = FS_USERNS_MOUNT,
+};
+{% endhighlight %}
+
+在函数 `init_tmpfs()` 里，实际会通过 `register_filesystem()` 函数将 tmpfs 注册到文件系统中，在 `shmem_file_setup()` 中，更改了 `file->f_op = &shmem_file_operations;` 下面来看具体的结构体。
+
+{% highlight c %}
+static struct file_operations shmem_file_operations = {
+    .mmap       = shmem_mmap,
+#ifdef CONFIG_TMPFS
+    .llseek     = generic_file_llseek,
+    .read       = shmem_file_read,
+    .write      = shmem_file_write,
+    .fsync      = simple_sync_file,
+    .sendfile   = shmem_file_sendfile,
+#endif
+};
+{% endhighlight %}
+
+也就是说在操作在 tmpfs 文件时候，并没有使用常用的 ext 文件系统中的函数 `do_sync_read()`，而是调用了 tmpfs 自己封装的函数 `shmem_file_read()`，当然在 `shmem_file_read()` 并没有对 page cache 进行操作，虽然里面还是使用了 page cache 中 maping、file、inode 等结构体和算法。
+
 
 <!--
+3. 函数shmem_file_read主要是调用do_shmem_file_read函数，在do_shmem_file_read函数中核心是shmem_getpage，通过索引和inode快速找到page.
+-->
+
 ## 参考
+
+<!--
 [浅析Linux的共享内存与tmpfs文件系统](http://hustcat.github.io/shared-memory-tmpfs/)
 -->
 
