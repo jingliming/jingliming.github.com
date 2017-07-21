@@ -4,8 +4,8 @@ layout: post
 comments: true
 language: chinese
 category: [linux,misc]
-keywords: collectd,monitor,linux
-description: 介绍下 Collectd 中源码的实现。
+keywords: systemd,简介,linux,init
+description: 现在一般新发行的版本会采用新的 init 进程，也就是 systemd ，其中启动过程可以通过 man bootup 查看。在此，简单介绍一下 systemd 。
 ---
 
 现在一般新发行的版本会采用新的 init 进程，也就是 systemd ，其中启动过程可以通过 man bootup 查看。
