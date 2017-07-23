@@ -3,7 +3,6 @@ title: TCP/IP 协议之 TIME_WAIT
 layout: post
 comments: true
 language: chinese
-usemath: true
 category: [linux, network]
 keywords: 网络,linux,network,time wait
 description: TIME_WAIT 是 TCP 协议栈中比较特殊的状态，其主要目的是保证不同的链接不会相互干扰，但是对于一些高性能的场景，就可能由于较多的 TIME_WAIT 状态最终导致链接不可用。如下简单介绍如何充分利用该状态。

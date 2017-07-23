@@ -390,6 +390,95 @@ libc.so.x        基本C库
 ld-linux.so.2    动态装入库(用于动态链接库的装入及运行)
 {% endhighlight %}
 
+
+## 动态库加载API
+
+对于 Linux 下的可执行文件 ELF 使用如下命令查看，可以发现其中有一个 `.interp` 段，它指明了将要被使用的动态链接器 (`/lib/ld-linux.so`)。
+
+{% highlight text %}
+$ readelf -l EXECUTABLE
+{% endhighlight %}
+
+对于动态加载的函数主要包括了下面的四个函数，需要 `dlfcn.h` 头文件，定义在 `libdl.so` 库中。
+
+{% highlight text %}
+void *dlopen( const char *file, int mode );
+  用来打开一个文件，使对象文件可被程序访问，同时还会自动解析共享库中的依赖项，这样，如果打开了一个
+    依赖于其他共享库的对象，它就会自动加载它们，该函数返回一个句柄，该句柄用于后续的 API 调用。
+  mode 参数通知动态链接器何时执行再定位，有两个可能的值：
+    A) RTLD_NOW，表明动态链接器将会在调用 dlopen 时完成所有必要的再定位；
+    B) RTLD_LAZY，只在需要时执行再定位。
+
+void *dlsym( void *restrict handle, const char *restrict name );
+  通过句柄和连接符名称获取函数名或者变量名。
+
+char *dlerror();
+  返回一个可读的错误字符串，该函数没有参数，它会在发生前面的错误时返回一个字符串，在没有错误发生时返回NULL。
+
+char *dlclose( void *handle ); 
+  通知操作系统不再需要句柄和对象引用了。它完全是按引用来计数的，所以同一个共享对象的多个用户相互间
+    不会发生冲突（只要还有一个用户在使用它，它就会待在内存中）。
+    任何通过已关闭的对象的 dlsym 解析的符号都将不再可用。
+{% endhighlight %}
+
+有了 ELF 对象的句柄，就可以通过调用 dlsym 来识别这个对象内的符号的地址了。该函数采用一个符号名称，如对象内的一个函数的名称，返回值为对象符号的解析地址。
+
+下面是一个动态加载的示例 [github libdl.c]({{ site.example_repository }}/c_cpp/c/libdl.c)，通过如下的命令进行编译，其中选项 `-rdynamic` 用来通知链接器将所有符号添加到动态符号表中（目的是能够通过使用 dlopen 来实现向后跟踪）。
+
+{% highlight text %}
+$ gcc -rdynamic -o dl library_libdl.c -ldl        # 编译
+$ ./dl                                            # 测试
+> libm.so cosf 0.0
+   1.000000
+> libm.so sinf 0.0
+   0.000000
+> libm.so tanf 1.0
+   1.557408
+> bye
+{% endhighlight %}
+
+另外，可以通过如下方式简单使用。
+
+{% highlight text %}
+$ cat caculate.c                                     # 查看动态库源码
+int add(int a, int b) {
+    return (a + b);
+}
+int sub(int a, int b) {
+    return (a - b);
+}
+$ gcc -fPIC -shared caculate.c -o libcaculate.so     # 生成动态库
+$ cat foobar.c                                       # 测试源码
+#include <stdio.h>
+#include <dlfcn.h>
+#include <stdlib.h>
+
+typedef int (*CAC_FUNC)(int, int);                           // 定义函数指针类型
+int main(int argc, char** argv) {
+    void *handle;
+    char *error;
+    CAC_FUNC cac_func = NULL;
+
+    if ( !(handle=dlopen("./libcaculate.so", RTLD_LAZY)) ) { // 打开动态链接库
+        fprintf(stderr, "!!! %s\n", dlerror());
+        exit(EXIT_FAILURE);
+    }
+
+    cac_func = dlsym(handle, "add");                         // 获取一个函数
+    if ((error = dlerror()) != NULL)  {
+        fprintf(stderr, "!!! %s\n", error);
+        exit(EXIT_FAILURE);
+    }
+    printf("add: %d\n", (cac_func)(2,7));
+
+    dlclose(handle);                                         // 关闭动态链接库
+    exit(EXIT_SUCCESS);
+}
+$ gcc -rdynamic -o foobar foobar.c -ldl              # 编译测试
+{% endhighlight %}
+
+<!-- https://www.ibm.com/developerworks/cn/linux/l-elf/part1/index.html -->
+
 ## 常用命令
 
 ### objdump
@@ -409,7 +498,6 @@ ld-linux.so.2    动态装入库(用于动态链接库的装入及运行)
   显示符号表，与nm类似，只是显示的格式不同，当然显示与文件的格式相关，对于ELF如下所示。
   00000000 l    d  .bss   00000000 .bss
   00000000 g       .text  00000000 fred
-
 {% endhighlight %}
 
 <!--
@@ -440,25 +528,93 @@ ld-linux.so.2    动态装入库(用于动态链接库的装入及运行)
     表示函数、文件、对象或只是一个普通的符号。
 -->
 
+### strip
+
+我们知道二进制的程序中包含了大量的符号表格(symbol table)，有一部分是用来 gdb 调试提供必要信息的，可以通过如下命令查看这些符号信息。
+
+{% highlight text %}
+$ readelf -S hello
+{% endhighlight %}
+
+其中类似与 `.debug_xxxx` 的就是 gdb 调试用的。去掉它们不会影响程序的执行。
+
+{% highlight text %}
+$ strip hello
+{% endhighlight %}
 
 ### objcopy
 
 用于转换目标文件。
 
+{% highlight text %}
+常用参数：
+  -S / --strip-all
+    不从源文件中拷贝重定位信息和符号信息到输出文件(目的文件)中去。
+  -I bfdname/--input-target=bfdname
+    明确告诉程序源文件的格式是什么，bfdname是BFD库中描述的标准格式名。
+  -O bfdname/--output-target=bfdname
+    使用指定的格式来写输出文件(即目标文件)，bfdname是BFD库中描述的标准格式名，
+    如binary(raw binary 格式)、srec(s-record 文件)。
+  -R sectionname/--remove-section=sectionname
+    从输出文件中删掉所有名为section-name的段。
+{% endhighlight %}
+
+上一步的 strip 命令只能拿掉一般 symbol table，有些信息还是沒拿掉，而这些信息对于程序的最终执行没有影响，如: `.comment` `.note.ABI-tag` `.gnu.version` 就是完全可以去掉的。
+
+所以说程序还有简化的余地，我们可以使用 objcopy 命令把它们抽取掉。
+
+{% highlight text %}
+$ objcopy -R .comment -R .note.ABI-tag -R .gnu.version hello hello1
+{% endhighlight %}
+
+### readelf
+
+用于读取 ELF 格式文件，包括可执行程序和动态库。
+
+{% highlight text %}
+常用参数：
+  -a --all
+    等价于-h -l -S -s -r -d -V -A -I
+  -h --file-header
+    文件头信息；
+  -l --program-headers
+    程序的头部信息；
+  -S --section-headers
+    各个段的头部信息；
+  -e --headers
+    全部头信息，等价于-h -l -S；
+
+示例用法：
+----- 读取dynstr段，包含了很多需要加载的符号，每个动态库后跟着需要加载函数
+$ readelf -p .dynstr hello
+----- 查看是否含有调试信息
+$ readelf -S hello | grep debug
+{% endhighlight %}
+
 <!--
--S / --strip-all<br>
-不从源文件中拷贝重定位信息和符号信息到输出文件（目的文件）中去。</li><br><li>
+readelf  -S hello
+readelf -d hello
 
--I bfdname / --input-target=bfdname<br>
-明确告诉 Objcopy ，源文件的格式是什么， bfdname 是 BFD 库中描述的标准格式名。</li><br><li>
-
--O bfdname / --output-target=bfdname<br>
-使用指定的格式来写输出文件（即目标文件）， bfdname 是 BFD 库中描述的标准格式名，如 binary(raw binary 格式)、srec (s-record 文件) 。</li><br><li>
-
--R sectionname / --remove-section=sectionname<br>
-从输出文件中删掉所有名为 sectionname 的段。
+  --sections
+An alias for –section-headers
+-s –syms 符号表 Display the symbol table
+--symbols
+An alias for –syms
+-n –notes 内核注释 Display the core notes (if present)
+-r –relocs 重定位 Display the relocations (if present)
+-u –unwind Display the unwind info (if present)
+-d --dynamic
+  显示动态段的内容；
+-V –version-info 版本 Display the version sections (if present)
+-A –arch-specific CPU构架 Display architecture specific information (if any).
+-D –use-dynamic 动态段 Use the dynamic section info when displaying symbols
+-x –hex-dump=<number> 显示 段内内容Dump the contents of section <number>
+-w[liaprmfFso] or
+-I –histogram Display histogram of bucket list lengths
+-W –wide 宽行输出 Allow output width to exceed 80 characters
+-H –help Display this information
+-v –version Display the version number of readelf
 -->
-
 
 
 ## 参考

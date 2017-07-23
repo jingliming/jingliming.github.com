@@ -450,6 +450,8 @@ void noinline ecb_cold loop_init (EV_P_ unsigned int flags) EV_THROW
 
 在介绍各个 Watcher 的流程之前，首先看下主循环的执行过程。
 
+该函数通常是在各个事件初始化完成之后调用，也就是等待操作系统的事件，然后调用已经注册的回调函数，并一直重复循环执行。
+
 {% highlight c %}
 int ev_run (EV_P_ int flags)
 {
@@ -595,6 +597,71 @@ int ev_run (EV_P_ int flags)
   return activecnt;
 }
 {% endhighlight %}
+
+
+
+<!--
+       - Increment loop depth.
+       - Reset the ev_break status.
+       - Before the first iteration, call any pending watchers.
+       LOOP:
+       - If EVFLAG_FORKCHECK was used, check for a fork.
+       - If a fork was detected (by any means), queue and call all fork watchers.
+       - Queue and call all prepare watchers.
+       - If ev_break was called, goto FINISH.
+       - If we have been forked, detach and recreate the kernel state
+         as to not disturb the other process.
+       - Update the kernel state with all outstanding changes.
+       - Update the "event loop time" (ev_now ()).
+       - Calculate for how long to sleep or block, if at all
+         (active idle watchers, EVRUN_NOWAIT or not having
+         any active watchers at all will result in not sleeping).
+       - Sleep if the I/O and timer collect interval say so.
+       - Increment loop iteration counter.
+       - Block the process, waiting for any events.
+       - Queue all outstanding I/O (fd) events.
+       - Update the "event loop time" (ev_now ()), and do time jump adjustments.
+       - Queue all expired timers.
+       - Queue all expired periodics.
+       - Queue all idle watchers with priority higher than that of pending events.
+       - Queue all check watchers.
+       - Call all queued watchers in reverse order (i.e. check watchers first).
+         Signals and child watchers are implemented as I/O watchers, and will
+         be handled here by queueing them when their watcher gets executed.
+       - If ev_break has been called, or EVRUN_ONCE or EVRUN_NOWAIT
+         were used, or there are no active watchers, goto FINISH, otherwise
+         continue with step LOOP.
+       FINISH:
+       - Reset the ev_break status iff it was EVBREAK_ONE.
+       - Decrement the loop depth.
+       - Return.
+
+    Example: Queue some jobs and then loop until no events are outstanding anymore.
+
+       ... queue jobs here, make sure they register event watchers as long
+       ... as they still have work to do (even an idle watcher will do..)
+       ev_run (my_loop, 0);
+       ... jobs done or somebody called break. yeah!
+-->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 <!--

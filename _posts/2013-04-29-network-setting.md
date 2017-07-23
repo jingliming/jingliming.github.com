@@ -4,6 +4,8 @@ layout: post
 comments: true
 category: [linux, network]
 language: chinese
+keywords: linux,网络设置
+description: 主要记录下在 Linux 中，一些常见的网络配置，例如 IP 地址、路由、MAC 地址、主机名等设置方式。
 ---
 
 主要记录下在 Linux 中，一些常见的网络配置，例如 IP 地址、路由、MAC 地址、主机名等设置方式。
@@ -193,6 +195,32 @@ Routing Cache 也称为 Forwarding Information Base, FIB，通过 Hash 保存了
 注意，Routing Cache 和 Route Table 是不相关的，所以在修改路由表之后最后手动清空下 Cache ，可以通过 ```/proc/net/rt_cache``` 文件查看或者使用如下命令：
 
 <!-- http://linux-ip.net/html/routing-selection.html -->
+
+## 常用命令
+
+### TCP 状态排查
+
+可以通过如下命令查看 TCP 状态。
+
+{% highlight text %}
+----- 查看链接状态，并对其进行统计，如下的两种方法相同
+$ netstat -atn | awk '/^tcp/ {++s[$NF]} END {for(key in s) print s[key], "\t", key}' | sort -nr
+$ ss -ant | awk ' {++s[$1]} END {for(key in s) print s[key], "\t", key}' | sort -nr
+
+----- 查找较多time_wait连接
+$ netstat -n|grep TIME_WAIT|awk '{print $5}'|sort|uniq -c|sort -rn|head -n20
+
+----- 对接的IP进行排序
+$ netstat -ntu | awk '/^tcp/ {print $5}' | cut -d: -f1 | sort | uniq -c | sort -n
+
+----- 查看80端口连接数最多的20个IP
+$ netstat -ant |awk '/:80/{split($5,ip,":");++A[ip[1]]}END{for(i in A) print A[i],i}' |sort -rn|head -n20
+
+----- 80端口的各个TCP链接状态
+$ netstat -n | grep `hostname -i`:80 |awk '/^tcp/{++S[$NF]}END{for (key in S) print key,S[key]}'
+{% endhighlight %}
+
+
 
 {% highlight text %}
 {% endhighlight %}

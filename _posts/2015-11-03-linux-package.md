@@ -56,9 +56,9 @@ $^:  规则中所有的依赖项目；
 $?:  规则中时间新于目标的依赖项目。
 {% endhighlight %}
 
-关于变量通配符，与 shell 相同，如 1) ```?``` 任意单个字符；2) ```*``` 任意字符的字符串；3) ```[set]``` 任何在 set 里的字符；4) ```[!set]``` 任何不在 set 里的字符。
+关于变量通配符，与 shell 相同，如 1) `?` 任意单个字符；2) `*` 任意字符的字符串；3) `[set]` 任何在 set 里的字符；4) `[!set]` 任何不在 set 里的字符。
 
-以如下为例 ```touch {a,b,c}.c Makefile``` 。
+以如下为例 `touch {a,b,c}.c Makefile` 。
 
 {% highlight makefile %}
 .PHONY: all
@@ -91,7 +91,7 @@ all: $(objs)
 
 ### PHONY 伪目标
 
-通常来说 Makefile 会检测 ```:``` 左侧的目标是不是最新的，如果是最新的则不会更新，对应规则不会执行。假设目标为 clean，本意是做编译后的清理，但是当目录下有 clean 文件时，则对应的规则将不会执行，为了解决这一问题，定义了伪目标。
+通常来说 Makefile 会检测 `:` 左侧的目标是不是最新的，如果是最新的则不会更新，对应规则不会执行。假设目标为 clean，本意是做编译后的清理，但是当目录下有 clean 文件时，则对应的规则将不会执行，为了解决这一问题，定义了伪目标。
 
 当定义了伪目标之后，make 在执行规则时不会去试图去查找隐含规则来创建它，而是直接执行，这样就提高了 make 的执行效率，也不用担心由于目标和文件名重名了。
 
@@ -118,27 +118,27 @@ $(SUBDIRS):
 
 ## Autotools
 
-在 Linux 平台上，经常使用 ```configure->make->make install``` 从源码开始编译安装，也就是 GNU 构建系统，利用脚本和 make 程序在特定平台上编译软件，也就是利用 autotools 创建构建系统的项目。
+在 Linux 平台上，经常使用 `configure->make->make install` 从源码开始编译安装，也就是 GNU 构建系统，利用脚本和 make 程序在特定平台上编译软件，也就是利用 autotools 创建构建系统的项目。
 
 注意，有些程序虽然也是采用上述的三步，但并未采用 autotools 实现，如 nginx 是作者编写的构建程序。
 
-在 CentOS 中可以直接通过 ```yum install automake autoconf``` 安装相关的文件；利用 autotools 生成 Makefile 的过程如下图所示。
+在 CentOS 中可以直接通过 `yum install automake autoconf` 安装相关的文件；利用 autotools 生成 Makefile 的过程如下图所示。
 
 ![autotools]({{ site.url }}/images/linux/autotools-process-1.png "autotools"){: .pull-center }
 
-其中用到的核心工具包括了 Autoconf 和 Automake ，首先从用户和开发者角度看看两者的区别。关于 autotools 的简单处理流程可以参考 [automake](http://www.gnu.org/software/automake/manual/automake.html) 中的 ```Setup Explained``` 内容。
+其中用到的核心工具包括了 Autoconf 和 Automake ，首先从用户和开发者角度看看两者的区别。关于 autotools 的简单处理流程可以参考 [automake](http://www.gnu.org/software/automake/manual/automake.html) 中的 `Setup Explained` 内容。
 
 ### 用户视角
 
-```configure``` 脚本是由软件开发者维护并发布给用户使用的 shell 脚本，该脚本作用是检测系统环境，最终目的是生成 Makefile 和 config.h 两个文件。
+`configure` 脚本是由软件开发者维护并发布给用户使用的 shell 脚本，该脚本作用是检测系统环境，最终目的是生成 Makefile 和 config.h 两个文件。
 
-开发者在分发源码包时，除了源代码 (.c .h)，还有许多支撑软件构建的文件和工具，其中最重要的文件就是 Makefile.in 和 config.h.in 两个，在 configure 脚本执行成功后，将为每个 ```*.in``` 文件处理成对应的非 ```*.in``` 文件。
+开发者在分发源码包时，除了源代码 (.c .h)，还有许多支撑软件构建的文件和工具，其中最重要的文件就是 Makefile.in 和 config.h.in 两个，在 configure 脚本执行成功后，将为每个 `*.in` 文件处理成对应的非 `*.in` 文件。
 
 #### configure
 
 configure 脚本会检查当前系统，而检查项的多少取决于开发者，一般来说，主要检查当前目标平台的程序、库、头文件、函数等的兼容性，而检查结果将作用于 config.h 和 Makefile 文件的生成，从而影响最终的编译。
 
-用户可通过参数定制软件所需要包含的组件、安装路径等，一般会被五部分，可以通过 ```--help``` 参数查看当前软件提供了那些配置参数。
+用户可通过参数定制软件所需要包含的组件、安装路径等，一般会被五部分，可以通过 `--help` 参数查看当前软件提供了那些配置参数。
 
 <!--
     *安装路径相关配置。最常见的是--prefix。
@@ -207,7 +207,7 @@ AC_CONFIG_FILES([Makefile                     # 主要是通过*.in模板生成�
 AC_OUTPUT
 {% endhighlight %}
 
-以 ```AC_``` 开头的是一些宏调用，与 C 中的宏概念类似，会被替换展开；很多以 AC_PROG_XXX 开头的宏用于检查所需要的程序是否存在，详细可以查看 [Particular Program Checks](https://www.gnu.org/software/autoconf/manual/autoconf-2.69/html_node/Particular-Programs.html)；对于一些特殊的函数或者文件则可以通过 [Generic Program and File Checks](https://www.gnu.org/software/autoconf/manual/autoconf-2.69/html_node/Generic-Programs.html) 中定义的宏进行检查。
+以 `AC_` 开头的是一些宏调用，与 C 中的宏概念类似，会被替换展开；很多以 AC_PROG_XXX 开头的宏用于检查所需要的程序是否存在，详细可以查看 [Particular Program Checks](https://www.gnu.org/software/autoconf/manual/autoconf-2.69/html_node/Particular-Programs.html)；对于一些特殊的函数或者文件则可以通过 [Generic Program and File Checks](https://www.gnu.org/software/autoconf/manual/autoconf-2.69/html_node/Generic-Programs.html) 中定义的宏进行检查。
 
 而 m4 是一个经典的宏工具，autoconf 正是构建在 m4 之上，可以简单理解为 autoconf 预先实现了大量用于检测系统可移植性的宏，这些宏在展开后就是大量的 shell 脚本。所以编写 configure.ac 需要对这些宏熟练掌握，并且合理调用，有时，甚至可以自己实现自己的宏。
 
@@ -221,7 +221,7 @@ autoscan 会扫描源码，并生成一些通用的宏调用、输入的声明�
 
 可以通过 autoheader 命令扫描 configure.ac 中的内容，并生成 config.h.in 文件；每当 configure.ac 文件有所变化，都可以再次执行 autoheader 更新 config.h.in 。
 
-在 configure.ac 中通过 ```AC_CONFIG_HEADERS([config.h])``` 告诉 autoheader 应当生成 config.h.in 的路径；在最后的实际编译阶段，生成的编译命令会加上 ```-DHAVE_CONFIG_H``` 定义宏。
+在 configure.ac 中通过 `AC_CONFIG_HEADERS([config.h])` 告诉 autoheader 应当生成 config.h.in 的路径；在最后的实际编译阶段，生成的编译命令会加上 `-DHAVE_CONFIG_H` 定义宏。
 
 {% highlight text %}
 /bin/sh ../../libtool --tag=CC --mode=compile gcc -DHAVE_CONFIG_H ...
@@ -289,7 +289,7 @@ LT_INIT
 ...
 {% endhighlight %}
 
-有时，如果要用到 libtool 中的某些宏，则推荐将这些宏复制到项目中。首先，通过 ```AC_CONFIG_MACRO_DIR([m4])``` 指定使用 m4 目录存放第三方宏；然后在最外层的 Makefile.am 中加入 ```ACLOCAL_AMFLAGS = -I m4``` 。
+有时，如果要用到 libtool 中的某些宏，则推荐将这些宏复制到项目中。首先，通过 `AC_CONFIG_MACRO_DIR([m4])` 指定使用 m4 目录存放第三方宏；然后在最外层的 Makefile.am 中加入 `ACLOCAL_AMFLAGS = -I m4` 。
 
 <!--
 https://segmentfault.com/a/1190000006915719
@@ -319,7 +319,7 @@ your source files --- [autoscan*] --- [configure.scan] -<edit>- configure.ac
 #### AC_ARG_WITH()
 
 AC_ARG_WITH (package, help-string, [action-if-given], [action-if-not-given])
-此时就是可以命令行中使用--with-package或者--without-package进行配置，其中第三个参数需要检查yes/no；配置完成之后可以通过```./configure --help```查看。
+此时就是可以命令行中使用--with-package或者--without-package进行配置，其中第三个参数需要检查yes/no；配置完成之后可以通过`./configure --help`查看。
 AC_ARG_WITH(libmysql, [AS_HELP_STRING([--with-libmysql@<:@=PREFIX@:>@], [Path to libmysql.])],
 [
   if test "x$withval" = "xno"; then
@@ -412,7 +412,7 @@ Makefile<br>
 
 ### 其它
 
-在正式执行 configure 之前，会调用 ```AC_DEFUN()``` 执行一些函数的扩展，然后调用 ```AC_INIT()``` 执行初始化操作；在 ```AC_INIT()``` 宏中，会初始化一些变量参数值，包括 ```AC_PACKAGE_NAME```、```PACKAGE_NAME``` 等。
+在正式执行 configure 之前，会调用 `AC_DEFUN()` 执行一些函数的扩展，然后调用 `AC_INIT()` 执行初始化操作；在 `AC_INIT()` 宏中，会初始化一些变量参数值，包括 `AC_PACKAGE_NAME`、`PACKAGE_NAME` 等。
 
 {% highlight text %}
 AC_INIT (package, version, [bug-report], [tarname], [url])
@@ -438,9 +438,9 @@ AC_PACKAGE_URL, PACKAGE_URL
 
 #### 修改configure.ac
 
-需要执行 ```autoreconf -ivf``` 命令来更新 configure 脚本文件，autoreconf 可以看做是 autoconf、autoheader、acloacl、automake、libtoolize、autopoint 的组合体，而且会以合适的顺序来执行。
+需要执行 `autoreconf -ivf` 命令来更新 configure 脚本文件，autoreconf 可以看做是 autoconf、autoheader、acloacl、automake、libtoolize、autopoint 的组合体，而且会以合适的顺序来执行。
 
-注意，在修改了 acinclude.m4、configure.ac 之后，就需要通过 aclocal 重新生成 aclocal.m4 文件；如果直接通过 autoconf 配置，部分库会报 ```aclocal-1.14: command not found``` 错误。据说 [是由于时间戳导致](http://stackoverflow.com/questions/33278928/how-to-overcome-aclocal-1-15-is-missing-on-your-system-warning-when-compilin) 的，不过安装了 automake、autoconf 工具后，最简单的方式是执行 autoreconf 命令。
+注意，在修改了 acinclude.m4、configure.ac 之后，就需要通过 aclocal 重新生成 aclocal.m4 文件；如果直接通过 autoconf 配置，部分库会报 `aclocal-1.14: command not found` 错误。据说 [是由于时间戳导致](http://stackoverflow.com/questions/33278928/how-to-overcome-aclocal-1-15-is-missing-on-your-system-warning-when-compilin) 的，不过安装了 automake、autoconf 工具后，最简单的方式是执行 autoreconf 命令。
 
 #### 修改Makefile.am
 
@@ -449,9 +449,9 @@ AC_PACKAGE_URL, PACKAGE_URL
 
 #### 非标准库
 
-如果有些库没有安装在标准路径下，或者需要使用不同的版本库，那么就需要通过参数指定；以使用 MySQL 库为例，通常可以通过 ```--with-libmysql=/opt/mysql/lib``` 参数指定特定库路径。
+如果有些库没有安装在标准路径下，或者需要使用不同的版本库，那么就需要通过参数指定；以使用 MySQL 库为例，通常可以通过 `--with-libmysql=/opt/mysql/lib` 参数指定特定库路径。
 
-当然，这需要在制作 configure.ac 文件时通过 ```AC_ARG_WITH()``` 函数指定；如果使用 ```./configure --help``` 查看时会发现没有提供该 ```--with-libmysql``` 参数，这时候就需要通过如下方式指定。
+当然，这需要在制作 configure.ac 文件时通过 `AC_ARG_WITH()` 函数指定；如果使用 `./configure --help` 查看时会发现没有提供该 `--with-libmysql` 参数，这时候就需要通过如下方式指定。
 
 {% highlight text %}
 ----- 通过指定环境变量方式添加库以及头文件搜索路径
@@ -461,7 +461,7 @@ env CPPFLAGS="-I/include/path"  LDFLAGS="-L/lib/path"  ./configure --prefix=/opt
 CPPFLAGS="-I/include/path"  LDFLAGS="-L/lib/path"  ./configure --prefix=/...
 {% endhighlight %}
 
-另外，还可以通过 ```LIBRARY_PATH``` 环境变量指定编译期间搜索 lib 库的路径，使用冒号分割，此时会先搜索该变量指定的路径，如果找不到则搜索系统默认搜索路径；而 ```LD_LIBRARY_PATH``` 则用于指定程序运行期间查找so动态链接库的搜索路径。
+另外，还可以通过 `LIBRARY_PATH` 环境变量指定编译期间搜索 lib 库的路径，使用冒号分割，此时会先搜索该变量指定的路径，如果找不到则搜索系统默认搜索路径；而 `LD_LIBRARY_PATH` 则用于指定程序运行期间查找so动态链接库的搜索路径。
 
 #### 测试功能
 
@@ -519,14 +519,13 @@ Sometimes the boundaries are a bit vague. $(EXTRA_FOO_LIBS) could have been adde
 
 在介绍示例之前，先说明一下 CMake 有两种编译方式：内部构建和外部构建。内部构建直接在源码目录下执行 cmake .，外部构建则会在一个目录下构建，不会影响原源码的结构。
 
-因为 CMakeLists.txt 可执行脚本并通过脚本生成一些临时文件，因此 CMake 无法跟踪到底产生了那些临时文件，因此，没有办法提供一个可靠的 ```make distclean``` 方案，为此可以使用外部编译。
+因为 CMakeLists.txt 可执行脚本并通过脚本生成一些临时文件，因此 CMake 无法跟踪到底产生了那些临时文件，因此，没有办法提供一个可靠的 `make distclean` 方案，为此可以使用外部编译。
 
-另外，也没提供 ```make uninstall``` 命令，卸载可以通过 ```cat install_manifest.txt | sudo xargs rm```  命令执行删除或卸载。
+另外，也没提供 `make uninstall` 命令，卸载可以通过 `cat install_manifest.txt | sudo xargs rm`  命令执行删除或卸载。
 
 ### 简单示例
 
-最简单示例单文件输出 ```Hello World!```，只需创建两个文件：main.c 和 CMakeLists.txt；然后通过 ```cmake . && make``` 进行编译，要查看详细信息可以 ```make VERBOSE=1``` 或者 ```VERBOSE=1 make``` 。
-
+最简单示例单文件输出 `Hello World!`，只需创建两个文件：`main.c` 和 `CMakeLists.txt`；然后通过 `cmake . && make` 进行编译，要查看详细信息可以 `make VERBOSE=1` 或者 `VERBOSE=1 make` 。
 
 {% highlight text %}
 $ cat CMakeLists.txt
@@ -537,7 +536,7 @@ MESSAGE(STATUS "This is SOURCE dir " ${HELLO_SOURCE_DIR})
 ADD_EXECUTABLE(hello ${SRC_LIST})
 
 $ cat main.c
-#include &lt;stdio.h&gt;
+#include <stdio.h>
 int main()
 {
     printf("Hello World!\n");
@@ -545,9 +544,9 @@ int main()
 }
 {% endhighlight %}
 
-在上述 MESSAGE() 中，会打印变量用于调试，该变量是通过 PROJECT() 默认设定的变量，详见 PROJECT() 的使用。
+在上述 `MESSAGE()` 中，会打印变量用于调试，该变量是通过 `PROJECT()` 默认设定的变量，详见 `PROJECT()` 的使用。
 
-调试的话可以使用 ```cmake . -DCMAKE_BUILD_TYPE=Debug``` ，不过此时使用的绝对地址。
+调试的话可以使用 `cmake . -DCMAKE_BUILD_TYPE=Debug` ，不过此时使用的绝对地址。
 
 <!--
 ，可以添加如下内容。
@@ -632,7 +631,7 @@ configure_file(intput output [COPYONLY] [ESCAPE_QUOTES] [@ONLY])<br>
 
 ## 其它
 
-可以通过 ```pkg-config``` 命令来检索系统中安装库文件的信息，通常用于库的编译和连接。
+可以通过 `pkg-config` 命令来检索系统中安装库文件的信息，通常用于库的编译和连接。
 
 如果库的头文件不在 /usr/include 目录中，那么在编译的时候需要用 -I 参数指定其路径；同样，链接时可以通过 -L 参数指定库，这样就导致了编译命令界面的不统一。
 
@@ -640,7 +639,7 @@ configure_file(intput output [COPYONLY] [ESCAPE_QUOTES] [@ONLY])<br>
 
 主要包括了：A) 检查库的版本号；B) 获得编译预处理参数，如宏定义，头文件的路径；C) 获得编译参数，如库及其依赖的其他库的位置，文件名及其他一些连接参数；D) 自动加入所依赖的其他库的设置。
 
-在 CentOS 中默认会保存在 ```/usr/lib64/pkgconfig```、```/usr/share/pkgconfig``` 目录下。
+在 CentOS 中默认会保存在 `/usr/lib64/pkgconfig`、`/usr/share/pkgconfig` 目录下。
 
 {% highlight text %}
 ----- 查看所有.pc

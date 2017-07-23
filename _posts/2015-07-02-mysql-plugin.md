@@ -16,9 +16,9 @@ description: 在 MySQL 中，为了提高其灵活性，很多的功能都是通
 
 ## 简介
 
-插件的安装也比较简单，可以在配置文件中通过 plugin_load="XXX" 设置，或者通过 MySQL 命令 install plugin 安装，安装之后会在 mysql.plugin 中插入一条记录，在下次启动时，将会自动加载。
+插件的安装也比较简单，可以在配置文件中通过 `plugin_load="XXX"` 设置，或者通过 MySQL 命令 `install plugin` 安装，安装之后会在 `mysql.plugin` 中插入一条记录，在下次启动时，将会自动加载。
 
-另外，可以在启动时通过 \-\-disable-plugin-**plg-name** 或 \-\-plugin-**plg-name**=OFF 禁止插件启动，此时表中为 DISABLED 。如果不能加载插件，默认会继续启动，如果设置为没有该插件则停止启动可以使用，\-\-plugin-my-plugin=FORCE 。
+另外，可以在启动时通过 `--disable-plugin-plg-name` 或 `--plugin-plg-name=OFF` 禁止插件启动，此时表中为 `DISABLED` 。如果不能加载插件，默认会继续启动，如果设置为没有该插件则停止启动可以使用，`--plugin-my-plugin=FORCE` 。
 
 例如，可以通过如下方式加载插件。
 
@@ -34,19 +34,19 @@ mysql > SELECT * FROM information_schema.plugins WHERE PLUGIN_NAME='plg-name';  
 mysql > SELECT * FROM mysql.plugin;                                             ← 查看已经安装的插件
 {% endhighlight %}
 
-在 information_schema.plugins 中可以看到，存在了三个版本信息，其中 plugin_version 作者可以随意指定；plugin_type_version 和 plugin_library_version 决定了 API 的版本。
+在 `information_schema.plugins` 中可以看到，存在了三个版本信息，其中 `plugin_version` 作者可以随意指定；`plugin_type_version` 和 `plugin_library_version` 决定了 API 的版本。
 
 ### 插件示例
 
-插件的示例可以参考 plugin/daemon_example ，该插件会在 ```show variable like 'datadir'``` 目录下创建一个 mysql-heartbeat.log 日志文件，每隔 5s 打印一条日志。
+插件的示例可以参考 `plugin/daemon_example` ，该插件会在 `show variable like 'datadir'` 目录下创建一个 `mysql-heartbeat.log` 日志文件，每隔 5s 打印一条日志。
 
-可以通过 show plugins 查看插件，也可以查看 mysql.plugin 表。
+可以通过 `show plugins` 查看插件，也可以查看 `mysql.plugin` 表。
 
 ## 存储引擎
 
 MySQL 提供了访问不同的存储引擎数据表的虚拟层 API，"table handler" 指的是 storage engine 与 MySQL 优化器的接口，通过这些接口很多存储引擎可以很快集成到 MySQL 中。
 
-在 MySQL 中采用了插件式的存储引擎，与插件类似，存储引擎以 .so 文件的格式进行保存，均存放在 plugin_dir 变量指定大目录下，可以通过如下的方式进行查看、安装、卸载。
+在 MySQL 中采用了插件式的存储引擎，与插件类似，存储引擎以 `.so` 文件的格式进行保存，均存放在 `plugin_dir` 变量指定大目录下，可以通过如下的方式进行查看、安装、卸载。
 
 {% highlight text %}
 mysql > SHOW VARIABLES LIKE 'have_dynamic_loading';     ← 查看是否支持动态加载
@@ -55,7 +55,7 @@ mysql > INSTALL PLUGIN Innodb SONAME "ha_innodb.so";
 mysql > UNINSTALL PLUGIN Innodb;
 {% endhighlight %}
 
-注意安装时指定的名称需要与 st_mysql_plugin.name 相同，大小写不敏感。
+注意安装时指定的名称需要与 `st_mysql_plugin.name` 相同，大小写不敏感。
 
 ### TokuDB 使用
 
@@ -91,9 +91,9 @@ malloc_lib = /usr/lib64/libjemalloc.so
 
 ### 存储引擎示例
 
-在源码的 storage/example 目录下有一个简单的存储引擎示例，基本就是什么也不做，只是告知你应该如何添加一个存储引擎。
+在源码的 `storage/example` 目录下有一个简单的存储引擎示例，基本就是什么也不做，只是告知你应该如何添加一个存储引擎。
 
-可以在编译时添加 -DWITH_EXAMPLE_STORAGE_ENGINE=ON 选项，或者在该目录下执行 make 命令，此时会生成一个 ha_example.so 文件。然后可以通过如下的方式添加该引擎：
+可以在编译时添加 `-DWITH_EXAMPLE_STORAGE_ENGINE=ON` 选项，或者在该目录下执行 `make` 命令，此时会生成一个 `ha_example.so` 文件。然后可以通过如下的方式添加该引擎：
 
 {% highlight text %}
 mysql > INSTALL PLUGIN example SONAME 'ha_example.so';

@@ -36,7 +36,7 @@ http://turnoff.us/
 * [Linux 网络常见监控项以及报错](/post/linux-monitor-network.html)，与网络相关的调试、查看方法，当然也包括了报错相关的内容。
 * [Linux 通讯协议](/post/network-protocols.html)，简单记录下 Linux 常见的通讯协议，如 SNMP 协议。
 * [Linux 的防火墙](/post/network-netfilter-iptables.html)，Linux 中的防火墙策略，包括 netfilter 和 iptables 。
-* [TCP/IP 协议简介](/post/network-introduce.html)，简单介绍一下与 Linux 协议栈相关的内容。
+* [TCP/IP 协议简介](/post/network-tcpip-introduce.html)，简单介绍一下与 Linux 协议栈相关的内容。
 * [TCP/IP 协议之 TIME_WAIT](/post/network-tcpip-timewait.html)，简单介绍下 TCP 协议栈中，TIME_WAIT 这一特殊的状态值。
 
 <!--
@@ -118,7 +118,8 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Libev 事件库](/post/linux-libev.html)，一个 C 编写的高性能事件循环库，类似库还有 libevent、libubox 等。
 * [C 语言的字符串](/post/program-c-string-stuff.html)，简单介绍下 C 语言中与字符串、内存操作相关的函数。
 * [C 语言的奇技淫巧](/post/program-c-tips.html)，整理下 C 语言中常用的技巧。
-* [C 编译链接](/post/c-complie-link.html)，与 C 语言相关的编译链接概念
+* [C 编译链接](/post/program-c-complie-link.html)，与 C 语言相关的编译链接概念
+* [C 加载过程](/post/program-c-load-process.html)，通过动态库可以减小空间，提高效率，这里简单介绍加载过程。
 * [Linux 线程编程](/post/program-c-linux-pthreads.html)，简单介绍下 Linux 中与线程相关的编程。
 * [Linux 时间函数](/post/linux-timer-functions.html)，简单介绍下 Linux 中与时间相关的函数。
 * [Linux IO 多路复用](/post/linux-program-io-multiplexing.html)，通过 IO 多路复用提高系统性能，包括了 select、poll、epoll 。

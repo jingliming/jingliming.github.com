@@ -47,9 +47,51 @@ Display Manager (DM): 提供使用者登入的画面以让用户可以藉由图�
 
 通常来说，DM 会在显示登录界面前启动 X Server，当用户登出后仍然显示登录界面，类似于字符界面下的 getty 和 login。
 
+### 安装桌面环境
+
+对于 CentOS 来说，可以通过如下方式安装。
+
+{% highlight text %}
+# yum groupinstall "X Window System"
+# yum groupinstall "GNOME Desktop"
+{% endhighlight %}
+
+安装完成之后，在 Windows 中，可以通过 `putty` + `Xming` 完成 XWindow 的显示。
+
+#### 1. 安装 Xming
+
+安装时选择 `Don't install an SSH client`，然后通过 XLaunch 启动时，选择 `Multiple Windows` ，其中 `Display Number` 后面链接时会用到，默认是 0 。
+
+可以将配置保存，然后使用时直接双击即可。
+
+#### 2. 启动 Putty
+
+新建一个会话，其中配置为 `Connection->SSH->X11 [Enable X11 forwarding] [MIT-Magic-Cookie-1]`；另外，其中的 `X display location` 中设置为 `localhost:0` 。
+
+#### 3. 配置 sshd
+
+要允许 Linux 主机上的 SSH X 转发，修改 `/etc/ssh/sshd_config` 文件，加入如下一行。
+
+{% highlight text %}
+X11Forwrding yes
+{% endhighlight %}
+
+然后重启 sshd 服务即可。
+
+#### 4. 启动程序
+
+安装 VIM ，并通过如下方式启动，其中 `IP` 为 Windows 段的 IP 地址。
+
+
+{% highlight text %}
+# yum install vim-X11
+$ set DISPLAY=10.177.219.180:0
+$ gvim
+{% endhighlight %}
+
 ### 实践
 
-在 Ubuntu 中有两种不同的 DM：gdm 和 lightdm，其配置文件在 /etc/init/ 中。以 gdm 为例，在 /etc/init/gdm.conf 中可以看到最后执行了：
+在 Ubuntu 中有两种不同的 DM：gdm 和 lightdm，其配置文件在 `/etc/init/` 中。以 gdm 为例，在 `/etc/init/gdm.conf` 中可以看到最后执行了：
 
 {% highlight text %}
 exec gdm-binary $CONFIG_FILE
@@ -173,8 +215,9 @@ $ kill %1
 tigervnc 会使用 5900+N 作为服务端口，启动参考如下。
 
 {% highlight text %}
-# yum install tigervnc tigervnc-server         # 安装客户端、服务端
+# yum install tigervnc tigervnc-server         # 安装客户端(可选)、服务端
 $ vncserver :N                                 # 启动服务端，N为数字，需要提供连接时的密码
+$ vncpasswd                                    # 设置密码
 $ vncserver -list                              # 查看已经启动的vnc服务
 $ vncserver -kill :N                           # 关闭之
 {% endhighlight %}
@@ -186,7 +229,9 @@ gnome-panel: 面板程序，任务列表和launcher列表都是gnome panel
 gnome-terminal: 图形化终端模拟器
 -->
 
-在 RedHat 6 上启动。
+#### CentOS 6
+
+在 CentOS 6 中，可以通过如下方式启动。
 
 {% highlight text %}
 # yum install wqy-zenhei-fonts                      # 安装中文字体
@@ -219,8 +264,44 @@ export XMODIFIER="@im=ibus"
 <!--
 在linux上运行vncconfig才能支持剪贴板共享。要保持vncconfig不退出才能支持剪贴板共享。
   When run with no options, it runs as a kind of "helper" application for Xvnc. Its main purpose when run in this mode is to support clipboard transfer to and from the VNC viewer(s).
-
 -->
+
+#### CentOS 7
+
+默认启动时采用 `/lib/systemd/system/multi-user.target` ，可以通过如下方式修改。
+
+{% highlight text %}
+# unlink /etc/systemd/system/default.target
+# ln -sf /lib/systemd/system/graphical.target /etc/systemd/system/default.target
+# reboot
+{% endhighlight %}
+
+然后修改如下内容，可以通过 systemctl 启动。
+
+{% highlight text %}
+# cp /lib/systemd/system/vncserver@.service /etc/systemd/system/vncserver@:1.service
+# systemctl daemon-reload
+# systemctl enable vncserver@:1.service
+# systemctl start vncserver@:1.service
+# systemctl disable vncserver@:1.service
+$ vncpasswd
+{% endhighlight %}
+
+### 问题
+
+黑屏出现 `Accept clipboard from viewer` `Send clipboard to viewer` `Send premary seletion to viewer` 选项，此时需要修改 `~/.vnc/xstartup` 文件。
+
+{% highlight text %}
+#!/bin/sh
+unset SESSION_MANAGER
+unset DBUS_SESSION_BUS_ADDRESS
+#exec /etc/X11/xinit/xinitrc
+[ -x /etc/vnc/xstartup ] && exec /etc/vnc/xstartup
+[ -r $HOME/.Xresources ] && xrdb $HOME/.Xresources
+xsetroot -solid grey
+vncconfig -iconic -nowin &
+gnome-session &
+{% endhighlight %}
 
 
 
@@ -255,6 +336,9 @@ composite WM是各个窗口独立绘图，所以可以并行绘图
 http://blog.csdn.net/fyh2003/article/details/49253713           Wayland与Weston简介
 https://www.tizen.org/blogs/tsg/2015/tizen-3.0-milestones-source-code-release
 -->
+
+
+
 
 
 
