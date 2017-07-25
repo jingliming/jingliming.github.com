@@ -1674,6 +1674,94 @@ https://www.digitalocean.com/community/tutorials/how-to-use-netcat-to-establish-
 ??????http://my.fit.edu/~vkepuska/ece3551/ADI_Speedway_Golden/Blackfin%20Speedway%20Manuals/LwIP/socket-api/setsockopt_exp.html
 ??????socktop(systap使用)
 
+
+
+
+
+
+
+Socket INTR的处理
+http://blog.csdn.net/SUKHOI27SMK/article/details/43021081
+
+http://www.tldp.org/HOWTO/html_single/C++-dlopen/
+代码风格：
+https://www.kernel.org/doc/html/v4.11/translations/zh_CN/coding-style.html
+http://www.cnblogs.com/wwang/archive/2011/02/24/1960283.html
+
+UDP-based Data Transfer Protocol
+http://udt.sourceforge.net/
+https://github.com/securesocketfunneling/udt
+http://blog.leanote.com/post/caasi/Reliable-UDP-3
+
+https://github.com/lsalzman/enet
+
+https://askubuntu.com/questions/714503/regular-expressions-vs-filename-globbing
+
+https://cmake.org/cmake-tutorial/
+
+
+1.       #注释
+2.       变量：使用set命令显式定义及赋值，在非if语句中，使用${}引用，if中直接使用变量名引用；后续的set命令会清理变量原来的值；
+3.       command (args ...)  #命令不分大小写，参数使用空格分隔，使用双引号引起参数中空格
+4.       set(var a;b;c) <=> set(var a b c)  #定义变量var并赋值为a;b;c这样一个string list
+5.       Add_executable(${var}) <=> Add_executable(a b c)   #变量使用${xxx}引用
+
+----- 条件语句
+if(var)   # 其中空 0 N No OFF FALSE 视为假，NOT 后为真
+else()/elseif()
+endif(var)
+
+7.       循环语句
+
+Set(VAR a b c)
+
+Foreach(f ${VAR})       …Endforeach(f)
+
+8.       循环语句
+
+WHILE() … ENDWHILE()
+
+
+
+INCLUDE_DIRECTORIES(include)  # 本地的include目录设置
+LINK_LIBRARIES('m')           # 添加库依赖，等价于命令行中的-lm参数
+
+
+
+GTest 实际上不建议直接使用二进制文件，而是建议从源码开始编译。https://github.com/google/googletest/blob/master/googletest/docs/FAQ.md
+如果要使用二进制包，那么可以使用如下方式进行配置。
+find_package(PkgConfig)
+pkg_check_modules(GTEST REQUIRED gtest>=1.7.0)
+pkg_check_modules(GMOCK REQUIRED gmock>=1.7.0)
+
+include_directories(
+    ${GTEST_INCLUDE_DIRS}
+    ${GMOCK_INCLUDE_DIRS}
+)
+http://kaizou.org/2014/11/gtest-cmake/
+http://www.yeolar.com/note/2014/12/16/cmake-how-to-find-libraries/
+http://blog.csdn.net/netnote/article/details/4051620
+
+find_package(Threads REQUIRED)   # 使用内置模块查找thread库支持
+
+
+----- 增加库的搜索路径
+link_directories(./lib)
+----- 生成库，可以是动态(SHARED)或者静态库(STATIC)
+add_library(hello SHARED ${SRC_LIST})
+----- 指定生成对象时依赖的库
+target_link_libraries(hello A B.a C.so)
+----- 自定义链接选项，单独对B.a使用--whole-archive选项
+target_link_libraryies(hello A -Wl,--whole-archive B.a -Wl,--no-whole-archive C.so)
+
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+PROJECT(uagent)
+
+ADD_SUBDIRECTORY(librudp )
+INCLUDE_DIRECTORIES(include)
+
+option(WITH_UNIT_TESTS "Compile with unit tests" OFF)
+
 ←
 -->
 

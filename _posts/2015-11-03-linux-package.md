@@ -517,9 +517,17 @@ Sometimes the boundaries are a bit vague. $(EXTRA_FOO_LIBS) could have been adde
 
 ## CMake
 
-在介绍示例之前，先说明一下 CMake 有两种编译方式：内部构建和外部构建。内部构建直接在源码目录下执行 cmake .，外部构建则会在一个目录下构建，不会影响原源码的结构。
+在介绍示例之前，先说明一下 CMake 有两种编译方式：内部构建和外部构建。内部构建直接在源码目录下执行 `cmake .`，外部构建则会在一个目录下构建，不会影响原源码的结构。
 
-因为 CMakeLists.txt 可执行脚本并通过脚本生成一些临时文件，因此 CMake 无法跟踪到底产生了那些临时文件，因此，没有办法提供一个可靠的 `make distclean` 方案，为此可以使用外部编译。
+其基本结构可以简单描述为：
+
+1. 依赖 `CMakeLists.txt` 文件，项目主目标一个，主目录中可指定包含的子目录；
+2. 在项目 `CMakeLists.txt` 中使用 `PROJECT` 指定项目名称，通过 `ADD_SUBDIRECTORY` 添加子目录；
+3. 子目录 `CMakeLists.txt` 将从父目录 `CMakeLists.txt` 继承设置。
+
+另外，上述通过 `PROJECT` 设置好工程后，可以通过 `${hello_SOURCE_DIR}` 引用，注意大小写。
+
+因为 `CMakeLists.txt` 可执行脚本并通过脚本生成一些临时文件，因此 CMake 无法跟踪到底产生了那些临时文件，因此，没有办法提供一个可靠的 `make distclean` 方案，为此可以使用外部编译。
 
 另外，也没提供 `make uninstall` 命令，卸载可以通过 `cat install_manifest.txt | sudo xargs rm`  命令执行删除或卸载。
 
@@ -529,7 +537,8 @@ Sometimes the boundaries are a bit vague. $(EXTRA_FOO_LIBS) could have been adde
 
 {% highlight text %}
 $ cat CMakeLists.txt
-PROJECT (HELLO)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+PROJECT(hello)                                              # 项目名称
 SET(SRC_LIST main.c)                                        # 添加源码，可忽略
 MESSAGE(STATUS "This is BINARY dir " ${HELLO_BINARY_DIR})   # 打印信息
 MESSAGE(STATUS "This is SOURCE dir " ${HELLO_SOURCE_DIR})
@@ -548,10 +557,58 @@ int main()
 
 调试的话可以使用 `cmake . -DCMAKE_BUILD_TYPE=Debug` ，不过此时使用的绝对地址。
 
-<!--
-，可以添加如下内容。
+### 常用示例
 
-<pre style="font-size:0.8em; face:arial;">
+#### 内置变量
+
+如下是设置 C 编译器的参数，对于 CPP 则将 C 替换为 CXX 即可。
+
+{% highlight text %}
+set(CMAKE_C_COMPILER      "gcc" )               # 显示指定使用的编译器
+set(CMAKE_C_FLAGS         "-std=c99 -Wall")     # 设置编译选项，也可以通过add_definitions添加编译选项
+set(CMAKE_C_FLAGS_DEBUG   "-O0 -g" )            # 调试包不优化
+set(CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG " )     # release包优化
+{% endhighlight %}
+
+内置变量可在 cmake 命令中使用，如 `cmake -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Debug` 。
+
+<!--
+EXECUTABLE_OUTPUT_PATH：可执行文件的存放路径
+LIBRARY_OUTPUT_PATH：库文件路径
+CMAKE_BUILD_TYPE:：build 类型(Debug, Release, ...)，
+BUILD_SHARED_LIBS：Switch between shared and static libraries
+-->
+
+#### 测试用例
+
+可以通过如下方式添加测试用例。
+
+{% highlight text %}
+option(WITH_UNIT_TESTS "Compile with unit tests" OFF)
+
+# Setup testing
+IF(WITH_UNIT_TESTS)
+        ENABLE_TESTING()
+        ADD_SUBDIRECTORY(test)
+ENDIF()
+
+# test/CMakeLists.txt
+FILE(GLOB SRCS *.c)
+ADD_EXECUTABLE(testfoo ${SRCS})
+TARGET_LINK_LIBRARIES(testfoo libs)
+ADD_TEST(
+    NAME testfoo
+    COMMAND testfoo
+)
+{% endhighlight %}
+
+然后在编译时通过 `cmake .. -DWITH_UNIT_TESTS=ON` 执行，并通过 `make test` 进行测试。
+
+#### 文件渲染
+
+可以通过如下脚本，动态生成。
+
+{% highlight text %}
 $ cat CMakeLists.txt
 CONFIGURE_FILE(
     "${PROJECT_SOURCE_DIR}/gcc_debug_fix.sh.in"
@@ -561,7 +618,6 @@ CONFIGURE_FILE(
 ADD_EXECUTABLE (my_exe ...)
 ... ...
 SET_TARGET_PROPERTIES(my_exe PROPERTIES RULE_LAUNCH_COMPILE "${PROJECT_BINARY_DIR}/gcc_debug_fix.sh")
-
 
 $ cat gcc_debug_fix.sh.in
 #!/bin/sh
@@ -586,56 +642,49 @@ cd "$PROJECT_SOURCE_DIR"
 
 # invoke compiler
 exec $COMPILER_AND_FLAGS -c "${SOURCE_FILE_RELATIVE}" -o "${OBJECT_FILE_ABSOLUTE}"
-</pre>
-通过 CONFIGURE_FILE() 将文件中的变量替换，然后在 set_target_properties() 设置，将在编译之前将绝对路径转换为相对路径，注意 gcc_debug_fix.sh.in 需要为可以执行文件。
+{% endhighlight %}
 
-### 常用命令
+通过 `CONFIGURE_FILE()` 将文件中的变量替换，然后在 `set_target_properties()` 设置，将在编译之前将绝对路径转换为相对路径，注意 `gcc_debug_fix.sh.in` 需要为可以执行文件。
 
-##### PROJECT(projectname [CXX] [C] [Java])
+#### 常用命令
 
-定义工程名称，也可以指定工程支持的语言(可忽略)。注意：该指令会隐式定义 &lt;projectname&gt;_BINARY_DIR、&lt;projectname&gt;_SOURCE_DIR，对于内部编译和外部编译不同。同时也会定义 PROJECT_BINARY_DIR、PROJECT_SOURCE_DIR 与前两者相同，建议使用后者。</li><br><li>
+指令是大小写无关的，参数和变量是大小写相关的，参数使用空格或者分号隔开。如 `MESSAGE (STATUS "This is BINARY dir" ${HELLO_BINARY_DIR})` 和 `MESSAGE (STATUS "This is BINARY dir ${HELLO_BINARY_DIR}")` 相同。
 
-SET(VAR [VALUE] [CACHE TYPE DOCSTRING [FORCE]])<br>
-可以用来显式的定义变量。</li><br><li>
+变量使用 `${}` 方式取值，但是在 `IF` 控制语句中是直接使用变量名。
 
-MESSAGE([SEND_ERROR | STATUS | FATAL_ERROR] "message to display" ...)<br>
-向终端输出用户定义的信息，SEND_ERROR(产生错误，生成过程被跳过)，SATUS(输出前缀为-的信息)、FATAL_ERROR(立即终止所有cmake过程)。</li><br><li>
+{% highlight text %}
+PROJECT (projectname [CXX] [C] [Java])
+  定义工程名称以及语言，会隐式定义 projectname_BINARY_DIR、projectname_SOURCE_DIR变量，
+  同时也会定义 PROJECT_BINARY_DIR、PROJECT_SOURCE_DIR 与前两者相同，建议使用后者。
 
-ADD_EXECUTABLE(hello ${SRC_LIST})<br>
-该工程会生成一个文件名为 hello 的可执行文件，相关的源文件是 SRC_LIST 。</li><br><li>
+SET(VAR [VALUE] [CACHE TYPE DOCSTRING [FORCE]])
+  可以用来显式的定义变量。
 
-ADD_SUBDIRECTORY(source_dir [binary_dir] [EXCLUDE_FROM_ALL])<br>
-指定当前工程的
+MESSAGE([SEND_ERROR | STATUS | FATAL_ERROR] "message to display" ...)
+  向终端输出用户定义的信息，SEND_ERROR(产生错误，生成过程被跳过)，SATUS(输出前缀为-的信息)、
+  FATAL_ERROR(立即终止所有cmake过程)。
 
+ADD_EXECUTABLE(hello ${SRC_LIST})
+  该工程会生成一个文件名为 hello 的可执行文件，相关的源文件是 SRC_LIST 。
 
+ADD_SUBDIRECTORY(source_dir [binary_dir] [EXCLUDE_FROM_ALL])
+  指定当前工程的
 
-configure_file(intput output [COPYONLY] [ESCAPE_QUOTES] [@ONLY])<br>
-将文件 input 拷贝到 output 然后替换文件内容中引用到的变量值；如果用相对路径，则 input 相对的是当前源码路径，output 相对于二进制文件路径。
-
-该命令替换掉在输入文件中，以 ${VAR} 格式或 @VAR@ 格式引用的任意变量，如同它们的值是由CMake确定的一样。 如果一个变量还未定义，它会被替换为空。如果指定了COPYONLY选项，那么变量就不会展开。如果指定了ESCAPE_QUOTES选项，那么所有被替换的变量将会按照C语言的规则被转义。该文件将会以CMake变量的当前值被配置。
-
-
-注意事项：
-<ul><li>
-变量使用<br>
-变量使用 ${} 方式取值，但是在 IF 控制语句中是直接使用变量名。</li><br><li>
-
-指令<br>
-指令是大小写无关的，参数和变量是大小写相关的，参数使用空格或者分号隔开。如 MESSAGE(STATUS "This is BINARY dir" ${HELLO_BINARY_DIR}) 和 MESSAGE(STATUS "This is BINARY dir ${HELLO_BINARY_DIR}") 相同。<br><br>
-</li></ul>
-</p>
-
-
-
--->
+CONFIGURE_FILE(intput output [COPYONLY] [ESCAPE_QUOTES] [@ONLY])
+  将文件 input 拷贝到 output 然后替换文件内容中引用到的变量值；如果用相对路径，则 input 相对
+  的是当前源码路径，output 相对于二进制文件路径。该命令替换掉在输入文件中，以 ${VAR} 格式或
+  @VAR@ 格式引用的任意变量，如同它们的值是由CMake确定的一样。 如果一个变量还未定义，它会被替
+  换为空。如果指定了COPYONLY选项，那么变量就不会展开。如果指定了ESCAPE_QUOTES选项，那么所有被
+  替换的变量将会按照C语言的规则被转义。该文件将会以CMake变量的当前值被配置。
+{% endhighlight %}
 
 ## 其它
 
 可以通过 `pkg-config` 命令来检索系统中安装库文件的信息，通常用于库的编译和连接。
 
-如果库的头文件不在 /usr/include 目录中，那么在编译的时候需要用 -I 参数指定其路径；同样，链接时可以通过 -L 参数指定库，这样就导致了编译命令界面的不统一。
+如果库的头文件不在 `/usr/include` 目录中，那么在编译的时候需要用 `-I` 参数指定其路径；同样，链接时可以通过 `-L` 参数指定库，这样就导致了编译命令界面的不统一。
 
-为了保证统一，通过库提供的一个 .pc 文件获得库的各种必要信息的，包括版本信息、编译和连接需要的参数等，在需要的时候可以通过提供的参数，如 \-\-cflags、\-\-libs，将所需信息提取出来供编译和连接使用。
+为了保证统一，通过库提供的一个 `.pc` 文件获得库的各种必要信息的，包括版本信息、编译和连接需要的参数等，在需要的时候可以通过提供的参数，如 `--cflags`、`--libs`，将所需信息提取出来供编译和连接使用。
 
 主要包括了：A) 检查库的版本号；B) 获得编译预处理参数，如宏定义，头文件的路径；C) 获得编译参数，如库及其依赖的其他库的位置，文件名及其他一些连接参数；D) 自动加入所依赖的其他库的设置。
 
@@ -655,7 +704,7 @@ $ gcc sample.o -o sample `pkg-config --libs glib-2.0`
 $ gcc sample.c -o sample `pkg-config --cflags --libs glib-2.0`
 {% endhighlight %}
 
-另外，可以通过环境变量 PKG_CONFIG_PATH 指定搜索路径。
+另外，可以通过环境变量 `PKG_CONFIG_PATH` 指定搜索路径。
 
 ## 参考
 
