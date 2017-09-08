@@ -14,7 +14,7 @@ libev 是一个 C 语言编写的，高性能的事件循环库，与此类似�
 
 ## 简介
 
-关于 libev 详见官网 [http://software.schmorp.de](http://software.schmorp.de/pkg/libev.html)，其帮助文档可以参考 [官方文档](http://pod.tst.eu/http://cvs.schmorp.de/libev/ev.pod)，安装完之后，可通过 ```man 3 ev``` 查看帮助信息，文档也在源码中保存了一份，可以通过 ```man -l ev.3``` 命令查看。
+关于 libev 详见官网 [http://software.schmorp.de](http://software.schmorp.de/pkg/libev.html)，其帮助文档可以参考 [官方文档](http://pod.tst.eu/http://cvs.schmorp.de/libev/ev.pod)，安装完之后，可通过 `man 3 ev` 查看帮助信息，文档也在源码中保存了一份，可以通过 `man -l ev.3` 命令查看。
 
 ### 安装
 
@@ -133,7 +133,7 @@ enum {
 
 libev 中的观察器分为 4 种状态：初始化、启动/活动、等待、停止。
 
-首先需要对 watcher 初始化，可通过 ```ev_TYPE_init()``` 或者 ```ev_init()```+```ev_TYPE_set()``` 初始化，两者等效；实际就是设置对应结构体的初始值。
+首先需要对 watcher 初始化，可通过 `ev_TYPE_init()` 或者 `ev_init()`+`ev_TYPE_set()` 初始化，两者等效；实际就是设置对应结构体的初始值。
 
 {% highlight c %}
 #define ev_io_init(ev,cb,fd,events)              \
@@ -164,7 +164,7 @@ libev 中的观察器分为 4 种状态：初始化、启动/活动、等待、�
     do { ev_init ((ev), (cb)); ev_async_set ((ev)); } while (0)
 {% endhighlight %}
 
-接下来，通过 ```ev_TYPE_start()```、```ev_TYPE_stop()``` 来启动、停止观察器，停止同时会释放内存。
+接下来，通过 `ev_TYPE_start()`、`ev_TYPE_stop()` 来启动、停止观察器，停止同时会释放内存。
 
 ### 结构体
 
@@ -214,9 +214,18 @@ typedef struct ev_timer {
 
 如上的 ev_watcher 结构体可以时为 “基类”，通过宏 EV_WATCHER 定义了它的所有成员；而像 IO Watcher、Signal Watcher 是以链表的形式进行组织的，所以在 ev_watcher 基类的基础上，定义了 ev_watcher 的子类 ev_watcher_list 。
 
+
+
+
+
+
+
+
+
+
 #### 多实例支持
 
-ev_loop 是主循环，保存了与循环相关的很多变量，而 ```EV_MULTIPLICITY``` 是一个条件编译的宏，表明是否支持有多个 ev_loop 实例存在，表现在源码中表示是否需要传递 ```struct ev_loop *loop``` 参数，一般来说，每个线程中有且仅有一个 ev_loop 实例。
+ev_loop 是主循环，保存了与循环相关的很多变量，而 `EV_MULTIPLICITY` 是一个条件编译的宏，表明是否支持有多个 ev_loop 实例存在，表现在源码中表示是否需要传递 `struct ev_loop *loop` 参数，一般来说，每个线程中有且仅有一个 ev_loop 实例。
 
 <!--
 如果支持多个loop，则default_loop_struct就是一个静态的struct ev_loop类型的结构体，其中包含了各种成员，比如ev_tstamp ev_rt_now;  int  pendingpri;等等。
@@ -261,9 +270,9 @@ AC_CHECK_FUNCS(nanosleep, [], [
 ])
 {% endhighlight %}
 
-首先会检测 ```clock_gettime()``` 系统调用是否可用，如果可用会定义 ```HAVE_CLOCK_SYSCALL``` 宏。
+`clock_gettime()` 函数的调用有两种方式，分别是系统调用和 `-lrt` 库；在上述的 `libev.m4` 中，会进行检测，首先会检测 `clock_gettime()` 系统调用是否可用，如果可用会定义 `HAVE_CLOCK_SYSCALL` 宏。
 
-libev 提供了单调递增 (monotonic) 以及实时时间 (realtime) 两种记时方式，其宏定义的方式如下，而 ```HAVE_CLOCK_SYSCALL``` 和 ```HAVE_CLOCK_GETTIME``` 的详见 libev.m4 中定义，优先使用 ```SYS_clock_gettime()``` 系统调用 API 函数。
+libev 提供了单调递增 (monotonic) 以及实时时间 (realtime) 两种记时方式，其宏定义的方式如下，而 `HAVE_CLOCK_SYSCALL` 和 `HAVE_CLOCK_GETTIME` 的详见 libev.m4 中定义，优先使用 `SYS_clock_gettime()` 系统调用 API 函数。
 
 {% highlight c %}
 # if HAVE_CLOCK_SYSCALL
@@ -297,7 +306,7 @@ libev 提供了单调递增 (monotonic) 以及实时时间 (realtime) 两种记�
 # endif
 {% endhighlight %}
 
-通常定义为。
+优先使用系统调用和单调递增时间，在 CentOS 7 中通常定义为。
 
 {% highlight text %}
 #define HAVE_CLOCK_GETTIME 1
@@ -307,12 +316,19 @@ libev 提供了单调递增 (monotonic) 以及实时时间 (realtime) 两种记�
 
 在如下的初始化函数中介绍详细的细节。
 
+<!--
+场景：
+    1. 使用系统调用
+    syscall (SYS_clock_gettime, CLOCK_REALTIME, &ts);
+-->
+
+
 
 ### 初始化
 
-无论是通过 ```EV_DEFAULT``` 宏还是 ```ev_default_loop()``` 函数进行初始化，实际上功能都相同，也就是都调用了 ```ev_default_loop(0)``` 进行初始化，主要流程为 ```ev_default_loop()->loop_init()``` 。
+无论是通过 `EV_DEFAULT` 宏还是 `ev_default_loop()` 函数进行初始化，实际上功能都相同，也就是都调用了 `ev_default_loop(0)` 进行初始化，主要流程为 `ev_default_loop()->loop_init()` 。
 
-如下主要介绍 ```loop_init()``` 函数。
+如下主要介绍 `loop_init()` 函数。
 
 {% highlight c %}
 #ifndef EV_HAVE_EV_TIME
@@ -444,7 +460,7 @@ void noinline ecb_cold loop_init (EV_P_ unsigned int flags) EV_THROW
 }
 {% endhighlight %}
 
-其中有两个比较重要的时间变量，也就是 ```ev_rt_now``` 和 ```mn_now```，前者表示当前的日历时间，也就是自 1970.01.01 以来的秒数，该值通过 ```gettimeofday()``` 得到。
+其中有两个比较重要的时间变量，也就是 `ev_rt_now` 和 `mn_now`，前者表示当前的日历时间，也就是自 1970.01.01 以来的秒数，该值通过 `gettimeofday()` 得到。
 
 ### 调用流程
 
@@ -700,7 +716,7 @@ ev_io_start (loop, &watcher);
 
 #### ev_io_start()
 
-作用是设置 ```ANFD anfds[]```，其中文件描述符为其序号，并将相应的 IO Watcher 插入到对应 fd 的链表中。由于对应 fd 的监控条件已有改动了，同时会在 ```int fdchanges[]``` 中记录下该 fd ，并在后续的步骤中调用系统的接口修改对该 fd 监控条件。
+作用是设置 `ANFD anfds[]`，其中文件描述符为其序号，并将相应的 IO Watcher 插入到对应 fd 的链表中。由于对应 fd 的监控条件已有改动了，同时会在 `int fdchanges[]` 中记录下该 fd ，并在后续的步骤中调用系统的接口修改对该 fd 监控条件。
 
 {% highlight c %}
 void noinline ev_io_start (EV_P_ ev_io *w) EV_THROW
@@ -769,7 +785,7 @@ enum {
 };
 {% endhighlight %}
 
-而在通过 configure 进行编译时，会对宏进行处理，以 epoll 为例，可以查看 ev.c 中的内容；在通过 configure 编译时，如果支持 EPOLL 会在 config.h 中生成 ```HAVE_POLL``` 和 ```HAVE_POLL_H``` 宏定义。
+而在通过 configure 进行编译时，会对宏进行处理，以 epoll 为例，可以查看 ev.c 中的内容；在通过 configure 编译时，如果支持 EPOLL 会在 config.h 中生成 `HAVE_POLL` 和 `HAVE_POLL_H` 宏定义。
 
 {% highlight c %}
 # if HAVE_POLL && HAVE_POLL_H
@@ -793,303 +809,6 @@ loop_init返回后，backend已经初始化完成，接着，初始化并启动�
 -->
 
 
-### Timer Watcher
-
-在 ev_timer_init() 中，分别设置 after 和 repeat 参数，表示 after 秒后执行一次回调函数，之后每隔 repeat 秒执行一次。
-
-{% highlight c %}
-//----- 结构体定义，对于时间主要是at+repeat参数
-#define EV_WATCHER_TIME(type)      \
-  EV_WATCHER (type)                \
-  ev_tstamp at;     /* private, 函数初始化对应的after参数 */
-typedef struct ev_timer {
-  EV_WATCHER_TIME (ev_timer)       // 通用
-
-  ev_tstamp repeat;  /* rw, 函数初始化对应的repeat参数 */
-} ev_timer;
-
-//----- 初始化，意味着在after秒后执行，设置为0则会立即执行一次；然后每隔repeat秒执行一次
-#define ev_timer_init(ev,cb,after,repeat)        \
-    do { ev_init ((ev), (cb)); ev_timer_set ((ev),(after),(repeat)); } while (0)
-
-//----- 如下为一个示例程序
-void cb (EV_P_ ev_timer *w, int revents) {
-    ev_break(EV_P_ EVBREAK_ONE);         // 实际是设置loop_done的值，也即退出主循环
-}
-ev_timer watcher;
-ev_timer_init (&watcher, cb, 2.5, 1.0);  // 初始化，分别表示多长时间开始执行第一次，后面为时间间隔
-ev_timer_start (loop, &watcher);
-{% endhighlight %}
-
-在 libev 中的 ev_timer 被放到一个 2-heap 或 4-heap 结构中，这个 heap 结构式存储在数组中，可以参看静态二叉树、最小堆等概念，可以查看 [Binary Heaps](http://www.cs.cmu.edu/~adamchik/15-121/lectures/Binary%20Heaps/heaps.html) 或者 [本地文档](/reference/programs/libev_Binary_Heaps.maff) 。
-
-默认 2-heap ，只有定义了 ```EV_USE_4HEAP``` 宏之后才会使用 4-heap ，后者通常用于数据量大时；对于前者，任一节点，其父节点的位置为 ```floor(k/2)```，任一节点的子节点位置为 ```2*k``` 和 ```2*k+1``` 。
-
-它是一个最小堆，权值为 "即将触发的时刻"，所以其根节点总是最近要触发的 timer；对此堆有两个基本操作，upheap() 和 downheap()。
-
-#### 最小栈
-
-当对某一节点执行 upheap() 时，就是与其父节点进行比较，如果其值比父节点小，则交换，然后在对这个父节点重复 upheap() ，直到顶层。
-
-downheap() 操作会与子节点比较，如果子节点中有小于当前节点的权，则选择最小的节点进行交换，并一直重复。
-
-![libev timer watcher]({{ site.url }}/images/programs/libev_timer_watcher.png "libev timer watcher"){: .pull-center }
-
-在 ```ev_timer_start()``` 函数中，会将定时器监控器注册到事件驱动器上。
-
-#### 函数执行流程
-
-如上所述。
-
-{% highlight c %}
-void noinline ev_timer_start (EV_P_ ev_timer *w) EV_THROW
-{
-  if (expect_false (ev_is_active (w)))
-    return;
-  ev_at (w) += mn_now;
-
-  EV_FREQUENT_CHECK;
-
-  ++timercnt;
-  ev_start (EV_A_ (W)w, timercnt + HEAP0 - 1);
-  array_needsize (ANHE, timers, timermax, ev_active (w) + 1, EMPTY2);
-  ANHE_w (timers [ev_active (w)]) = (WT)w;
-  ANHE_at_cache (timers [ev_active (w)]);
-  upheap (timers, ev_active (w));
-
-  EV_FREQUENT_CHECK;
-}
-{% endhighlight %}
-
-<!--
-其首先 ev_at (w) += mn_now; 得到未来的时间，这样放到时间管理的堆“timers”中作为权重。然后通过之前说过的“ev_start”修改驱动器loop的状态。这里我们又看到了动态大小的数组了。Libev的堆的内存管理也是通过这样的关系的。具体这里堆的实现，感兴趣的可以仔细看下实现。这里的操作就是将这个时间权重放到堆中合适的位置。这里堆单元的结构为：
-
- 其实质就是一个时刻at上挂一个放定时器watcher的list。当超时时会依次执行这些定时器watcher上的触发回调函数。
-1.4定时器监控器的触发
-
-最后看下在一个事件驱动器循环中是如何处理定时器监控器的。这里我们依然抛开其他的部分，只找定时器相关的看。在“/ calculate blocking time /”块里面，我们看到计算blocking time的时候会先：
-
-点击(此处)折叠或打开
-
-    if (timercnt) {
-        ev_tstamp to = ANHE_at (timers [HEAP0]) - mn_now;
-        if (waittime > to) waittime = to;
-    }
-
-
-如果有定时器，那么就从定时器堆（一个最小堆）timers中取得堆顶上最小的一个时间。这样就保证了在这个时间前可以从backend_poll中出来。出来后执行timers_reify处理将pengding的定时器。
-
-在timers_reify中依次取最小堆的堆顶，如果其上的ANHE.at小于当前时间，表示该定时器watcher超时了，那么将其压入一个数组中，由于在实际执行pendings二维数组上对应优先级上的watcher是从尾往头方向的，因此这里先用一个数组依时间先后次存下到一个中间数组loop->rfeeds中。然后将其逆序调用ev_invoke_pending插入到pendings二维数组中。这样在执行pending事件的触发动作的时候就可以保证，时间靠前的定时器优先执行。函数 feed_reverse和 feed_reverse_done就是将超时的定时器加入到loop->rfeeds暂存数组以及将暂存数组中的pending的watcher插入到pengdings数组的操作。把pending的watcher加入到pendings数组，后续的操作就和之前的一样了。回依次执行相应的回调函数。
-
-这个过程中还判断定时器的 w->repeat 的值，如果不为0，那么会重置该定时器的时间，并将其压入堆中正确的位置，这样在指定的时间过后又会被执行。如果其为0，那么调用ev_timer_stop关闭该定时器。 其首先通过clear_pending置pendings数组中记录的该watcher上的回调函数为一个不执行任何动作的哑动作。
-
-总结一下定时器就是在backend_poll之前通过定时器堆顶的超时时间，保证blocking的时间不超过最近的定时器时间，在backend_poll返回后，从定时器堆中取得超时的watcher放入到pendings二维数组中，从而在后续处理中可以执行其上注册的触发动作。然后从定时器管理堆上删除该定时器。最后调用和ev_start呼应的ev_stop修改驱动器loop的状态，即loop->activecnt减少一。并将该watcher的active置零。
-
-对于周期性的事件监控器是同样的处理过程。只是将timers_reify换成了periodics_reify。其内部会对周期性事件监控器派生类的做类似定时器里面是否repeat的判断操作。判断是否重新调整时间，或者是否重复等逻辑，这些看下代码比较容易理解，这里不再赘述。·
--->
-
-### Periodic Wather
-
-这是绝对时间定时器，不同于 ```ev_timer```，它是基于日历时间的；例如，指定一个 ```ev_periodic``` 在 10 秒之后触发 ```(ev_now()+10)```，然后在 10 秒内将系统时间调整为去年，则该定时器会在一年后才触发超时事件，而 ```ev_timer``` 依然会在 10 秒之后触发。
-
-首先看下 libev 中定义的结构体。
-
-{% highlight c %}
-#define EV_WATCHER(type)              \
-  int active; /* private */           \
-  int pending; /* private */          \
-  EV_DECL_PRIORITY /* private */      \
-  EV_COMMON /* rw */                  \
-  EV_CB_DECLARE (type) /* private */
-
-#define EV_WATCHER_TIME(type)         \
-  EV_WATCHER (type)                   \
-  ev_tstamp at;     /* private */
-
-typedef struct ev_periodic
-{
-  EV_WATCHER_TIME (ev_periodic)
-
-  ev_tstamp offset; /* rw */
-  ev_tstamp interval; /* rw */
-  ev_tstamp (*reschedule_cb)(struct ev_periodic *w, ev_tstamp now) EV_THROW; /* rw */
-} ev_periodic;
-
-// 上述结构体实际上等价于如下
-typedef struct ev_periodic
-{
-    int active;
-    int pending;
-    int priority;
-    void *data;
-    void (*cb)(struct ev_loop *loop, struct ev_periodic *w, int revents);
-    ev_tstamp at;
-
-    ev_tstamp offset; /* rw */
-    ev_tstamp interval; /* rw */
-    ev_tstamp (*reschedule_cb)(struct ev_periodic *w, ev_tstamp now) EV_THROW; /* rw */
-} ev_periodic;
-{% endhighlight %}
-
-如上结构体，其中前六个成员与 ev_timer 一样，而且offset、interval和reschedule_cb都是用来设置触发时间的，这个会在下面说明。
-
-#### 初始化
-
-与其它 Watcher 相似，初始化可通过 ev_init()+ev_periodic_set() 或直接通过 ev_periodic_init() 初始化，可以查看如下内容。
-
-{% highlight c %}
-#define ev_init(ev,cb_) do {                      \
-  ((ev_watcher *)(void *)(ev))->active  =         \
-  ((ev_watcher *)(void *)(ev))->pending = 0;      \
-  ev_set_priority ((ev), 0);                      \
-  ev_set_cb ((ev), cb_);                          \
-} while (0)
-
-#define ev_periodic_set(ev,ofs_,ival_,rcb_)  do { \
-  (ev)->offset = (ofs_);                          \
-  (ev)->interval = (ival_);                       \
-  (ev)->reschedule_cb = (rcb_);                   \
-} while (0)
-
-#define ev_periodic_init(ev,cb,ofs,ival,rcb) do { \
-  ev_init ((ev), (cb));                           \
-  ev_periodic_set ((ev),(ofs),(ival),(rcb));      \
-} while (0)
-{% endhighlight %}
-
-#### 启动定时器
-
-其中启动函数如下。
-
-{% highlight c %}
-void noinline ev_periodic_start (EV_P_ ev_periodic *w) EV_THROW
-{
-  if (expect_false (ev_is_active (w)))
-    return;
-
-  if (w->reschedule_cb)
-    ev_at (w) = w->reschedule_cb (w, ev_rt_now);
-  else if (w->interval)
-    {
-      assert (("libev: ev_periodic_start called with negative interval value", w->interval >= 0.));
-      periodic_recalc (EV_A_ w);
-    }
-  else
-    ev_at (w) = w->offset;
-
-  EV_FREQUENT_CHECK;
-
-  ++periodiccnt;
-  ev_start (EV_A_ (W)w, periodiccnt + HEAP0 - 1);
-  array_needsize (ANHE, periodics, periodicmax, ev_active (w) + 1, EMPTY2);
-  ANHE_w (periodics [ev_active (w)]) = (WT)w;
-  ANHE_at_cache (periodics [ev_active (w)]);
-  upheap (periodics, ev_active (w));
-
-  EV_FREQUENT_CHECK;
-}
-{% endhighlight %}
-
-共有三种设置超时时间 at 的方法，也就是：
-
-<ol><li>
-
-如果 reschedule_cb() 不为空，则忽略 interval 和 offset，而使用该函数设置超时时间 at，该函数以 ev_rt_now 为参数，设置下次超时事件触发的时间，示例程序如下。
-
-{% highlight text %}
-static ev_tstamp my_rescheduler (ev_periodic *w, ev_tstamp now)
-{
-    return now + 60.;
-}
-{% endhighlight %}
-
-这也就是将 at 设置为 1 分钟之后的时间点开始。</li><br><li>
-
-当 reschedule_cb() 为空且 interval>0 时，调用 periodic_recalc() 函数设置 at，也就是将 at 设置为下一个的 offset+N*interval 时间点，其中的 offset 一般处于 [0, interval] 范围内。<br>
-
-比如置 offset 为 0，interval 为 3600，意味着当系统时间是完整的 1 小时的时候，也就是系统时间可以被 3600 整除的时候，比如 8:00、9:00 等，就会触发超时事件。</li><br><li>
-
-如果 reschedule_cb 为空且 interval 为 0，则直接将 at 置为 offset，此时不会重复触发，触发一次之后就会停止；而且该监视器也会无视时间调整，比如置 at 为 20110101000000，则只要系统日历时间超过了改时间，就会触发超时事件。
-</li></ol>
-
-设置好 at 后，就将该监视器加入到堆 periodics 中，这与 ev_timer 的代码是一样的，不再赘述。
-
-#### 计算触发点时间
-
-如下的 periodic_recalc() 函数会重新计算下一个触发时间点。
-
-{% highlight c %}
-static void noinline periodic_recalc (EV_P_ ev_periodic *w)
-{
-  ev_tstamp interval = w->interval > MIN_INTERVAL ? w->interval : MIN_INTERVAL;
-  ev_tstamp at = w->offset + interval * ev_floor ((ev_rt_now - w->offset) / interval);
-
-  /* the above almost always errs on the low side */
-  while (at <= ev_rt_now) {
-      ev_tstamp nat = at + w->interval;
-
-      /* when resolution fails us, we use ev_rt_now */
-      if (expect_false (nat == at)) {
-          at = ev_rt_now;
-          break;
-      }
-
-      at = nat;
-  }
-
-  ev_at (w) = at;
-}
-{% endhighlight %}
-
-该函数的作用就是将 at 置为下一个的 offset+N*interval 时间点，其中 ```ev_floor(x)``` 返回小于 x，且最接近 x 的整数。
-
-<!--
-举个例子可能会容易明白该代码：interval为10分钟（600），offset为2分钟（120），表示将at置为下一个分钟数为2的时间点。
-
-假设当前为8:01:23，则最终会使得at为8:02:00。计算过程是 ：interval * ev_floor ((ev_rt_now - w->offset) / interval)就表示7:50:00，然后再加上offset就是7:52:00，进入循环，最终调整得at=8:02:00。
-
-假设当前为8:03:56，则最终会使得at为8:12:00。计算过程是：interval * ev_floor ((ev_rt_now -w->offset) / interval)就表示8:00:00，然后再加上offset就是8:02:00，进入循环，最终调整得at=8:12:00。
--->
-
-#### 超时时间调整
-
-通过 periodics_reschedule() 函数，用于重新调整超时时间。
-
-{% highlight c %}
-static void noinline ecb_cold periodics_reschedule (EV_P)
-{
-  int i;
-
-  /* adjust periodics after time jump */
-  for (i = HEAP0; i < periodiccnt + HEAP0; ++i)
-    {
-      ev_periodic *w = (ev_periodic *)ANHE_w (periodics [i]);
-
-      if (w->reschedule_cb)
-        ev_at (w) = w->reschedule_cb (w, ev_rt_now);
-      else if (w->interval)
-        periodic_recalc (EV_A_ w);
-
-      ANHE_at_cache (periodics [i]);
-    }
-
-  reheap (periodics, periodiccnt);
-}
-{% endhighlight %}
-
-在 time_update() 函数中，如果发现日历时间被调整了，则会通过调用 periodics_reschedule() 调整 ev_periodic 的超时时间点 at；调整的方法与启动函数中一样，要么使用 reschedule_cb() 调整，要么调用 periodic_recalc() 重新计算 at。
-
-最后，将 periodics 堆中所有元素都调整完毕后，调用 reheap() 使 periodics 恢复堆结构。
-
-<!--
-http://blog.csdn.net/gqtcgq/article/details/49531625
-####
-
-将激活的超时事件排队periodics_reify
-
-主要流程跟timers_reify一样，只不过在重新计算下次触发时间点at的时候，计算方法跟ev_periodic_start中的一样。
--->
-
 ### Signal Watcher
 
 在收到 SIGINT 时做些清理，直接退出。
@@ -1103,6 +822,48 @@ ev_signal signal_watcher;
 ev_signal_init (&signal_watcher, sigint_cb, SIGINT);
 ev_signal_start (loop, &signal_watcher);
 {% endhighlight %}
+
+
+{% highlight c %}
+/* catch a SIGINT signal, ctrl-c */
+#include <ev.h>       // a single header file is required
+#include <stdio.h>    // for puts
+
+ev_signal signal_watcher;
+static void sigint_cb (struct ev_loop *loop, ev_signal *w, int revents)
+{
+    puts("catch SIGINT");
+    ev_break (EV_A_ EVBREAK_ALL);
+}
+
+int main (void)
+{
+    // use the default event loop unless you have special needs
+    struct ev_loop *loop = EV_DEFAULT; /* OR ev_default_loop(0) */
+
+    ev_signal_init (&signal_watcher, sigint_cb, SIGINT);
+    ev_signal_start (loop, &signal_watcher);
+
+    // now wait for events to arrive
+    ev_run (loop, 0);
+
+    // break was called, so exit
+    return 0;
+}
+{% endhighlight %}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### Child Watcher
 
@@ -1172,6 +933,23 @@ libev 可以通过很多宏进行调优，默认会通过 EV_FEATURES 宏定义�
 #define EV_FEATURE_BACKENDS ((EV_FEATURES) & 32) /* 0010 0000 */
 #define EV_FEATURE_OS       ((EV_FEATURES) & 64) /* 0100 0000 */
 {% endhighlight %}
+
+
+
+
+## 内存分配
+
+可以看到很多数组会通过 `array_needsize()` 函数分配内存，简单来说，为了防止频繁申请内存，每次都会尝试申请 `MALLOC_ROUND` 宏指定大小的内存，一般是 4K 。
+
+如下是在 `ev_timer_start()` 函数中的使用方法。
+
+{% highlight text %}
+array_needsize(ANHE, timers, timermax, ev_active (w) + 1, EMPTY2);
+{% endhighlight %}
+
+简单来说，`ANHE` 表示数组中的成员类型；`timers` 表示数组的基地址；`timermax` 表示当其值，因为可能会预分配一部分内存，所以在分配完成后，同时会将真正分配的内存数返回；`ev_active(w)+1` 表示需要申请的大小。
+
+在分配内存时，默认会采用 `realloc()` 函数，如果想要自己定义，可以通过 `ev_set_allocator()` 函数进行设置。
 
 
 ## 参考

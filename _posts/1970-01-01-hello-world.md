@@ -650,122 +650,7 @@ https://www.percona.com/blog/2007/08/18/how-fast-can-you-sort-data-with-mysql/
 
 
 http://halobates.de/memorywaste.pdf
-
 BuildBot
-
-
-shell的通配符介绍
-http://www.cnblogs.com/chengmo/archive/2010/10/17/1853344.html
-
-### fnmatch()
-
-就是判断字符串是不是符合 pattern 所指的结构，这里的 pattern 是 shell wildcard pattern，其中部分匹配行为可以通过 flags 配置，详见 man 3 fnmatch。
-
-int fnmatch(const char *pattern, const char *string, int flags);
-
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <fnmatch.h>
-#include <sys/types.h>
-#include <dirent.h>
-
-int main(int argc, char *argv[])
-{
-    int ret;
-    char *pattern = "*.c";
-    DIR *dir;
-    struct dirent *entry;
-
-    if ((dir = opendir("/tmp")) == NULL) {
-        perror("opendir()");
-        exit(EXIT_FAILURE);
-    }
-    while ((entry = readdir(dir)) != NULL) { // 逐个获取文件夹中文件
-        ret = fnmatch(pattern, entry->d_name, FNM_PATHNAME|FNM_PERIOD);
-        if (ret == 0) {         //符合pattern的结构
-            printf("%s\n", entry->d_name);
-        } else if (ret == FNM_NOMATCH){
-            continue ;
-        } else {
-            printf("error file=%s\n", entry->d_name);
-        }
-    }
-    closedir(dir);
-    return 0;
-}
-
-wordexp()
-
-按照 Shell-Style Word Expansion 扩展将输入字符串拆分，返回的格式为 wordexp_t 变量，其中包括了三个变量，两个比较重要的是：A) we_wordc 成员数；B) we_wodv 数组。
-
-注意，在解析时会动态分配内存，所以在执行完 wordexp() 后，需要执行 wordfree()；另外，如果遇到内存不足会返回 WRDE_NOSPACE 错误，此时可能已经分配了部分地址，所以仍需要执行 wordfree() 。
-
-1) 按照空格解析；2) 正则表达式；3) 环境变量。
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <wordexp.h>
-
-int main(int argc, char **argv)
-{
-    int i, ret;
-    wordexp_t p;
-
-    ret = wordexp("foo bar $SHELL *[0-9].c *.c", &p, 0);
-    if (ret == WRDE_NOSPACE) {
-        wordfree(&p);
-        exit(EXIT_FAILURE);
-    } else if (ret != 0) {
-        exit(EXIT_FAILURE);
-    }
-    for (i = 0; i < p.we_wordc; i++)
-        printf("%s\n", p.we_wordv[i]);
-    wordfree(&p);
-    exit(EXIT_SUCCESS);
-}
-
-http://www.gnu.org/software/libc/manual/html_node/Word-Expansion.html
-
-
-### qsort()
-
-只用于数组的排序，对于链表等无效。
-
-void qsort(void *base, size_t nitems, size_t size, int (*compar)(const void *, const void*));
-
-base  : 数组的基地址
-nitems: 数组包含的元素；
-size  : 每个元素的大小；
-compar: 比较函数；
-
-#include <stdio.h>
-#include <stdlib.h>
-
-int cmpfunc (const void *a, const void *b)
-{
-   return ( *(int*)a - *(int*)b );
-}
-
-int main()
-{
-   int n;
-   int values[] = { 88, 56, 100, 2, 25 };
-
-   printf("Before sorting the list is: \n");
-   for( n = 0 ; n < 5; n++ ) {
-      printf("%d ", values[n]);
-   }
-   putchar('\n');
-   qsort(values, 5, sizeof(int), cmpfunc);
-   printf("After sorting the list is: \n");
-   for( n = 0 ; n < 5; n++ ) {
-      printf("%d ", values[n]);
-   }
-   putchar('\n');
-
-   return(0);
-}
 
 
 非常经典的《Linux平台下的漏洞分析入门 》
@@ -1671,11 +1556,10 @@ https://www.digitalocean.com/community/tutorials/how-to-use-netcat-to-establish-
 
 
 
-??????http://my.fit.edu/~vkepuska/ece3551/ADI_Speedway_Golden/Blackfin%20Speedway%20Manuals/LwIP/socket-api/setsockopt_exp.html
-??????socktop(systap使用)
 
+http://my.fit.edu/~vkepuska/ece3551/ADI_Speedway_Golden/Blackfin%20Speedway%20Manuals/LwIP/socket-api/setsockopt_exp.html
 
-
+socktop(systap使用)
 
 
 
@@ -1684,9 +1568,6 @@ Socket INTR的处理
 http://blog.csdn.net/SUKHOI27SMK/article/details/43021081
 
 http://www.tldp.org/HOWTO/html_single/C++-dlopen/
-代码风格：
-https://www.kernel.org/doc/html/v4.11/translations/zh_CN/coding-style.html
-http://www.cnblogs.com/wwang/archive/2011/02/24/1960283.html
 
 UDP-based Data Transfer Protocol
 http://udt.sourceforge.net/
@@ -1696,8 +1577,6 @@ http://blog.leanote.com/post/caasi/Reliable-UDP-3
 https://github.com/lsalzman/enet
 
 https://askubuntu.com/questions/714503/regular-expressions-vs-filename-globbing
-
-https://cmake.org/cmake-tutorial/
 
 
 1.       #注释
@@ -1738,21 +1617,11 @@ include_directories(
     ${GTEST_INCLUDE_DIRS}
     ${GMOCK_INCLUDE_DIRS}
 )
-http://kaizou.org/2014/11/gtest-cmake/
 http://www.yeolar.com/note/2014/12/16/cmake-how-to-find-libraries/
 http://blog.csdn.net/netnote/article/details/4051620
 
 find_package(Threads REQUIRED)   # 使用内置模块查找thread库支持
 
-
------ 增加库的搜索路径
-link_directories(./lib)
------ 生成库，可以是动态(SHARED)或者静态库(STATIC)
-add_library(hello SHARED ${SRC_LIST})
------ 指定生成对象时依赖的库
-target_link_libraries(hello A B.a C.so)
------ 自定义链接选项，单独对B.a使用--whole-archive选项
-target_link_libraryies(hello A -Wl,--whole-archive B.a -Wl,--no-whole-archive C.so)
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 PROJECT(uagent)
@@ -1762,8 +1631,1035 @@ INCLUDE_DIRECTORIES(include)
 
 option(WITH_UNIT_TESTS "Compile with unit tests" OFF)
 
+
+
+https://github.com/sohutv/cachecloud  Redis监控管理
+https://github.com/apache/incubator-superset 牛掰的项目管理
+https://github.com/huichen/wukong 悟空搜索引擎
+https://github.com/sylnsfar/qrcode   动态二维码生成
+https://github.com/hellysmile/fake-useragent 伪装浏览器身份
+https://github.com/jwasham/coding-interview-university 谷歌面试题
+https://github.com/Tencent/libco 腾讯协程库
+https://github.com/xtaci/kcptun 最快的UDP传输
+https://github.com/reorx/httpstat 图形显示http处理耗时
+https://github.com/ajermakovics/jvm-mon JVM监控
+https://github.com/stampery/mongoaudit MongoDB审计
+https://github.com/alexazhou/VeryNginx
+https://github.com/helloqingfeng/Awsome-Front-End-learning-resource
+https://github.com/shimohq/chinese-programmer-wrong-pronunciation
+https://github.com/egonelbre/gophers
+https://github.com/dbcli/mycli
+https://github.com/nextcloud/server
+https://github.com/SpaceVim/SpaceVim
+https://github.com/nlohmann/json
+https://github.com/alisaifee/flask-limiter
+https://github.com/nicolargo/glances
+https://github.com/nonstriater/Learn-Algorithms
+https://github.com/ZuzooVn/machine-learning-for-software-engineers
+https://github.com/jumpserver/jumpserver
+https://github.com/FredWe/How-To-Ask-Questions-The-Smart-Way/blob/master/README-zh_CN.md
+https://github.com/drduh/macOS-Security-and-Privacy-Guide
+https://github.com/chrislgarry/Apollo-11
+https://github.com/taizilongxu/interview_python
+https://github.com/FallibleInc/security-guide-for-developers
+https://github.com/SamyPesse/How-to-Make-a-Computer-Operating-System
+https://github.com/yiminghe/learning-react
+
+
+FIXME:
+  /post/python-modules.html
+  Python 包管理
+  http://www.jianshu.com/p/9acc85d0ff16
+  http://xiaorui.cc/2014/09/20/%E4%BD%BF%E7%94%A8hashring%E5%AE%9E%E7%8E%B0python%E4%B8%8B%E7%9A%84%E4%B8%80%E8%87%B4%E6%80%A7hash/
+360
+https://github.com/flike/kingshard
+https://github.com/Qihoo360/Atlas
+https://tech.meituan.com/dbproxy-pr.html
+http://www.cnblogs.com/wunaozai/p/3955156.html
+https://tech.meituan.com/
+HMAC
+http://www.oschina.net/question/12_2828
+https://github.com/awslabs/s2n
+https://btrfs.wiki.kernel.org/index.php/Main_Page
+
+http://json.org/
+https://github.com/json-c/json-c
+https://github.com/akheron/jansson
+
+https://github.com/zserge/jsmn
+https://github.com/udp/json-parser
+
+http://www.laurentluce.com/posts/python-dictionary-implementation/
+https://fengsp.github.io/blog/2017/3/python-dictionary/
+http://www.cnblogs.com/xiangnan/p/3859578.html
+http://python.jobbole.com/85040/
+https://github.com/davidar/c-hashtable
+https://github.com/larsendt/hashtable
+https://github.com/tklauser/inotail
+http://www.infoq.com/cn/articles/inotify-linux-file-system-event-monitoring
+http://blog.csdn.net/factor2000/article/details/3929816
+http://www.tldp.org/HOWTO/html_single/C++-dlopen/
+Python 字典是用哈希表 (hash table) 实现，哈希表是一个数组，它的索引是对键运用哈希函数计算求得的。
+
+一个好的哈希函数会将冲突数量降到最小，将各个值均匀分布到数组中，而 Python 中的哈希函数 (主要用于字符串和整数) 很常规：冲突时采用开放寻址，相比链表来说，其 CPU Cache 的命中率更高。
+
+map(hash, (0, 1, 2, 3))
+
+http://blog.csdn.net/yatere/article/details/6701761
+typedef struct {
+    Py_ssize_t me_hash;
+    PyObject *me_key;
+    PyObject *me_value;
+} PyDictEntry;
+
+
+Active, Unused, Dummy。
+Unused:me_key == me_value == NULL，即未使用的空闲状态。
+Active:me_key != NULL, me_value != NULL，即该entry已被占用
+Dummy:me_key == dummy, me_value == NULL。
+
+哈希探测结束的条件是探测到一个Unused的entry。但是dict操作中必定会有删除操作，如果删除时仅把Active标记成Unused，显然该entry之后的所有entry都不可能被探测到，所以引入了dummy结构。遇到dummy就说明当前entry处于空闲状态，但探测不能结束。这样就解决了删除一个entry之后探测链断裂的问题。
+
+
+
+struct _dictobject {
+    PyObject_HEAD
+    Py_ssize_t ma_fill;      Active+Dummy
+    Py_ssize_t ma_used;      Active
+    Py_ssize_t ma_mask;      总共有ma_mask+1个slots，可以通过key_hash&ma_mask得到对应的slot
+    PyDictEntry *ma_table;   保存的hash表
+    PyDictEntry *(*ma_lookup)(PyDictObject *mp, PyObject *key, long hash);
+    PyDictEntry ma_smalltable[PyDict_MINSIZE];
+};
+
+
+PyDict_New() 创建新字典对象
+ |-PyString_FromString() 第一次会初始化dummy对象
+ |-PyObject_GC_New() 如果没有缓存，则通过该函数创建一个
+ 
+Dict 对象的插入
+字典对象的插入实际是通过 PyDict_SetItem() 函数完成，简单来说就是，如果不存在 Key-Value 则插入，存在则覆盖；基本的处理步骤如下：
+
+1. 通过 ma_lookup 所指向的函数得到 key 所对应的 entry，该函数对于字符串来说是 lookdict_string()，整形是 lookdict()；
+2. 返回的值分为如下几种场景：
+   * me_key = NULL 空不存在，可以直接使用；
+   * me_key = key 对应的值已经存在，可以直接返回；
+   * me_hash = hash && 字符串相同，不同的 key 对象，但是值相同，同样认为相同；
+   * me_key = dummy 对应的值已经删除；
+   * 冲突，通过如下方式探测。
+
+
+
+----- 创建初始化字典对象
+info = {"name" : "foobar", "gender": "male"}
+info = dict(name = 'foobar', gender = 'male')
+----- 对于第二种方式，在如下场景时可能会出现隐藏的bug
+key = 'name'
+info = { key :'foobar'}     # {'name':'foobar'}
+info = dict(key = 'foobar') # {'key': 'foobar'}
+----- 可以通过fromkeys函数进行初始化，值默认是None，也可以通过第二个参数指定默认值
+info = {}.fromkeys(['name', 'gender'])              # {'gender' : None, 'name' : None}
+info = dict().fromkeys(['name', 'gender'])          # {'gender' : None, 'name' : None}
+info = {}.fromkeys(['name', 'gender'], 'invalid')   # {'gender' : 'invalid', 'name' : 'invalid'}
+
+----- 获取值
+print info['name']                 # 不存在时会触发KeyError异常
+print info.get('name')             # 不存在返回None而非异常
+print info.get('notexist', 'oops') # 不存在时返回指定的默认值
+
+----- 更新、添加、删除
+info['name'] = 'kidding'
+info.update({'name':'kidding', 'gender':'female'})
+info.update(name='kidding', blog='female')
+del info['name']                   # 或者info.pop('name')
+
+d.keys()
+for key, value in info.items():
+    print key, ':',  value
+
+PyDict_SetItem()
+ |-PyString_CheckExact()  如果是string对象，那么实际会通过string_hash计算hash值
+ |-PyObject_Hash()  否则是int类型，则通过int_hash计算hash值
+ |-dict_set_item_by_hash_or_entry() 其中entry为0，也就是通过hash添加，会判断是否调整大小
+   |-insertdict()  实际调用这里的接口
+   | |-ma_lookup() 通过该指针指向的对象查找，一般默认为lookdict_string()函数
+   | |-insertdict_by_entry()
+   |-insertdict_by_entry()
+   |-dictresize() 只有在插入的时候会调整字典的大小
+ 
+TODO:
+  校验下，循环中可以替换，但是无法新增或者删除。
+  key可以是int和string的混合。 
+ 
+Chrome Vimium 快捷键可以直接通过 ? 查看。
+
+git clone -b 0.10.0 https://github.com/pika/pika.git
+
+
+日志保存在 /var/log/rabbitmq 目录下。
+
+schema_integrity_check_failed
+一般是由于 mnesia 数据库的问题导致，简单粗暴的方式是直接删除。 
+
+systemd
+rabbitmq-server.service: Got notification message from PID 10513
+
+
+
+MTU
+Maximum Transmission Unit
+ ifconfig eth0 mtu number
+/etc/sysconfig/network-scripts/ifcfg-eth0
+MTU=1000
+IPV6_MTU=1000
+http://www.361way.com/linux-mtu-jumbo-frames/4055.html
+http://www.microhowto.info/howto/change_the_mtu_of_a_network_interface.html
+http://www.cnblogs.com/liu-yao/p/5678161.html
+http://blog.csdn.net/anzhsoft/article/details/19563091
+
+
+
+
+
+
+
+首先通过 crontab(crontab.c) 完成任务的编辑，然后通过 poke_daemon() 通知 crond 程序，实际上就是通过 utime() 修改 SPOOL_DIR 目录的访问和修改时间。而在 crond(cron.c) 程序中，会通过 inotify 机制接收，然后进行更新。
+
+http://blog.csdn.net/rain_qingtian/article/details/11008779
+
+https://github.com/DaveGamble/cJSON
+
+语法规则可以参考 [JSON: The Fat-Free Alternative to XML](yuhttp://www.json.org/fatfree.html) 。
+
+parse_value()  正式的语法解析
+
+https://github.com/staticlibs/ccronexpr
+
+American Fuzzy Lop, AFL 是一种开源的模糊测试器，由谷歌的 Michal Zalewski 开发。可以在源码编译时添加，或者使用 QEMU 模式，也就是 QEMU-(User Mode) ，在执行时注入部分代码进行测试。http://lcamtuf.coredump.cx/afl/
+https://github.com/google/syzkaller
+https://github.com/xxg1413/fuzzer/tree/master/iFuzz
+https://stfpeak.github.io/2017/06/12/AFL-Cautions/
+http://bobao.360.cn/news/detail/3354.html
+http://www.jianshu.com/p/015c471f5a9d
+http://ele7enxxh.com/Use-AFL-For-Stagefright-Fuzzing-On-Linux.html
+http://www.freebuf.com/articles/system/133210.html
+http://www.hackdig.com/07/hack-24522.htm
+http://aes.jypc.org/?p=38207
+https://fuzzing-project.org/tutorial3.html
+afl-fuzz -i afl_in -o afl_out ./binutils/readelf -a @@
+afl-gcc afl-clang-fast
+
+http://blog.codingnow.com/2017/07/float_inconsistence.html#more
+
+
+:set nopaste
+:UltiSnipsEdit
+:verbose imap <tab>
+http://www.cnblogs.com/acbingo/p/4757275.html
+http://blog.guorongfei.com/2016/12/03/vim-ultisnipt-google-c-cpp-header-gurad/
+http://vimzijun.net/2016/10/30/ultisnip/
+http://www.linuxidc.com/Linux/2016-11/137665.htm
+https://segmentfault.com/q/1010000000610373
+
+http://liulixiaoyao.blog.51cto.com/1361095/814329
+
+
+
+
+
+
+
+
+
+
+
+
+
+https://casatwy.com/pthreadde-ge-chong-tong-bu-ji-zhi.html
+http://blog.csdn.net/willib/article/details/32942189
+
+https://github.com/beego/beedoc/blob/master/zh-CN/module/grace.md
+https://www.nginx.com/resources/wiki/start/topics/tutorials/commandline/
+http://blog.csdn.net/brainkick/article/details/7192144
+http://shzhangji.com/cnblogs/2012/12/23/nginx-live-upgrade/
+
+http://www.freebuf.com/sectool/119680.html
+http://tonybai.com/2011/04/21/apply-style-check-to-c-code/
+https://github.com/dspinellis/cqmetrics
+
+VGC、RATS、Source Insight
+ 
+ 
+测试版本
+
+
+core
+gcov
+CPP-Check
+Flawfinder
+
+
+静态安全扫描 flawfinder、RATS、ITS4、VCG、CPPLint、SPlint
+
+Python: Pychecker、Pylint、RATS
+
+
+python -m SimpleHTTPServer
+
+## flawfinder
+
+一个 Python 写的程序，用于扫描代码，然后在规则库 (c_ruleset) 中查找符合规则的场景。
+
+源码可以直接从 [www.dwheeler.com](https://www.dwheeler.com/flawfinder/) 上下载，安装方式可以查看 README 文件，也就是如下命令。
+
+$ tar xvzf FILENAME.tar.gz       # Uncompress distribution file
+$ cd flawfinder-*                # cd into it.
+# make prefix=/usr install       # Install in /usr
+
+该工具只针对单个语句进行词法分析，不检查上下文，不分析数据类型和数据流；检查运行时可能存在的问题，比如内存泄露；然后会根据规则库给出代码建议。这也就意味着会有部分的误报，不过因为使用简单，仍不失为一个不错的静态检测工具。
+
+检查可以直接指定文件或者目录，工具会自动查看所有的 C/C++ 文件，如果是 patch (diff -u、svn diff、git diff) 添加参数 --patch/-P 即可。严重等级从 0 到 5 依次增加，而且会标示出 [Common Weakness Enumeration, CWE](https://cwe.mitre.org/data/) 对应。
+
+检查时会读取 ruleset 中的规则，然后如果匹配 (hit) 则将匹配数据保存到 hitlist 中，
+
+### 常见操作
+
+1. 重点检查与外部不可信用户的交互程序，先确保这部分程序无异常；
+2. 如果已经审计的函数，可以通过 ```// Flawfinder: ignore``` 或者 ```/* Flawfinder: ignore */``` 减少异常输出，为了兼容，也可以使用 ```ITS4``` 或者 ```RATS``` 替换 ```Flawfinder```；
+
+
+--inputs/-I
+  只检查从外部用户(不可信)获取数据的函数；
+--neverignore/-n
+  默认可以通过上述的方式忽略标记的行，通过该参数用于强制检测所有的代码；
+--savehitlist, --loadhitlist, --diffhitlist
+  用于保存、加载、比较hitlist；
+--minlevel=NUMBER
+  指定最小的错误汇报级别；
+  
+--quiet/-Q
+  默认会在检测时打印检查了哪些文件，通过该选项可以关闭，通常用于格式化输出检测；
+--dataonly/-D
+  不显示header和footer，可以配合--quiet参数只显示数据；
+--singleline/-S
+  检测结果默认会多行显示，该参数指定一行显示；
+--immediate/-i
+  默认在全部文件检测完之后，进行排序，然后显示最终的结果，该参数可以在监测到异常后立即显示；
+
+  
+----- 检查所有的代码，即使已经标记为ignore的代码
+$ flawfinder --neverignore src
+----- 可以通过如下命令输出，以供其它自动化工具使用
+$ flawfinder -QD src
+$ flawfinder -QDSC src
+----- 检查代码只汇报CWE-120或者CWE-126
+$ flawfinder --regex "CWE-120|CWE-126" src/
+
+
+/* RATS: ignore */
+
+
+
+uagent 调试，
+export UAGENT_TRACE="yes"
+
+flawfinder -Q --minlevel=5 src | less
+
+
+
+int lcc_connect(const char *address, lcc_connection_t **ret_con);
+功能：
+  建立指向address的socket链接，通过ret_con返回链接信息；
+入参:
+  address socket地址，如/usr/var/run/uagent.sock、unix:/usr/var/run/uagent.sock；
+  ret_con 返回的已经建立好的链接；
+返回值：
+  -1 入参异常，或者没有内存；
+  0  正常返回；
+
+int lcc_disconnect(lcc_connection_t *c);
+功能：
+  关闭链接，释放资源；
+
+## coverage
+http://blog.csdn.net/livelylittlefish/article/details/6448885
+编译链接时需要修改配置选项。
+
+* 编译的时候，增加 -fprofile-arcs -ftest-coverage 或者 –coverage；
+* 链接的时候，增加 -fprofile-arcs 或者 –lgcov；
+* 打开–g3 选项，去掉-O2以上级别的代码优化选项，否则编译器会对代码做一些优化，例如行合并，从而影响行覆盖率结果。
+
+ifeq ($(coverage), yes)
+CFLAGS   +=  -fprofile-arcs -ftest-coverage -g3
+LDFLAGS  +=  -fprofile-arcs -ftest-coverage
+endif
+
+如下是测试步骤。
+----- 1. 编译源码，此时每个文件都会生成一个*.gcno文件
+$ make coverage=yes
+----- 2. 运行，运行之后会生成 *.gcda 文件
+$ ./helloworld
+----- 3.1 可以通过如下命令生成单个文件的覆盖率，生成的是文本文件*.gcov
+$ gcov helloworld.c
+
+除了使用 gcov 之外，还可以通过 lcov 查看覆盖率，简单说下 *.gcov 的文件格式。
+
+    -:    2:#include <assert.h>   非有效行
+    -:    3:#include <stdlib.h>
+ ... ...
+  148:   71:  if (n == NULL)      调用次数
+#####:   72:    return (0);       未调用
+
+
+简单介绍下代码覆盖率的常见术语。
+
+
+主要是基本块（Basic Block），基本块图（Basic Block Graph），行覆盖率（line coverage）, 分支覆盖率（branch coverage）等。
+
+##### 基本块
+这里可以把基本块看成一行整体的代码，基本块内的代码是线性的，要不全部运行，要不都不运行，其详细解释如下：
+A basic block is a sequence of instructions with only entry and only one exit. If any one of the instructions are executed, they will all be executed, and in sequence from first to last.
+
+
+
+
+ 
+    基本块图（Basic Block Graph），基本块的最后一条语句一般都要跳转，否则后面一条语句也会被计算为基本块的一部分。 如果跳转语句是有条件的，就产生了一个分支(arc)，该基本块就有两个基本块作为目的地。如果把每个基本块当作一个节点，那么一个函数中的所有基本块就构成了一个有向图，称之为基本块图(Basic Block Graph)。且只要知道图中部分BB或arc的执行次数就可以推算出所有的BB和所有的arc的执行次数；
+    打桩，意思是在有效的基本块之间增加计数器，计算该基本块被运行的次数；打桩的位置都是在基本块图的有效边上；
+
+##### 行覆盖率
+就是源代码有效行数与被执行的代码行的比率；
+
+##### 分支覆盖率
+有判定语句的地方都会出现 2 个分支，整个程序经过的分支与所有分支的比率是分支覆盖率。注意，与条件覆盖率(condition coverage)有细微差别，条件覆盖率在判定语句的组合上有更细的划分。
+
+### gcc/g++ 编译选项
+
+如上所述，在编译完成后会生成 *.gcno 文件，在运行正常结束后生成 *.gcda 数据文件，然后通过 gcov 工具查看结果。
+
+--ftest-coverage
+  让编译器生成与源代码同名的*.gcno文件 (note file)，含有重建基本块依赖图和将源代码关联至基本块的必要信息；
+--fprofile-arcs
+  让编译器静态注入对每个源代码行关联的计数器进行操作的代码，并在链接阶段链入静态库libgcov.a，其中包含在程序正常结束时生成*.gcda文件的逻辑；
+
+可以通过源码解析来说明到底这 2 个选项做了什么，命令如下：
+g++ -c -o hello.s hello.c -g -Wall -S
+g++ -c -o hello_c.s hello.c -g -Wall –coverage -S
+vimdiff hello.s hello_c.s
+
+
+1. 覆盖率的结果只有被测试到的文件会被显示，并非所有被编译的代码都被作为覆盖率的分母
+
+实际上，可以看到整个覆盖率的产生的过程是4个步骤的流程，一般都通过外围脚本，或者makefile/shell/python来把整个过程自动化。2个思路去解决这个问题，都是通过外围的伪装。第一个，就是修改lcov的 app.info ，中间文件，找到其他的文件与覆盖率信息的地方，结合makefile，把所有被编译过的源程序检查是否存于 app.info 中，如果没有，增加进去。第二个伪装，是伪装 *.gcda，没有一些源码覆盖率信息的原因就是该文件没有被调用到，没有响应的gcda文件产生。
+
+
+2. 后台进程的覆盖率数据收集；
+ 
+
+其实上述覆盖率信息的产生，不仅可以针对单元测试，对于功能测试同样适用。但功能测试，一般linux下c/c++都是实现了某个Daemon进程，而覆盖率产生的条件是程序需要正常退出，即用户代码调用 exit 正常结束时，gcov_exit 函数才得到调用，其继续调用 __gcov_flush 函数输出统计数据到 *.gcda 文件中。同样2个思路可以解决这个问题，
+
+第一，给被测程序增加一个 signal handler，拦截 SIGHUP、SIGINT、SIGQUIT、SIGTERM 等常见强制退出信号，并在 signal handler 中主动调用 exit 或 __gcov_flush 函数输出统计结果。但这个需要修改被测程序。这个也是我们之前的通用做法。但参加过清无同学的一个讲座后，发现了下面第二种更好的方法。
+
+第二，借用动态库预加载技术和 gcc 扩展的 constructor 属性，我们可以将 signalhandler 和其注册过程都封装到一个独立的动态库中，并在预加载动态库时实现信号拦截注册。这样，就可以简单地通过如下命令行来实现异常退出时的统计结果输出了。
+
+
+### lcov
+
+用于生成 html 格式的报告。
+
+yum install --enablerepo=epel lcov perl-GD
+
+----- 1. 生成*.info文件
+$ lcov -d . -o 'hello_test.info' -t ‘Hello test’ -b . -c
+参数解析：
+   -d 指定目录
+----- 2. 生成html，-o指定输出目录，可以通过HTTP服务器查看了
+$ genhtml -o result hello_test.info
+
+
+ 
+## 静态检查
+
+http://www.freebuf.com/sectool/119680.html
+
+cppcheck、Splint(Secure Programming Lint)
+
+### cppcheck
+
+直接从 [github cppcheck](https://github.com/danmar/cppcheck) 下载，然后通过 make && make install 编译安装即可。
+
+cppcheck -j 3 --force --enable=all src/*
+
+--force
+  如果#ifdef的宏定义过多，则cppcheck只检查部分
+-j
+  检查线程的个数，用于并发检查；
+--enable
+  指定当前的检查级别，可选的参数有all，style，information等；
+--inconclusive
+  默认只会打印一些确认的错误，通过该参数配置异常的都打印；
+
+  
+  
+### Splint
+
+http://www.cnblogs.com/bangerlee/archive/2011/09/07/2166593.html
+
+
+## 圈复杂度 (Cyclomatic complexity)
+
+OCLint(Mac) cppncss SourceMonitor(Windows)
+
+常用概念介绍如下：
+
+* Non Commenting Source Statements, NCSS 去除注释的有效代码行；
+* Cyclomatic Complexity Number, CCN 圈复杂度。
+
+同样，一个函数的 CCN 意味着需要多少个测试案例来覆盖其不同的路径，当 CCN 发生很大波动或者 CCN 很高的代码片段被变更时，意味改动引入缺陷风险高，一般最好小于 10 。
+
+
+
+Findbugs (compiled code analysis)
+PMD (static code analysis)
+
+### SourceMonitor
+
+http://www.campwoodsw.com/sourcemonitor.html
+
+### cppncss
+
+很简单的计算圈复杂度的工具，java。
+
+
+## 内存检测
+
+Valgrind
+
+
+HAVE_LIBGEN_H 1
+HAVE_FNMATCH_H 1
+
+----- 当前目录下生成buildbot_master目录，以及配置文件master.cfg.sample
+$ buildbot create-master buildbot_master
+
+
+$ cd buildbot_master && mv master.cfg.sample master.cfg 
+$ buildbot checkconfig master.cfg
+c['buildbotNetUsageData'] = None
+
+----- 运行
+$ buildbot start buildbot_master
+# 查看日志
+tail -f master/twistd.log
+
+virtualenv 
+
+
+
+https://github.com/nodejs/http-parser
+https://github.com/shellphish/how2heap
+https://github.com/DhavalKapil/heap-exploitation
+
+https://github.com/maidsafe-archive/MaidSafe-RUDP/wiki
+RTP  https://tools.ietf.org/html/rfc3550
+UDT http://udt.sourceforge.net/
+https://github.com/dorkbox/UDT
+
+https://github.com/greensky00/avltree
+http://blog.csdn.net/q376420785/article/details/8286292
+http://xstarcd.github.io/wiki/shell/UDP_Hole_Punching.html
+
+
+
+http://www.wowotech.net/timer_subsystem/tick-device-layer.html
+https://www.w3.org/CGI/
+https://github.com/HardySimpson/zlog
+
+
+
+
+
+
+
+
+
+
+
+main()
+ |-handle_read()
+   |-httpd_start_request()
+     |-really_start_request()
+       |-cgi()
+         |-cgi_child()
+           |-make_envp()
+             |-build_env()
+
+
+
+onion_http_new() 会将onion_http_read_ready()赋值给read_ready
+
+onion_http_read_ready()
+ |-onion_request_process()
+
+
+onion_url_new()
+ |-onion_url_handler()
+
+onion_listen_point_accept() 在listen端口上出现时调用
+
+onion_listen_point_read_ready()
+
+
+
+
+
+
+
+
+Micro Transport Protocol, μTP，因为 μ 输入困难 μTP 通常被写为 uTP 。这是一个由 BitTorrent 公司开发的协议，在 UDP 协议之上实现可靠传输与拥塞控制等特性，可以克服多数防火墙和 NAT 的阻碍，从而大大提高用户的连接性以及下载速度。
+
+关于该协议的详细内容可以参考 [uTorrent Transport Protocol](http://www.bittorrent.org/beps/bep_0029.html) 中的内容。
+
+max_window 最大窗口，在传输过程中 (in-flight) 可能的最大字节，也就是已经被发送但是还没有收到响应的报文；
+cur_window 当前窗口，当前正在传输中的字节数。
+wnd_size   窗口大小，也就是对端建议使用的窗口大小，同时会限制传输过程中的字节数。
+
+只有当 (cur_window + packet_size) <= min(max_window, wnd_size) 时才可以发送数据，
+
+A socket may only send a packet if cur_window + packet_size is less than or equal to min(max_window, wnd_size). The packet size may vary, see the packet sizes section.
+
+上报协议格式内容
+http://code.huawei.com/Monitor/CloudMonitor-Common/wikis/agent-protocol
+
+
+cJSON_CreateObject()    创建新的对象，设置对应的type类型
+ |-cJSON_New_Item()     新申请cJSON结构内存，并初始化为0
+cJSON_CreateString()    和cJSON_CreateRaw()函数调用相同，只是设置的类型不同
+ |-cJSON_New_Item()
+ |-cJSON_strdup()       创建对象后会将字符串复制一份
+cJSON_Print()
+ |-print()
+   |-print_value()
+
+
+typedef struct cJSON {    
+    /* next/prev allow you to walk array/object chains. Alternatively, use GetArraySize/GetArrayItem/GetObjectItem */
+    struct cJSON *next;
+    struct cJSON *prev;
+    struct cJSON *child;    对于Array类型，则会作为链表头
+    int type;               类型，包括了String、Number、Raw等
+    char *valuestring;      如果是String或者Raw时使用
+    int valueint;           这个已经取消，使用valuedouble替换，为了兼容未删除
+    double valuedouble;     如果是Number时使用
+    
+    /* The item's name string, if this item is the child of, or is in the list of subitems of an object. */
+    char *string;
+} cJSON;
+
+Invalid、True、False、NULL、Object、Array 通过 type 区分，
+
+cJSON_Parse()
+ |-cJSON_ParseWithOpts()
+   |-cJSON_New_Item()
+   |-parse_value()  根据不同的字段进行解析
+
+cJSON_Duplicate()
+cJSON_Minify() 
+???cJSON_Compare()
+
+cJSON_Parse()
+cJSON_Print()  按照可阅读的格式打印，方便阅读，一般用于交互
+cJSON_PrintUnformatted() 最小化打印，一般用于格式发送
+cJSON_PrintBuffered()
+cJSON_PrintPreallocated()
+
+string trim
+https://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way
+
+
+scanf 中一种很少见但很有用的转换字符 `[...]` 和 `[ ^...]` 。
+
+#include <stdio.h>
+int main()
+{ 
+    char strings[100]; 
+    scanf("%[1234567890]", strings); 
+    printf("%s", strings);
+    return 0;
+}
+
+运行，输入 `1234werew` 后，结果是 `1234` ，也就是说，如果输入的字符属于方括号内字符串中某个字符，那么就提取该字符；如果一经发现不属于就结束提取。
+
+这就是 ANSI C 增加的一种新特性，称为扫描集 (scanset)，由一对方括号中的一串字符定义，左方括号前必须缀以百分号，通过 `^` 表示补集。
+
+注意，其中必须至少包含一个字符，否则非法，如 `%[]` 和 `%[^]` 是非法的。
+
+%[a-z]  读取在 a-z 之间的字符串
+    char s[]="hello, my friend";   // 注意: 逗号在不a-z之间
+    sscanf(s, "%[a-z]", string);   // string=hello
+%[^a-z] 读取不在 a-z 之间的字符串，如果碰到a-z之间的字符则停止
+    char s[]="HELLOkitty";
+    sscanf( s, "%[^a-z]", string); // string=HELLO
+%*[^=]  前面带 * 号表示不保存变量，跳过符合条件的字符串。
+    char s[]="notepad=1.0.0.1001" ;
+    char szfilename [32] = "" ;
+    int i = sscanf( s, "%*[^=]", szfilename ) ;
+// szfilename=NULL,因为没保存
+
+int i = sscanf( s, "%*[^=]=%s", szfilename ) ;
+// szfilename=1.0.0.1001
+
+
+%40c 读取40个字符
+
+
+%[^=] 读取字符串直到碰到’=’号，’^’后面可以带更多字符,如：
+              char s[]="notepad=1.0.0.1001" ;
+              char szfilename [32] = "" ;
+             int i = sscanf( s, "%[^=]", szfilename ) ;
+           // szfilename=notepad 
+       如果参数格式是：%[^=:] ，那么也可以从 notepad:1.0.0.1001读取notepad
+http://www.cnblogs.com/mafly/p/postman.html
+
+http://www.quartz-scheduler.org/documentation/quartz-2.x/tutorials/crontrigger.html
+http://www.blogjava.net/javagrass/archive/2011/07/12/354134.html
+https://meekrosoft.wordpress.com/2009/11/09/unit-testing-c-code-with-the-googletest-framework/
+
+
+https://en.wikipedia.org/wiki/Network_Time_Protocol
+
+Linux 内核通过 adjtime() 或者 ntp_adjtime() 来进行时钟的同步，ntptime 
+http://jfcarter.net/~jimc/documents/bugfix/12-ntp-wont-sync.html
+http://libev.schmorp.de/bench.c
+https://stackoverflow.com/questions/14621261/using-libev-with-multiple-threads
+https://curl.haxx.se/libcurl/c/evhiperfifo.html
+https://github.com/HardySimpson/zlog
+http://kagachipg.blogspot.com/2013/10/multi-thread-in-libev.html
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+conn_config()
+ |-port_collect_listening  如果配置了ListeningPorts变量则设置为1
+ |-conn_get_port_entry()   对于LocalPort和RemotePort参数，如果存在则设置否则创建
+ |-port_collect_total      如果配置了AllPortsSummary变量则设置为1
+conn_read()
+ |-
+####
+
+$ cat << EOF > request.txt
+GET / HTTP/1.1
+Host: 127.1
+EOF
+$ cat request.txt | openssl s_client -connect 127.1:443
+
+
+printf 'GET / HTTP/1.1\r\nHost: github.com\r\n\r\n' | ncat --ssl github.com 443
+
+----- 发送系统日志内容
+$ ncat -l -p 6500 | tee -a copy.out | tar -zx -C $(mktemp -d)
+$ (tar -zc -C /var/log; tail -f /var/log/syslog) | ncat 127.1 6500
+
+----- 使用SSL传输
+$ ncat -l -p 6500 --ssl --ssl-cert /etc/ssl/host.crt \
+    --ssl-key /etc/ssl/host.key > out.tgz
+$ tar -zc ~ | ncat --ssl 127.1 6500
+
+----- 使用UDP协议
+$ ncat -l -p 6500 --udp > out.tgz
+$ tar -zc ~ | ncat --udp machineb 6500
+
+----- 使用SCTP
+$ ncat --sctp -l -p 6500 > out.tgz
+$ tar -zc ~ | ncat --sctp machineb 6500
+给系统添加根证书
+http://manuals.gfi.com/en/kerio/connect/content/server-configuration/ssl-certificates/adding-trusted-root-certificates-to-the-server-1605.html
+https://segmentfault.com/a/1190000002569859
+CentOS 会保存在 /etc/ssl/certs/ 目录下，
+
+--ssl                  Connect or listen with SSL
+--ssl-cert             Specify SSL certificate file (PEM) for listening
+--ssl-key              Specify SSL private key (PEM) for listening
+--ssl-verify           Verify trust and domain name of certificates
+--ssl-trustfile        PEM file containing trusted SSL certificates
+
+http://blog.csdn.net/ljy1988123/article/details/51424162
+http://blog.csdn.net/younger_china/article/details/72081779
+http://blog.csdn.net/yusiguyuan/article/details/48265205
+
+SSL Certificate File 文件中包含了一个 X.509 证书，实际上也就是加密用的公钥，而 SSL Certificate Key File 文件中是公钥对应的私钥，在进行安全传输时就需要这对密钥。有的程序是将两者放在一起，如一些 Java 程序；有的则会分开存储，如 Apache 。
+
+一般在申请了证书之后，如通过 GoDaddy，会提供上述的两个文件。
+
+如果服务端只使用了上述的两个文件，那么实际上客户端并不知道这个证书是谁颁发的；不过一般来说没有太大问题，因为客户端会保存很多的 CA 证书，包括中间证书以及根证书。如果要直接指定证书的依赖关系，可以通过 SSLCertificateChainFile 参数指定。
+
+Nginx https配置
+https://fatesinger.com/75967
+https://imququ.com/post/my-nginx-conf-for-security.html
+
+
+tail  -> coreutils
+tailf -> util-linux
+
+Linux Shell man 命令详细介绍
+http://blog.jobbole.com/93404/
+http://www.lai18.com/content/1010397.html
+
+网络监控
+https://stackoverflow.com/questions/614795/simulate-delayed-and-dropped-packets-on-linux
+
+The f_frsize value is the actual minimum allocation unit of the
+filesystem, while the f_bsize is the block size that would lead to
+most efficient use of the disk with io calls.  All of the block counts
+are in terms of f_frsize, since it is the actual allocation unit size.
+ The BSD manpages are a bit more informative on this function than the
+POSIX ones.
+
+https://blog.blahgeek.com/glibc-and-symbol-versioning/
+http://www.runoob.com/linux/linux-comm-indent.html
+http://riemann.io/quickstart.html
+http://blog.csdn.net/c80486/article/details/45066439
+http://www.hzrcj.org.cn/personnel/pd01/findda_qc01
+https://github.com/mkirchner/tcping/blob/master/tcping.c
+
+C格式化检查
+sparse
+
+indent                                \
+ --ignore-profile                  \    不读取indent的配置文件
+ --k-and-r-style                   \    指定使用Kernighan&Ritchie的格式
+ --indent-level8                   \    缩进多少字符，如果为tab的整数倍，用tab来缩进，否则用空格填充
+ --tab-size8                       \    tab大小为8
+ --swallow-optional-blank-lines    \    删除多余的空白行
+ --line-length130                  \    设置每行的长度
+ --no-space-after-casts            \    不要在cast后添加一个空格
+ --space-special-semicolon         \    若for或while区段只有一行时，在分号前加上空格
+ --else-endif-column1              \    将注释置于else与elseif右侧
+    --use-tabs                        \    使用tab做缩进
+ --blank-lines-after-procedures    \    函数结束后加空行
+ --blank-lines-after-declarations  \    声明结束后加空行
+    load.c
+
+find -type f -regextype posix-egrep -regex ".*(~|\.bak)$" -exec ls -alh {} \;
+
+NAN 一种是 <math.h> 中提供的默认值，也可以自定义宏，如下
+
+#define NAN          (0.0 / 0.0)
+#define isnan(f)     ((f) != (f))
+#define isfinite(f)  (((f) - (f)) == 0.0)
+#define isinf(f)     (!isfinite(f) && !isnan(f))
+
+http://zh.cppreference.com/w/c/numeric/math/fpclassify
+
+其中使用 `isnan()` 时，`FLT_EVAL_METHOD` 将被忽略。
+
+FIXME:
+https://jin-yang.github.io/post/collectd-source-code.html
+ |   | | | | |-FORMAT_VL()                    ← 实际上是调用format_name()将vl中的值生成标示符
+             |-pthread_mutex_lock()
+ |   | | | | |-c_avl_get()                    ← 利用上述标示符获取cache_entry_t，在此会缓存最近的一次采集数据
+             |-uc_insert() 如果不存在则插入，直接解锁退出
+    |-合法性检查，上次的采集时间应该小于本次时间
+    |-根据不同的类型进行检查<<<DS-TYPE>>>，计算方法详见如下
+ |   | | | | |... ...                         ← 会根据不同的类型进行处理，例如DS_TYPE_GAUGE
+ |   | | | | |-uc_check_range()               ← 检查是否在指定的范围内
+
+values_raw   保存原始数据的值
+values_gauge 会按照不同的类型进行计算，其中计算规则如下
+
+
+
+
+
+
+
+git diff <local branch> <remote>/<remote branch>
+----- 查看stage中的diff
+git diff --cached/--staged
+http://perthcharles.github.io/2015/08/25/clean-commit-log-before-push/
+https://github.com/chenzhiwei/linux/tree/master/git
+https://ddnode.com/2015/04/14/git-modify-remote-responsity-url.html
+
+通过amend修改之后，需要使用--force强制推送该分支。
+git push --force origin feature/ping:feature/ping
+
+etcd
+https://tonydeng.github.io/2015/10/19/etcd-application-scenarios/
+https://tonydeng.github.io/2015/11/24/etcd-the-first-using/
+http://cizixs.com/2016/08/02/intro-to-etcd
+http://debugo.com/using-etcd/
+curl
+http://blog.likewise.org/2011/08/brushing-up-on-curl/
+http://www.ruanyifeng.com/blog/2011/09/curl.html
+http://www.cnblogs.com/gbyukg/p/3326825.html
+https://stackoverflow.com/questions/27368952/linux-best-way-in-two-way-ipc-in-c
+http://www.cnblogs.com/zhang-shijie/p/5439210.html
+正则表达式
+https://www.zhihu.com/question/27434493
+
+
+以 `CHECK_SYMBOL_EXISTS()` 宏为例，对于 CentOS，在 `/usr/share/cmakeX/Modules` 中存在 `CheckSymbolExists.cmake` 模板，可以直接查看相关宏的定义；其它类似模板同样可以进行相应的检查。
+
+ss -tan |awk 'NR>1{++S[$1]}END{for (a in S) print a,S[a]}' && ./tcpstatus
+
+https://github.com/schweikert/fping
+https://github.com/octo/liboping
+
+
+https://www.typora.io/#windows
+json-handle markdown edit chrome浏览器
+http://blog.csdn.net/fandroid/article/details/45787423
+进程通讯
+http://blog.csdn.net/21aspnet/article/details/7479469
+
+https://github.com/TeamStuQ/skill-map
+
+## 网络监控
+
+Interface /proc/net/dev
+TCPConns
+PowerDNS
+IPtables
+netlink
+
+命令
+ethtool
+   ethtool -i eth0
+netstat
+
+libev压测
+http://libev.schmorp.de/bench.c
+spark经典
+https://aiyanbo.gitbooks.io/spark-programming-guide-zh-cn/content/index.html
+https://github.com/lw-lin/CoolplaySpark/blob/master/Spark%20Streaming%20%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90%E7%B3%BB%E5%88%97/readme.md
+小型数据库
+lmdb
+cdb  https://github.com/rmind/libcdb
+Kyoto Cabinet   http://fallabs.com/kyotocabinet/
+https://github.com/symisc/unqlite
+https://github.com/numetriclabz/awesome-db
+https://github.com/gstrauss/mcdb
+https://github.com/tklauser/inotail/blob/master/inotail.c
+https://github.com/adamierymenko/kissdb
+
+
+
+Futex
+http://www.cnblogs.com/bbqzsl/p/6814031.html
+http://www.jianshu.com/p/570a61f08e27
+http://blog.csdn.net/Javadino/article/details/2891385
+http://blog-kingshaohua.rhcloud.com/archives/84
+http://blog.csdn.net/michael_r_chang/article/details/30717763
+http://www.anscen.cn/article1.html
+http://kouucocu.lofter.com/post/1cdb8c4b_50f62fe
+http://blog.sina.com.cn/s/blog_e59371cc0102v29b.html
+https://bg2bkk.github.io/post/futex%E5%92%8Clinux%E7%9A%84%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5%E6%9C%BA%E5%88%B6/
+http://kexianda.info/2017/08/17/%E5%B9%B6%E5%8F%91%E7%B3%BB%E5%88%97-5-%E4%BB%8EAQS%E5%88%B0futex%E4%B8%89-glibc-NPTL-%E7%9A%84mutex-cond%E5%AE%9E%E7%8E%B0/
+
+https://github.com/Hack-with-Github/Awesome-Hacking
+NTPL生产者消费者模型
+http://cis.poly.edu/cs3224a/Code/ProducerConsumerUsingPthreads.c
+
+netlink编程，以及比较有意思的程序
+http://edsionte.com/techblog/archives/4140
+https://github.com/lebougui/netlink
+https://github.com/eworm-de/netlink-notify
+以及ss程序使用示例
+http://www.binarytides.com/linux-ss-command/
+https://www.cyberciti.biz/files/ss.html
+https://serverfault.com/questions/510708/tail-inotify-cannot-be-used-reverting-to-polling-too-many-open-files
+https://serverfault.com/questions/561107/how-to-find-out-the-reasons-why-the-network-interface-is-dropping-packets
+
+多线程编程，其中有很多DESIGN_XXX.txt的文档，甚至包括了Systemtap的使用，其底层用到的是系统提供的 futex_XXX() 调用。
+https://github.com/lattera/glibc/tree/master/nptl
+https://en.wikipedia.org/wiki/List_of_C%2B%2B_multi-threading_libraries
+
+浅谈C++ Multithreading Programming
+http://dreamrunner.org/blog/2014/08/07/C-multithreading-programming/
+Introduction to Parallel Computing
+https://computing.llnl.gov/tutorials/parallel_comp/
+解剖 Mutex
+https://techsingular.org/2012/01/05/%E8%A7%A3%E5%89%96-mutex/
+Pthreads并行编程之spin lock与mutex性能对比分析
+http://www.parallellabs.com/2010/01/31/pthreads-programming-spin-lock-vs-mutex-performance-analysis/
+Linux线程浅析
+http://blog.csdn.net/qq_29924041/article/details/69213248
+
+LinuxThreads VS. NPTL
+https://www.ibm.com/developerworks/cn/linux/l-threading.html
+http://pauillac.inria.fr/~xleroy/linuxthreads/
+
+FUTEX简析，也可以通过man 7 futex man 2 futex 查看
+http://blog.sina.com.cn/s/blog_e59371cc0102v29b.html
+futex and userspace thread syncronization (gnu/linux glibc/nptl) analysis
+http://cottidianus.livejournal.com/325955.html
+原始论文
+https://www.kernel.org/doc/ols/2002/ols2002-pages-479-495.pdf
+进程资源
+http://liaoph.com/inux-process-management/
+
+http://www.cnblogs.com/big-xuyue/p/4098578.html
+
+BMON Ncurse编程
+tcpconns
+conn_read()
+ |-conn_reset_port_entry()
+ |-conn_read_netlink()
+ | |-conn_handle_ports()
+ |-conn_handle_line()
+   |-conn_handle_ports()
+
+ping
+Host    会新建一个hostlist_t对象
+SourceAddress   ping_source
+Device          ping_device，要求OPING库的版本大于1.3
+TTL             ping_ttl，要求0<ttl<255
+Interval        ping_interval，采集时间间隔，需要大于0
+Size            ping_data，指定报文的大小
+Timeout         ping_timeout，超时时间设置
+MaxMissed       ping_max_missed
+
+Timeout 不能超过 Interval ，否则会将 Timeout 调整为 0.9 * Interval 。
+   
+ping_init()
+ |-start_thread()
+   |-pthread_mutex_lock() 会做条件判断，防止重复创建线程
+   |-plugin_thread_create()  创建ping_thread()线程
+会有一个线程ping_thread()一直采集数据，
+
+./configure --prefix=/usr
+   
+https://cmake.org/Wiki/CMake_FAQ
+cmake最终打印信息
+https://stackoverflow.com/questions/25240105/how-to-print-messages-after-make-done-with-cmake
+
 ←
 -->
+
+
+
+
+
+<!--
+O_NONBLOCK VS. O_NDELAY
+http://blog.csdn.net/ww2000e/article/details/4497349
+
+SO_ACCEPTFILTER
+http://blog.csdn.net/hbhhww/article/details/8237309
+-->
+
+
+
 
 {% highlight text %}
 {% endhighlight %}

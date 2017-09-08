@@ -667,6 +667,36 @@ ds[value].unknown_sec = 0
 <!--
 http://www.linuxhowtos.org/manpages/5/collectd.conf.htm
 https://collectd.org/wiki/index.php/Chains
+
+
+
+
+
+配置文件
+1. 配置项的值有三种类型：字符串、浮点型、布尔值
+{% highlight text %}
+A) 字符串，必须通过双引号包裹
+Hostname "localhost"                # localhost
+Hostname "local'host"               # local'host
+Hostname "local\"host"              # local"host
+Hostname "local\"host \             # local"host locahost
+         localhost"
+{% endhighlight %}
+
+
+
+插件通过 LoadPlugin 语句加载，有两种方式：
+LoadPlugin syslog        # 加载和配置分开，可以配置多次，例如Python脚本
+<Plugin syslog>
+    config
+</Plugin>
+<Plugin syslog>
+    config
+</Plugin>
+
+<LoadPlugin syslog>        # 加载的同时进行配置
+    config
+</LoadPlugin>
 -->
 
 

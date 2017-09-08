@@ -13,6 +13,7 @@ description: 简单介绍下 Linux 中与线程相关的编程。
 
 <!-- more -->
 
+
 ## TSD
 
 在多线程程序中，所有线程共享程序中的变量，对于全局变量，所有线程都可以访问修改，如果希望么个线程单独使用，那么就需要 Thread Specific Data, TSD 了。

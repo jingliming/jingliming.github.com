@@ -864,6 +864,7 @@ imap <C-S> <Esc>:w<CR>a
 vmap <C-S> <Esc>:w<CR>
 " when try to paste codes, errors will occur, 'set paste' before paste
 " or 'set nopaste'.
+set nopaste
 set pastetoggle=<F9>
 "
 "augroup vimrc_autocmds

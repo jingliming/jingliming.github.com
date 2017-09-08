@@ -292,6 +292,14 @@ ncurse贪吃蛇
 http://www.cnblogs.com/eledim/p/4857557.html
 
 http://www.cnblogs.com/starof/p/4703820.html
+
+
+
+BSD Games is a collection of the classic text based games distributed with *BSD
+http://wiki.linuxquestions.org/wiki/BSD_games
+
+有趣！10个你不得不知的Linux终端游戏 
+http://www.freebuf.com/articles/others-articles/124743.html
 -->
 
 {% highlight text %}

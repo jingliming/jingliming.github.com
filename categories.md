@@ -62,7 +62,6 @@ http://turnoff.us/
 * [LXC 网络设置相关](/post/linux-container-lxc-network.html)，关于 Container 中网络的介绍，主要介绍 veth、vlan、macvlan 等概念。
 
 * [Bootstrap](/post/bootstrap-etc.html)，一个来自 Twitter 的前端框架，同时包括了一些 css、javascript 相关的内容介绍。
-* [Linux 内存监控](/post/linux-monitor-memory.html)，记录下在 Linux 中，与内存相关的监控项以及工具。
 -->
 
 #### WebServer
@@ -115,7 +114,9 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 
 简单介绍下与 C 语言相关的内容。
 
-* [Libev 事件库](/post/linux-libev.html)，一个 C 编写的高性能事件循环库，类似库还有 libevent、libubox 等。
+* [C 持续集成](/post/program-c-continuous-integration.html)，一些与 C 语言的持续集成相关的工具集。
+* [libev 事件库](/post/linux-libev.html)，一个 C 编写的高性能事件循环库，类似库还有 libevent、libubox 等。
+* [libev 时间处理](/post/linux-libev-timers.html)，简单介绍下 libev 库中与时间相关的内容。
 * [C 语言的字符串](/post/program-c-string-stuff.html)，简单介绍下 C 语言中与字符串、内存操作相关的函数。
 * [C 语言的奇技淫巧](/post/program-c-tips.html)，整理下 C 语言中常用的技巧。
 * [C 编译链接](/post/program-c-complie-link.html)，与 C 语言相关的编译链接概念
@@ -163,6 +164,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Linux 常用命令 \-\- 文本处理](/post/linux-commands-text.html)，简单介绍下 Linux 常用的文本处理方式。
 * [TMUX 简介](/post/tmux-introduce.html)，一个终端复用工具，类似 screen 但是更加方便使用，更加高端。
 * [Linux 绘图工具](/post/linux-gnuplot.html)，这是一个命令行驱动的绘图工具，支持多个平台。
+* [Bash 相关内容](/post/linux-bash-related-stuff.html)，一些与 Bash 相关的内容，如命令执行顺序、配置文件等。
 * [Logrotate 使用方法](/post/logrotate-usage.html)，一个不错的日志切割管理程序。
 * [Linux 后台服务管理](/post/linux-daemon-tools.html)，介绍目前常用的后台服务管理。
 * [你所不知道的定时任务](/post/details-about-cronie.html)，也就是 Linux 中如何使用 crontab，以及常见错误。

@@ -245,7 +245,7 @@ config.h 包含了大量的宏定义，其中包括软件包的名字等信息�
 SUBDIRS         = a b
 bin_PROGRAMS    = st
 st_SOURCES      = main.c
-st_LDADD        = $(top_builddir)/src/a/liba.la $(top_builddir)/src/b/libb.la 
+st_LDADD        = $(top_builddir)/src/a/liba.la $(top_builddir)/src/b/libb.la
 {% endhighlight %}
 
 通过 SUBDIRS 声明了两个子目录，子目录的中的构建需要靠 a/Makefile.am 和 b/Makefile.am 来进行，这样多目录组织起来就方便多了。
@@ -557,6 +557,47 @@ int main()
 
 调试的话可以使用 `cmake . -DCMAKE_BUILD_TYPE=Debug` ，不过此时使用的绝对地址。
 
+### 配置文件
+
+通常 `autotools` 会根据平台动态生成 `config.h` 文件，在 CMake 中同样可以生成。
+
+除了支持脚本外，还包括了一些常见的模块 (Modules)，例如 CentOS 中保存在 `/usr/share/cmake/Modules/` 目录下，在使用时需要先通过 `INCLUDE()` 指令包含相应的模块。
+
+{% highlight text %}
+# usage: CHECK_INCLUDE_FILES (<header> <RESULT_VARIABLE> )
+INCLUDE (CheckIncludeFiles)
+
+CHECK_INCLUDE_FILES (malloc.h HAVE_MALLOC_H)
+CHECK_INCLUDE_FILES ("sys/param.h;sys/mount.h" HAVE_SYS_MOUNT_H)
+CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+{% endhighlight %}
+
+在执行时，会将结果保存在 `CMakeCache.txt` 文件中，类似如下；如果要重新生成则需要删除。
+
+{% highlight text %}
+//Have include HAVE_MALLOC_H
+HAVE_MALLOC_H:INTERNAL=1
+{% endhighlight %}
+
+在 `config.h.in` 中添加如下内容。
+
+{% highlight text %}
+#cmakedefine HAVE_MALLOC_H 1
+#cmakedefine HAVE_SYS_MOUNT_H
+{% endhighlight %}
+
+在检测后，会将 `#cmakedefine` 替换掉，如下。
+
+{% highlight text %}
+#define HAVE_MALLOC_H 1
+#define HAVE_SYS_MOUNT_H
+
+/* #undef HAVE_MALLOC_H 1 */
+/* #define HAVE_SYS_MOUNT_H */
+{% endhighlight %}
+
+详细内容可以参考 [CMake:How To Write Platform Checks](https://itk.org/Wiki/CMake:How_To_Write_Platform_Checks) 。
+
 ### 常用示例
 
 #### 内置变量
@@ -568,6 +609,7 @@ set(CMAKE_C_COMPILER      "gcc" )               # 显示指定使用的编译器
 set(CMAKE_C_FLAGS         "-std=c99 -Wall")     # 设置编译选项，也可以通过add_definitions添加编译选项
 set(CMAKE_C_FLAGS_DEBUG   "-O0 -g" )            # 调试包不优化
 set(CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG " )     # release包优化
+set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -Wno-sign-compare")   # 忽略某些告警
 {% endhighlight %}
 
 内置变量可在 cmake 命令中使用，如 `cmake -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Debug` 。
@@ -578,6 +620,23 @@ LIBRARY_OUTPUT_PATH：库文件路径
 CMAKE_BUILD_TYPE:：build 类型(Debug, Release, ...)，
 BUILD_SHARED_LIBS：Switch between shared and static libraries
 -->
+
+
+#### Build Type
+
+除了上述 `CMAKE_C_FLAGS_DEBUG` 指定不同类型的编译选项外，还可以通过如下方式指定。
+
+{% highlight text %}
+set(CMAKE_BUILD_TYPE Debug CACHE STRING "set build type to debug")
+if(NOT ${CMAKE_BUILD_TYPE} MATCHES "Debug")
+	SET(CMAKE_C_FLAGS "-std=gnu99 ${CMAKE_C_FLAGS}")
+    set(LIBRARIES Irrlicht_S.lib)
+else()
+    set(LIBRARIES Irrlicht.lib)
+endif()
+{% endhighlight %}
+
+可以在命令行中通过如下方式编译 `cmake -DCMAKE_BUILD_TYPE=Debug ..`，最终的编译选项可以查看 `CMakeFiles/SRCFILE.dir/flags.make` 中的 `C_FLAGS` 选项，一般是 `CMAKE_C_FLAGS+CMAKE_C_FLAGS_MODE` 。
 
 #### 测试用例
 
@@ -646,6 +705,144 @@ exec $COMPILER_AND_FLAGS -c "${SOURCE_FILE_RELATIVE}" -o "${OBJECT_FILE_ABSOLUTE
 
 通过 `CONFIGURE_FILE()` 将文件中的变量替换，然后在 `set_target_properties()` 设置，将在编译之前将绝对路径转换为相对路径，注意 `gcc_debug_fix.sh.in` 需要为可以执行文件。
 
+#### 库参数
+
+在编译不同的库时，可能需要使用不同的编译参数，那么此时就可以使用如下的方式修改。
+
+
+{% highlight text %}
+ADD_LIBRARY(unity unity/src/unity.c)
+
+# Disable -Werror for Unity
+IF (FLAG_SUPPORTED_Werror)
+	IF ("${CMAKE_VERSION}" VERSION_LESS "2.8.12")
+        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
+    ELSE()
+        TARGET_COMPILE_OPTIONS(unity PRIVATE "-Wno-error")
+    ENDIF()
+ENDIF()
+# Disable -fvisibility=hidden for Unity
+IF (FLAG_SUPPORTED_fvisibilityhidden)
+    IF ("${CMAKE_VERSION}" VERSION_LESS "2.8.12")
+        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=default")
+    ELSE()
+        TARGET_COMPILE_OPTIONS(unity PRIVATE "-fvisibility=default")
+    ENDIF()
+ENDIF()
+# Disable -fsanitize=float-divide-by-zero for Unity
+#     (GCC bug on x86 https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80097)
+IF (FLAG_SUPPORTED_fsanitizefloatdividebyzero AND (CMAKE_C_COMPILER_ID STREQUAL "GNU"))
+    IF ("${CMAKE_VERSION}" VERSION_LESS "2.8.12")
+        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-sanitize=float-divide-by-zero")
+    ELSE()
+        TARGET_COMPILE_OPTIONS(unity PRIVATE "-fno-sanitize=float-divide-by-zero")
+    ENDIF()
+ENDIF()
+{% endhighlight %}
+
+#### 添加 flex bison
+
+默认是不支持 flex 和 bison 的，可以通过如下方式添加。
+
+
+{% highlight text %}
+#----- 生成的中间文件保存在${CMAKE_CURRENT_BINARY_DIR}目录下
+include_directories(${CMAKE_CURRENT_BINARY_DIR} )
+
+#----- 定义源码目录以及中间文件
+SET(PARSER_DIR ${CMAKE_SOURCE_DIR}/driver/mysql)
+SET(GEN_SOURCES
+	${CMAKE_CURRENT_BINARY_DIR}/lex.yy.c
+	${CMAKE_CURRENT_BINARY_DIR}/parser.tab.c
+	${CMAKE_CURRENT_BINARY_DIR}/parser.tab.h
+	${CMAKE_CURRENT_BINARY_DIR}/parser.l.h
+)
+
+#----- 添加一个custom_target用于构建依赖，该target依赖${GEN_SOURCES}指向的文件
+ADD_CUSTOM_TARGET(
+        GenServerSource
+        DEPENDS ${GEN_SOURCES}
+)
+
+#----- 告知${GEN_SOURCES}指向的文件是编译过程中生成的，以避免执行cmake命令的时候报文件找不到
+SET_SOURCE_FILES_PROPERTIES(${GEN_SOURCES} GENERATED)
+
+#----- 需要注意的是OUTPUTS一定要和${GEN_SOURCES}中文件一致，并且target设置对否则无法确保执行顺序
+ADD_CUSTOM_COMMAND(
+	SOURCE ${PARSER_DIR}/parser.y
+	COMMAND bison -d ${PARSER_DIR}/parser.y
+	TARGET GenServerSource
+	OUTPUTS ${CMAKE_CURRENT_BINARY_DIR}/parser.tab.c ${CMAKE_CURRENT_BINARY_DIR}/parser.tab.h
+	WORKING_DIRECTORY ${PARSER_DIR}
+)
+ADD_CUSTOM_COMMAND(
+	SOURCE ${PARSER_DIR}/parser.l
+	COMMAND flex  ${PARSER_DIR}/parser.l
+	TARGET GenServerSource
+	OUTPUTS ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.c ${CMAKE_CURRENT_BINARY_DIR}/parser.l.h
+	WORKING_DIRECTORY ${PARSER_DIR}
+)
+
+#----- 这里将flex和bison生成的.c文件编译到程序的动态库中，需要注意指定路径
+add_library(driver SHARED
+	sourcefile1.cc sourcefile2.cc sourcefile3.cc
+	${CMAKE_CURRENT_BINARY_DIR}/lex.yy.c
+	${CMAKE_CURRENT_BINARY_DIR}/parser.tab.c
+)
+
+#----- 指明动态库driver所需要的依赖，所以可以保证cmake会先生成GenServerSource, 而GenServerSource又
+#      依赖${GEN_SOURCES}指明的文件， 而这些文件又是由两个ADD_CUSTOM_COMMAND命令来生成的
+#      (outputs中给出的)，所以会先执行两个ADD_CUSTOM_COMMAND命令
+ADD_DEPENDENCIES(driver GenServerSource)
+{% endhighlight %}
+
+#### 库使用
+
+关于库的使用常见有如下的操作。
+
+{% highlight text %}
+----- 增加库的搜索路径
+LINK_DIRECTORIES(./lib)
+
+----- 生成库，可以是动态(SHARED)或者静态库(STATIC)
+ADD_LIBRARY(hello SHARED ${SRC_LIST})
+
+----- 指定生成对象时依赖的库
+TARGET_LINK_LIBRARIES(hello A B.a C.so)
+
+----- 自定义链接选项，单独对B.a使用--whole-archive选项
+TARGET_LINK_LIBRARYIES(hello A -Wl,--whole-archive B.a -Wl,--no-whole-archive C.so)
+{% endhighlight %}
+
+在使用 `add_library(foo SHARED foo.c)` 时，不同平台输出有所区别，例如，`foo.dll(Windows)`、 `libfoo.so(Linux)`、 `libfoo.dylib(Mac)` 。
+
+比如编写用于 lua 扩展的 C 模块，那么在进行 require 时，需要执行如下调用：
+
+{% highlight lua %}
+require 'libfoo'     --默认加载libfoo.[so|dll]，并且执行luaopen_libluafoo
+require 'foo'        --加载foo.so,并且执行luaopen_luafoo
+{% endhighlight %}
+
+并且各个平台下各不相同，可以通过如下方式修改前缀以及后缀：
+
+{% highlight text %}
+SET_TARGET_PROPERTIES(foo PROPERTIES PREFIX "")
+SET_TARGET_PROPERTIES(foo PROPERTIES SUFFIX "so")
+{% endhighlight %}
+
+
+<!--
+ 对了，吐槽一下mac的rpath也是件麻烦的事情
+
+
+# enable @rpath in the install name for any shared library being built
+set(CMAKE_MACOSX_RPATH 1)
+
+# the install RPATH for bar to find foo in the install tree.
+# if the install RPATH is not provided, the install bar will have none
+set_target_properties(bar PROPERTIES INSTALL_RPATH "@loader_path/../lib")
+-->
+
 #### 常用命令
 
 指令是大小写无关的，参数和变量是大小写相关的，参数使用空格或者分号隔开。如 `MESSAGE (STATUS "This is BINARY dir" ${HELLO_BINARY_DIR})` 和 `MESSAGE (STATUS "This is BINARY dir ${HELLO_BINARY_DIR}")` 相同。
@@ -664,6 +861,9 @@ MESSAGE([SEND_ERROR | STATUS | FATAL_ERROR] "message to display" ...)
   向终端输出用户定义的信息，SEND_ERROR(产生错误，生成过程被跳过)，SATUS(输出前缀为-的信息)、
   FATAL_ERROR(立即终止所有cmake过程)。
 
+ADD_DEFINITIONS(-DMICRO_1 ...)
+  添加宏定义。
+
 ADD_EXECUTABLE(hello ${SRC_LIST})
   该工程会生成一个文件名为 hello 的可执行文件，相关的源文件是 SRC_LIST 。
 
@@ -676,7 +876,12 @@ CONFIGURE_FILE(intput output [COPYONLY] [ESCAPE_QUOTES] [@ONLY])
   @VAR@ 格式引用的任意变量，如同它们的值是由CMake确定的一样。 如果一个变量还未定义，它会被替
   换为空。如果指定了COPYONLY选项，那么变量就不会展开。如果指定了ESCAPE_QUOTES选项，那么所有被
   替换的变量将会按照C语言的规则被转义。该文件将会以CMake变量的当前值被配置。
+
+----- 查看当前支持的选项
+cmake .. -LH
 {% endhighlight %}
+
+
 
 ## 其它
 
@@ -710,7 +915,8 @@ $ gcc sample.c -o sample `pkg-config --cflags --libs glib-2.0`
 
 可以查看官方文档 [automake](https://www.gnu.org/software/automake/manual/automake.html)，[GNU Autoconf - Creating Automatic Configuration Scripts](https://www.gnu.org/software/autoconf/manual/) 。
 
-关于 CMake 相关的文档可以参考 [CMake 实践](/reference/linux/CMake_Practice.pdf) ，或者参考 [CMake 入门实战](http://hahack.com/codes/cmake/) 。
+关于 CMake 相关的文档可以参考 [CMake 实践](/reference/linux/CMake_Practice.pdf) ，或者参考 [CMake 入门实战](http://hahack.com/codes/cmake/) 以及 [CMake Tutorial](https://cmake.org/cmake-tutorial/)；搭建 GTest 环境可以参考 [Unit testing with GoogleTest and CMake](http://kaizou.org/2014/11/gtest-cmake/) 。
+
 
 
 <!--
@@ -729,22 +935,15 @@ http://www.51cos.com/?p=1649
 Colletcd的编译系统介绍
 https://collectd.org/wiki/index.php/Build_system
 
-
-持续集成：
-http://www.ruanyifeng.com/blog/2015/09/continuous-integration.html
-https://github.com/nukc/how-to-use-travis-ci
-https://scarletsky.github.io/2016/07/29/use-gitlab-ci-for-continuous-integration/
-http://xinsuiyuer.github.io/blog/2014/02/24/jenkins-c-plus-plus-ci-env/
-
-Linux源码标准检测
-http://www.tuxradar.com/content/newbies-guide-hacking-linux-kernel
-http://www.cnblogs.com/wwang/archive/2011/02/24/1960283.html
-
 AC_CHECK_FUNCS
 AC_CHECK_LIB
 https://autotools.io/autoconf/finding.html
 概念：GNU构建系统和Autotool
 http://www.pchou.info/linux/2016/09/16/gnu-build-system-1.html
+
+CMake如何查找链接库
+http://www.yeolar.com/note/2014/12/16/cmake-how-to-find-libraries/
+
 -->
 
 

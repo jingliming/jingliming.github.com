@@ -135,6 +135,47 @@ endfunction
 set guitablabel=%{ShortTabLabel()}
 {% endhighlight %}
 
+### 缓冲区
+
+{% highlight text %}
+:help buffer|buffer-list
+{% endhighlight %}
+
+缓冲区是一块内存区域，里面存储着正在编辑的文件，如果没有把缓冲区里的文件存盘，那么原始文件不会被更改。
+
+{% highlight text %}
+:e <path/to/file>            → 打开一个文件，保存到缓冲区列表，e是edit缩写
+:badd <path/to/file>         → 添加到缓冲区列表中
+:saveas <path/to/file>       → 另存为 &lt;path/to/file&gt;
+:wq                          → 存盘并退出
+:x                           → 表示仅在需要时保存
+ZZ                           → 不需要输入冒号并回车
+:q!                          → 退出不保存
+:qa!                         → 强行退出所有的正在编辑的文件，就算别的文件有更改
+
+:[buffers|ls]                → 列出当前编辑中所有的缓冲区状态
+:buffer number|filename      → 切换缓冲区，可通过缓冲区的序号或者打开文件的名字选择缓冲区
+:sbuffer number|filename     → 水平分割窗口
+:ball                        → 为每个缓冲区打开一个窗口，默认按顺序水平切分
+:bnext :bprevious            → 调转到下/上一个缓冲区，简写为:bn/:bp，:n 调转到下个文件
+:blast :bfirst               → 调转到最后/第一个缓冲区
+:bd(elete) number|filename   → 删除缓冲区
+:3 bdelete :1,3 bdelete      → 删除或者指定范围的缓冲区
+{% endhighlight %}
+
+查看缓冲区时，在这个状态列表中，前面的数字是缓冲区的数字标记，第二个标记就是缓冲区当前的状态，紧接着是与缓冲区所关联的文件名。有如下几种状态：
+
+{% highlight text %}
+    - （非活动的缓冲区）
+    a （激活缓冲区）
+    h （隐藏的缓冲区）
+    % （当前的缓冲区）
+    # （交换缓冲区）
+    = （只读缓冲区）
+    + （已经更改的缓冲区）
+{% endhighlight %}
+
+在删除缓冲区时，如果缓冲区被改动过，那么该命令将失败，除非使用 `!` 选项。如果使用了带 `!` 选项的 `:bdelete! filename` 命令，那么在缓冲区中的所有改动都会被放弃。
 
 ### 折叠
 
@@ -1469,45 +1510,6 @@ CTRL-W b                 → 到底部窗口
 ![network]({{ site.url }}/images/vim/vim_split.gif){: .pull-center}
 
 VIM 支持文件浏览，可以通过 :Ex 在当前窗口开启目录浏览器，:Sex 水平分割当前窗口，并在一个窗口中开启目录浏览器。
-
-## 缓冲区 :help buffer|buffer-list
-
-缓冲区是一块内存区域，里面存储着正在编辑的文件，如果没有把缓冲区里的文件存盘，那么原始文件不会被更改。
-
-{% highlight text %}
-:e <path/to/file>            → 打开一个文件，保存到缓冲区列表，e是edit缩写
-:badd <path/to/file>         → 添加到缓冲区列表中
-:saveas <path/to/file>       → 另存为 &lt;path/to/file&gt;
-:wq                          → 存盘并退出
-:x                           → 表示仅在需要时保存
-ZZ                           → 不需要输入冒号并回车
-:q!                          → 退出不保存
-:qa!                         → 强行退出所有的正在编辑的文件，就算别的文件有更改
-
-:[buffers|ls]                → 列出当前编辑中所有的缓冲区状态
-:buffer number|filename      → 切换缓冲区，可通过缓冲区的序号或者打开文件的名字选择缓冲区
-:sbuffer number|filename     → 水平分割窗口
-:ball                        → 为每个缓冲区打开一个窗口，默认按顺序水平切分
-:bnext :bprevious            → 调转到下/上一个缓冲区，简写为:bn/:bp，:n 调转到下个文件
-:blast :bfirst               → 调转到最后/第一个缓冲区
-:bd(elete) number|filename   → 删除缓冲区
-:3 bdelete :1,3 bdelete      → 删除或者指定范围的缓冲区
-{% endhighlight %}
-
-查看缓冲区时，在这个状态列表中，前面的数字是缓冲区的数字标记，第二个标记就是缓冲区当前的状态，紧接着是与缓冲区所关联的文件名。有如下几种状态：
-
-{% highlight text %}
-    - （非活动的缓冲区）
-    a （激活缓冲区）
-    h （隐藏的缓冲区）
-    % （当前的缓冲区）
-    # （交换缓冲区）
-    = （只读缓冲区）
-    + （已经更改的缓冲区）
-{% endhighlight %}
-
-在删除缓冲区时，如果缓冲区被改动过，那么该命令将失败，除非使用 ! 选项。如果使用了带 ! 选项的 :bdelete! filename 命令，那么在缓冲区中的所有改动都会被放弃。
-
 ## 拷贝/粘贴以及粘贴板配置
 
 {% highlight text %}

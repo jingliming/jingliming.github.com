@@ -313,7 +313,7 @@ calloc() 会将申请的缓存初始化为 0 ，而 malloc() 不会初始化内�
 {% highlight text %}
 main()
  | <<<<<<<<<========= 读取配置文件
- |-plugin_init_ctx()
+ |-plugin_init_ctx()                            <ctx>
  |-cf_read()                                  ← 读取配置文件
  | |-cf_read_generic()                        ← 判断文件是否存在
  | | |-wordexp()                              ← 文件扩展，确保文件存在
@@ -344,12 +344,14 @@ main()
  | |
  | |-dispatch_block()                         ← 有子配置项时，也就是配置块
  | | |-dispatch_loadplugin()                  ← LoadPlugin，会调用plugin_load()
+ | | | |-plugin_set_ctx()                    <ctx>获取插件上下文
  | | | |-plugin_load()
  | | |   |-strcasecmp()                       ← 对于python、perl插件，需要做部分初始化操作
  | | |   |-plugin_load_file()
  | | |     |-lt_dlsym()                       ← 调用各个插件的module_register()函数
  | | |       |-plugin_register_complex_read() ← 会生成read_func_t对象
  | | |         |-plugin_insert_read()         ← 写入到list以及heap
+ | | | |-plugin_set_ctx()                    获取插件上下文
  | | |
  | | |-dispatch_block_plugin()                ← Plugin，会调用plugin_load()
  | | | |-plugin_load()                        ← 需要配置AutoLoadPlugin(true)参数
@@ -454,6 +456,9 @@ plugin_dispatch_values()
    |-plugin_value_list_clone()                ← 复制一份，会自动填充主机名、采集时间、采样频率
    | |-malloc()
    | |-meta_data_clone()
+   |-plugin_get_ctx()                        保存读插件的上下文信息
+   |-pthread_mutex_lock()                    对write_lock加锁
+   |-pthread_cond_signal()                   向write_cond发送信号
    |-pthread_cond_signal()                    ← 添加到write_queue链表中，并发送write_cond
 
 ----- 注册简单写回调函数，保存到list_write链表中

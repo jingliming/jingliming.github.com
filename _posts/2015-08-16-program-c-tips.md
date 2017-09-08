@@ -315,7 +315,7 @@ struct test_t {
     short  c;   // 长度2 > 1 按1对齐；起始offset=5 5%1=0；存放位置区间[5,6]
     char   d;   // 长度1 = 1 按1对齐；起始offset=7 7%1=0；存放位置区间[7]
 };
-#pragma pack() 	// 取消对齐
+#pragma pack()  // 取消对齐
 {% endhighlight %}
 
 {% highlight text %}
@@ -334,7 +334,7 @@ struct test_t {
     short  c;   // 长度2 = 2 按2对齐；起始offset=6 6%2=0；存放位置区间[6,7]
     char   d;   // 长度1 < 2 按1对齐；起始offset=8 8%1=0；存放位置区间[8]
 };
-#pragma pack() 	// 取消对齐
+#pragma pack()  // 取消对齐
 {% endhighlight %}
 
 {% highlight text %}
@@ -372,7 +372,7 @@ struct test_t {
     short  c;   // 长度2 < 8 按2对齐；起始offset=6 6%2=0；存放位置区间[6,7]
     char   d;   // 长度1 < 8 按1对齐；起始offset=8 8%1=0；存放位置区间[8]
 };
-#pragma pack() 	// 取消对齐
+#pragma pack()  // 取消对齐
 {% endhighlight %}
 
 {% highlight text %}
@@ -463,7 +463,7 @@ int getopt_long_only(int argc, char * const argv[],
 
 <!--
 <font color=blue size=3><strong>参数：</strong></font><br>
-	前3个参数与getopt类似，struct option定义在&lt;getopt.h&gt;中，<br>
+    前3个参数与getopt类似，struct option定义在&lt;getopt.h&gt;中，<br>
 <pre>
 struct option {
     const char *name;   //name表示的是长参数名
@@ -476,7 +476,7 @@ struct option {
                // flag指向该option的val，如果没有找到则保持不变。
     int val; // 和flag联合决定返回值
 }</pre>
-	如果longindex没有设置为空则，longindex指向longopts<br><br>
+    如果longindex没有设置为空则，longindex指向longopts<br><br>
 -->
 
 源码可以参考 [github getopt_long.c]({{ site.example_repository }}/c_cpp/c/getopt_long.c) 。
@@ -509,24 +509,24 @@ $ getopt-long a.out -a -b -c -x foo --add --back  --check --extra=foo
 {% endhighlight %}
 
 <!--
-	下面以8-bit数据进行讲解，在 0x00~0x7F 范围内，表示 0~127；在 0x80~0xFF 范围内表示 -128~-1，对于可能出现的数据有四种情况：<ol><li>
-		都位于0x00~0x7F<br>
-		如果a发生在b之后，则a > b。(char)b - (char)a < 0，100 - 125 = -25 < 0。</li><br><li>
+    下面以8-bit数据进行讲解，在 0x00~0x7F 范围内，表示 0~127；在 0x80~0xFF 范围内表示 -128~-1，对于可能出现的数据有四种情况：<ol><li>
+        都位于0x00~0x7F<br>
+        如果a发生在b之后，则a > b。(char)b - (char)a < 0，100 - 125 = -25 < 0。</li><br><li>
 
-		都位于0x80~0xFF<br>
-		如果a发生在b之后，则a > b。(char)b - (char)a < 0，150 - 180 = -106 - (-76) = -30 < 0。</li><br><li>
+        都位于0x80~0xFF<br>
+        如果a发生在b之后，则a > b。(char)b - (char)a < 0，150 - 180 = -106 - (-76) = -30 < 0。</li><br><li>
 
-		b位于0x00~0x7F，a位于0x80~0xFF<br>
-		如果a发生在b之后，则a > b。(char)b - (char)a < 0，100 - 150 = 100 - (-106) = 206 = -50 < 0。<br><strong>注意，此时在a-b<=128时有效。</strong></li><br><li>
+        b位于0x00~0x7F，a位于0x80~0xFF<br>
+        如果a发生在b之后，则a > b。(char)b - (char)a < 0，100 - 150 = 100 - (-106) = 206 = -50 < 0。<br><strong>注意，此时在a-b<=128时有效。</strong></li><br><li>
 
-		a位于0x00~0x7F，b位于0x80~0xFF<br>
-	如果a发生在b之后，此时有溢出。(char)b - (char)a < 0，150 - 10 = -106 - 10 = -116 < 0。<br><strong>注意，此时在a-b<=128时有效。</strong></li></ol>
+        a位于0x00~0x7F，b位于0x80~0xFF<br>
+    如果a发生在b之后，此时有溢出。(char)b - (char)a < 0，150 - 10 = -106 - 10 = -116 < 0。<br><strong>注意，此时在a-b<=128时有效。</strong></li></ol>
 
-	<div style="padding: 10pt 0pt 10pt 0pt ;" align="right">
-	<table frame="void" width="90%">
-		<tbody><tr><td><b>Tips:</b><br><span style="color : #009000"><font size="-1">typecheck位于相同文件夹下的typecheck.h文件中，当两个参数不是同一个类型是将会产生警告，提醒用户注意，只是提醒。</font></span></td>
-	<td><img src="src/info.png" width="80" heigh="80"></td></tr></tbody></table></div>
-	</p>
+    <div style="padding: 10pt 0pt 10pt 0pt ;" align="right">
+    <table frame="void" width="90%">
+        <tbody><tr><td><b>Tips:</b><br><span style="color : #009000"><font size="-1">typecheck位于相同文件夹下的typecheck.h文件中，当两个参数不是同一个类型是将会产生警告，提醒用户注意，只是提醒。</font></span></td>
+    <td><img src="src/info.png" width="80" heigh="80"></td></tr></tbody></table></div>
+    </p>
 -->
 
 
@@ -535,7 +535,7 @@ $ getopt-long a.out -a -b -c -x foo --add --back  --check --extra=foo
 <br id="Error_handling"><br><br>
 <h1>错误处理_OK</h1>
 <p>
-	需要包含的头文件及函数原型，<pre>
+    需要包含的头文件及函数原型，<pre>
 #include &lt;stdio.h&gt;
 void perror(const char *s);
 
@@ -544,7 +544,7 @@ const char *sys_errlist[];
 int sys_nerr;  // 前两个变量是参考了BSD，glibc中保存在&lt;stdio.h&gt;
 int errno;</pre>
 
-	如果s不为NULL且*s != '\0'则输出s并加上": "+错误信息+换行，否则只输出错误信息+换行。通常s应该为出错的函数名称，此函数需要调用errno。如果函数调用错误后没有直接调用<tt>perror()</tt>，则为防止其他错误将其覆盖，需要保存errno。<br><br>
+    如果s不为NULL且*s != '\0'则输出s并加上": "+错误信息+换行，否则只输出错误信息+换行。通常s应该为出错的函数名称，此函数需要调用errno。如果函数调用错误后没有直接调用<tt>perror()</tt>，则为防止其他错误将其覆盖，需要保存errno。<br><br>
 
 
 sys_errlist保存了所有的错误信息，errno(注意出现错误时进行了设置，但是正确调用时可能没有清除)为索引，最大的索引为<tt>(sys_nerr - 1)</tt>。当直接调用sys_errlist时可能错误信息还没有添加。
@@ -723,8 +723,137 @@ int main(int args,char ** argv)
 }
 {% endhighlight %}
 
+### \_\_attribute\_\_((visibility))
+
+程序调用某个函数 A，而 A 函数存在于两个动态链接库 liba.so 和 libb.so 中，并且程序执行需要链接这两个库，此时程序调用的 A 函数到底是来自于 a 还是 b 呢？
+
+这取决于链接时的顺序，首先链接的库会更新符号表，比如先链接 liba.so，这时候通过 liba.so 的导出符号表就可以找到函数 A 的定义，并加入到符号表中，而不会再查找 libb.so 。
+
+也就是说，这里的调用严重的依赖于链接库加载的顺序，可能会导致混乱。
+
+gcc 的扩展中有如下属性 `__attribute__ ((visibility("hidden")))` 可以用于抑制将一个函数的名称被导出，对连接该库的程序文件来说，该函数是不可见的，使用的方法如下：
+
+<!--
+-fvisibility=default|internal|hidden|protected
+gcc的visibility是说，如果编译的时候用了这个属性，那么动态库的符号都是hidden的，除非强制声明。
+-->
+
+#### 1. 创建一个c源文件
+
+{% highlight c %}
+#include<stdio.h>
+#include<stdlib.h>
+
+__attribute ((visibility("default"))) void not_hidden()
+{
+    printf("exported symbol\n");
+}
+
+void is_hidden()
+{
+    printf("hidden one\n");
+}
+{% endhighlight %}
+
+想要做的是，第一个函数符号可以被导出，第二个被隐藏。
+
+#### 2. 生成动态库
+
+先编译成一个动态库，使用到属性 `-fvisibility` 。
+
+{% highlight text %}
+----- 编译
+$ gcc -shared -o libvis.so -fvisibility=hidden foobar.c
+
+----- 查看符号链接
+# readelf -s libvis.so |grep hidden
+ 7: 0000040c 20 FUNC GLOBAL DEFAULT 11 not_hidden
+48: 00000420 20 FUNC LOCAL  HIDDEN  11 is_hidden
+51: 0000040c 20 FUNC GLOBAL DEFAULT 11 not_hidden
+{% endhighlight %}
+
+可以看到，属性确实有作用了。
+
+#### 3. 编译链接
+
+现在试图链接程序。
+
+{% highlight c %}
+int main()
+{
+    not_hidden();
+    is_hidden();
+    return 0;
+}
+{% endhighlight %}
+
+试图编译成一个可执行文件，链接到刚才生成的动态库。
+
+{% highlight text %}
+$ gcc -o exe main.c -L ./ -lvis
+/tmp/cckYTHcl.o: In function `main':
+main.c:(.text+0x17): undefined reference to `is_hidden'
+{% endhighlight %}
+
+说明了 hidden 确实起到作用了。
+
+### \_\_attribute\_\_((sentinel))
+
+该属性表示，此可变参数函数需要一个 `NULL` 作为最后一个参数，这个 `NULL` 参数一般被叫做 "哨兵参数"。例如，有如下程序：
+
+{% highlight c %}
+#include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
+#include <malloc.h>
+
+void foo(char *first, ...)
+{
+    char *p = (char *)malloc(100), *q = first;
+
+    va_list args;
+    va_start(args, first);
+    while (q) {
+        strcat(p, q);
+        q = va_arg(args, char *);
+    }
+    va_end(args);
+
+    printf("%s\n", p);
+
+    free(p);
+}
+
+int main(void)
+{
+    foo("Hello", "World");
+
+    return 0;
+}
+{% endhighlight %}
+
+当通过 `gcc main.c -Wall` 进行编译时，会发现没有任何警告，不过很显然，调用 `foo()` 时最后一个参数应该是个 `NULL` 以表明 "可变参数就这么多"。
+
+编译完成后，如果尝试运行则会打印一些乱码，显然是有问题的。
+
+正常来说，应该通过如下方式调用 `foo("Hello", "World", NULL);`，为此，就需要用到了上述的属性，用于表示最后一个参数需要为 `NULL` 。
+
+{% highlight c %}
+void foo(char *first, ...) __attribute__((sentinel));
+{% endhighlight %}
+
+这样再不写哨兵参数，在编译时编译器就会发出警告了。
 
 
+但是，对于同样使用可变参数的 `printf()` 来说，为什么就不需要哨兵属性，实际上，通过第一个参数就可以确定需要多少个参数，如下。
+
+{% highlight c %}
+/*
+ * 第一个参数中规定了有两个待打印项，所以打印时会取 "string" 和 1，多写的 "another_string" 会被忽略。
+ * printf()在被调用时明确知道此次调用需要多少个参数，所以也就无需哨兵参数的帮忙。
+ */
+printf("%s %d\n", "string", 1, "another_string");
+{% endhighlight %}
 
 ## atexit()
 
@@ -879,6 +1008,202 @@ int main(int argc, char **argv)
 2. 执行 configure 命令前设置环境变量，如 ```CPPFLAGS="CPPFLAGS=-DNDEBUG" ./configure```；
 3. 也可以在 ```Makefile.am``` 中设置 ```AM_CPPFLAGS += -DNDEBUG``` 参数。
 
+## backtrace
+
+一般可以通过 gdb 的 bt 命令查看函数运行时堆栈，但是，有时为了分析程序的 BUG，可以在程序出错时打印出函数的调用堆栈。
+
+在 glibc 头文件 `execinfo.h` 中声明了三个函数用于获取当前线程的函数调用堆栈。
+
+{% highlight text %}
+int backtrace(void **buffer,int size);
+    用于获取当前线程的调用堆栈，获取的信息将会被存放在buffer中，它是一个指针列表。参数size用来指
+    定buffer中可以保存多少个void*元素，该函数返回值是实际获取的指针个数，最大不超过size大小；
+
+char **backtrace_symbols(void *const *buffer, int size);
+    将从上述函数获取的信息转化为字符串数组，参数buffer应该是从backtrace()获取的指针数组，size是该
+    数组中的元素个数，也就是backtrace()的返回值。
+    函数返回值是一个指向字符串数组的指针，它的大小同buffer相同，每个字符串包含了一个相对于buffer中
+    对应元素的可打印信息，包括函数名、函数的偏移地址和实际的返回地址。
+
+void backtrace_symbols_fd(void *const *buffer, int size, int fd);
+    与上述函数相同，只是将结果写入文件描述符为fd的文件中，每个函数对应一行。
+{% endhighlight %}
+
+注意，需要传递相应的符号给链接器以能支持函数名功能，比如，在使用 GNU ld 链接器的时需要传递 `-rdynamic` 参数，该参数用来通知链接器将所有符号添加到动态符号表中。
+
+下面是 glibc 中的实例。
+
+{% highlight c %}
+#include <execinfo.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#define SIZE 100
+
+void myfunc3(void)
+{
+    int j, nptrs;
+    void *buffer[100];
+    char **strings;
+
+    nptrs = backtrace(buffer, SIZE);
+    printf("backtrace() returned %d addresses\n", nptrs);
+
+    /*
+     * The call backtrace_symbols_fd(buffer, nptrs, STDOUT_FILENO)
+     * would produce similar output to the following:
+     */
+    strings = backtrace_symbols(buffer, nptrs);
+    if (strings == NULL) {
+        perror("backtrace_symbols");
+        exit(EXIT_FAILURE);
+    }
+
+    for (j = 0; j < nptrs; j++)
+        printf("%s\n", strings[j]);
+
+    free(strings);
+}
+
+static void myfunc2(void) /* "static" means don't export the symbol... */
+{
+    myfunc3();
+}
+
+void myfunc(int ncalls)
+{
+    if (ncalls > 1)
+        myfunc(ncalls - 1);
+    else
+        myfunc2();
+}
+
+int main(int argc, char *argv[])
+{
+    if (argc != 2) {
+        fprintf(stderr, "%s num-calls\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    myfunc(atoi(argv[1]));
+    exit(EXIT_SUCCESS);
+}
+{% endhighlight %}
+
+然后通过如下方式编译，执行。
+
+{% highlight text %}
+$ cc -rdynamic prog.c -o prog
+$ ./prog 2
+backtrace() returned 7 addresses
+./prog(myfunc3+0x1f) [0x400a7c]
+./prog() [0x400b11]
+./prog(myfunc+0x25) [0x400b38]
+./prog(myfunc+0x1e) [0x400b31]
+./prog(main+0x59) [0x400b93]
+/lib64/libc.so.6(__libc_start_main+0xf5) [0x7f727d449b35]
+./prog() [0x400999]
+{% endhighlight %}
+
+还可以利用 backtrace 来定位段错误位置。
+
+<!--
+通常情况系，程序发生段错误时系统会发送SIGSEGV信号给程序，缺省处理是退出函数。我们可以使用 signal(SIGSEGV, &your_function);函数来接管SIGSEGV信号的处理，程序在发生段错误后，自动调用我们准备好的函数，从而在那个函数里来获取当前函数调用栈。
+
+举例如下：
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stddef.h>
+#include <execinfo.h>
+#include <signal.h>
+
+void dump(int signo)
+{
+ void *buffer[30] = {0};
+ size_t size;
+ char **strings = NULL;
+ size_t i = 0;
+
+ size = backtrace(buffer, 30);
+ fprintf(stdout, "Obtained %zd stack frames.nm\n", size);
+ strings = backtrace_symbols(buffer, size);
+ if (strings == NULL)
+ {
+  perror("backtrace_symbols.");
+  exit(EXIT_FAILURE);
+ }
+ 
+ for (i = 0; i < size; i++)
+ {
+  fprintf(stdout, "%s\n", strings[i]);
+ }
+ free(strings);
+ strings = NULL;
+ exit(0);
+}
+
+void func_c()
+{
+ *((volatile char *)0x0) = 0x9999;
+}
+
+void func_b()
+{
+ func_c();
+}
+
+void func_a()
+{
+ func_b();
+}
+
+int main(int argc, const char *argv[])
+{
+ if (signal(SIGSEGV, dump) == SIG_ERR)
+  perror("can't catch SIGSEGV");
+ func_a();
+ return 0;
+}
+
+编译程序：
+gcc -g -rdynamic test.c -o test; ./test
+输出如下：
+
+Obtained6stackframes.nm
+./backstrace_debug(dump+0x45)[0x80487c9]
+[0x468400]
+./backstrace_debug(func_b+0x8)[0x804888c]
+./backstrace_debug(func_a+0x8)[0x8048896]
+./backstrace_debug(main+0x33)[0x80488cb]
+/lib/i386-linux-gnu/libc.so.6(__libc_start_main+0xf3)[0x129113]
+
+接着：
+objdump -d test > test.s
+在test.s中搜索804888c如下：
+
+8048884 <func_b>:
+8048884: 55          push %ebp
+8048885: 89 e5      mov %esp, %ebp
+8048887: e8 eb ff ff ff      call 8048877 <func_c>
+804888c: 5d            pop %ebp
+804888d: c3            ret
+
+其中80488c时调用（call 8048877）C函数后的地址，虽然并没有直接定位到C函数，通过汇编代码， 基本可以推出是C函数出问题了（pop指令不会导致段错误的）。
+我们也可以通过addr2line来查看
+
+addr2line 0x804888c -e backstrace_debug -f 
+
+输出：
+
+func_b
+/home/astrol/c/backstrace_debug.c:57
+-->
+
+
+
+
 
 <!--
 ## 宏定义
@@ -955,14 +1280,44 @@ typedef    int64_t           S64;
 
 typedef    u_int8_t          U8;
 typedef    u_int16_t         U16;
-typedef	   u_int32_t         U32;
+typedef    u_int32_t         U32;
 typedef    u_int64_t         U64;
 {% endhighlight %}
 
 
+### 其它
+
+
+#### FLT_RADIX
+
+C 语言标准库 `float.h` 中的 `FLT_RADIX` 常数用于定义指数的基数，也就是以这个数为底的多少次方。
+
+{% highlight text %}
+FLT_RADIX 10     10 的多少次方
+FLT_RADIX 2       2 的多少次方
+{% endhighlight %}
+
+例如：
+
+{% highlight text %}
+#define FLT_MAX_EXP 128
+#define FLT_RADIX   2
+{% endhighlight %}
+
+意思是 float 型，最大指数是 128，它的底是 2，也就说最大指数是 2 的 128 方。
+
 <!--
-http://sobuhu.com/program/2012/12/11/c.html
+FLT 是 float 的 缩写。( DBL 是 double 的 缩写。)
 -->
+
+#### implicit declaration
+
+按常规来讲，出现 `implicit declaration of function 'xxxx'` 是因为头文件未包含导致的！
+
+这里是由于 `nanosleep()` 函数的报错，而实际上 `time.h` 头文件已经包含了，后来才发现原来是在 `Makefile` 中添加了 `-std=c99` 导致，可以通过 `-std=gnu99` 替换即可。
+
+另外，不能定义 `-D_POSIX_SOURCE` 宏。
+
 
 {% highlight text %}
 {% endhighlight %}
