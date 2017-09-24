@@ -12,11 +12,27 @@ HTTP 协议在 TCP/IP 协议之上，目前已经成为了互联网的基础协�
 
 <!-- more -->
 
-![hello world logo]({{ site.url }}/images/network/http-introduce.jpg "hello world logo"){: .pull-center }
+![http introduce]({{ site.url }}/images/network/http-introduce.jpg "http introduce"){: .pull-center }
 
 ## 简介
 
 HTTP 协议到现在为止总共经历了 3 个版本的演化，第一个 HTTP 协议诞生于 1989.3 。
+
+### 换行符
+
+在 Web 的发展过程中，UNIX 系统从一开始到现在一直是主要的开发和运行平台，但是在 HTTP 协议中，各个 header 之间用的却是 `CRLF (\r\n)` 这样的 Windows/DOS 换行方式，而不是 UNIX 普遍的的 `LF (\n)` 换行方式。
+
+实际上 ASCII 沿袭了传统打字机的设计，也就是说在某种意义上来说 `CR-LF` 才是正统。
+
+![http introduce]({{ site.url }}/images/network/http-introduce-printer.jpg "http introduce"){: .pull-center width="70%" }
+
+左侧墨带盒上边的金属手柄了就是换行手柄。
+
+打完一行字之后，滚筒已经基本移出了打字机主体，需要推左手边的换行手柄，然后滚筒会被推到最右边，打字头对准了行首，这就是 CR 。
+
+推到头之后，继续用力，换行手柄大约会被扳动 30 度左右，这时候你会发现纸往上卷了一行，这就是 LF 。
+
+所以遵循传统，ASCII 设计了 CR-LF 顺序。
 
 ## HTTP/0.9
 

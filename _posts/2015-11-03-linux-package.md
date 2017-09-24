@@ -598,6 +598,145 @@ HAVE_MALLOC_H:INTERNAL=1
 
 详细内容可以参考 [CMake:How To Write Platform Checks](https://itk.org/Wiki/CMake:How_To_Write_Platform_Checks) 。
 
+### 安装
+
+CMake 默认会在与源码目录相同的路径下生成二进制文件或者库文件，实际上可以通过如下方式进行设置。
+
+{% highlight text %}
+SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+{% endhighlight %}
+
+当然，对于单个可执行文件，也可以通过 `set_target_properties()` 指令设置如下的变量覆盖全局的参数。
+
+{% highlight text %}
+RUNTIME_OUTPUT_DIRECTORY
+LIBRARY_OUTPUT_DIRECTORY
+ARCHIVE_OUTPUT_DIRECTORY
+{% endhighlight %}
+
+#### 安装指令
+
+在编译完成之后，可以通过 `make install` 进行安装，通过 `cat install_manifest.txt | xargs rm` 删除即可，不过需要提前指定安装规则。
+
+{% highlight text %}
+INSTALL(TARGETS foobar DESTINATION bin)
+INSTALL(FILES foobar.h DESTINATION include)
+{% endhighlight %}
+
+如上的配置会将 `foobar` 和 `foobar.h` 安装到 `/usr/local/{bin,include}` 目录下即可，实际上对于安装目录而言，也可以直接使用 `INCLUDE(GNUInstallDirs)` 指定的目录。
+
+对于 `TARGETS` 的配置，主要有三个参数，分别为 `ARCHIVE`、`LIBRARY`、`RUNTIME` ，一般会类似如下的方式编写。
+
+{% highlight text %}
+INSTALL(TARGETS targets...
+    ARCHIVE
+        DESTINATION     <dir>
+        PERMISSIONS     permissions...
+        CONFIGURATIONS  [Debug|Release|...]
+        COMPONENT       <component>
+    RUNTIME
+        DESTINATION     <dir>
+        PERMISSIONS     permissions...
+        CONFIGURATIONS  [Debug|Release|...]
+        COMPONENT       <component>
+    PUBLIC_HEADER
+        DESTINATION     <dir>
+        PERMISSIONS     permissions...
+        CONFIGURATIONS  [Debug|Release|...]
+        COMPONENT       <component>
+)
+{% endhighlight %}
+
+其中上述的 `targets` 可以指定多个，而且可以是不同的类型，如二进制、动态库、静态库、头文件等。
+
+上述指定的 `DESTINATION` 一般是相对路径，可以通过 `CMAKE_INSTALL_PREFIX` 指定其前缀，对于 Linux 默认是 `/usr/local/`；另外，其前面还可以指定 `DESTDIR` 目录。
+
+除了使用 `TARGETS` 外，还可以使用 `FILES` 或者 `DIRECTORY` ，对于 `DIRECTORY` 使用比较灵活，常见需要注意的关键点如下。
+
+##### 后缀符号
+
+需要注意其后缀的 `/` 符号。
+
+{% highlight text %}
+#----- 会将目录复制成为 dst/src/{subdirs and files...}
+install(DIRECTORY   myproj/src DESTINATION dst)
+
+#----- 会将目录复制成为 dst/{subdirs and files...}
+install(DIRECTORY   myproj/src/ DESTINATION dst)
+{% endhighlight %}
+
+##### 文件过滤
+
+可以通过参数 `FILES_MATCHING` 用于指定操作档案的条件，可以使用 `PATTERN` 或 `REGEX` 两种匹配方式，要注意 `PATTERN` 会比对全路径而不只是文件名。
+
+{% highlight text %}
+INSTALL(DIRECTORY src/ DESTINATION include FILES_MATCHING PATTERN "*.h")
+{% endhighlight %}
+
+以上会把 `src/` 底下所有文件后缀为 `.h` 的文件复制到 `include` 文件夹下，并且会保留原本目录树的结构。
+
+另外，还可以在匹配条件后面通过 `EXCLUDE` 排除符合条件的文件或目录。
+
+{% highlight text %}
+INSTALL(DIRECTORY myapp/ mylib DESTINATION myproj PATTERN ".git" EXCLUDE)
+{% endhighlight %}
+
+### 打包
+
+可以通过 CPack 进行打包，也就是将编译后的二进制进行打包，当然也可以打包源码，分别通过如下命令进行打包。
+
+{% highlight text %}
+make package_source
+make package
+{% endhighlight %}
+
+### 宏和函数
+
+同大多数脚本语言一样，CMake 中也有宏和函数的概念，关键字分别为 `macro` 和 `function`，具体用法如下：
+
+{% highlight text %}
+MACRO( [arg1 [arg2 [arg3 ...]]])
+	 COMMAND1(ARGS ...)
+	 COMMAND2(ARGS ...)
+	 ...
+ENDMACRO()
+
+FUNCTION( [arg1 [arg2 [arg3 ...]]])
+	 COMMAND1(ARGS ...)
+	 COMMAND2(ARGS ...)
+	 ...
+ENDFUNCTION()
+{% endhighlight %}
+
+如下是一个求和的宏定义。
+
+{% highlight text %}
+macro(sum outvar)
+	set(_args ${ARGN})
+	list(LENGTH _args argLength)
+	if(NOT argLength LESS 4)　# 限制不能超过4个数字
+		message(FATAL_ERROR "to much args!")
+	endif()
+	set(result 0)
+
+	foreach(_var ${ARGN})
+		math(EXPR result "${result}+${_var}")
+	endforeach()
+
+	set(${outvar} ${result})
+endmacro()
+
+sum(addResult 1 2 3 4 5)
+message("Result is :${addResult}")
+{% endhighlight %}
+
+`${ARGN}` 是 CMake 中的一个变量，指代宏中传入的多余参数；上述宏只定义了一个参数 `outvar`，其余需要求和的数字都是不定形式传入的，所以需要先将多余的参数传入一个单独的变量中。
+
+函数与宏的区别是，函数中的变量是局部的，不能直接传出。
+
+
 ### 常用示例
 
 #### 内置变量
@@ -662,6 +801,33 @@ ADD_TEST(
 {% endhighlight %}
 
 然后在编译时通过 `cmake .. -DWITH_UNIT_TESTS=ON` 执行，并通过 `make test` 进行测试。
+
+另外，可以指定测试的参数，以及输出的匹配。
+
+{% highlight text %}
+ADD_TEST(test foobar 10 5)
+SET_TESTS_PROPERTIES(test PROPERTIES PASS_REGULAR_EXPRESSION "ok")
+{% endhighlight %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #### 文件渲染
 
@@ -843,6 +1009,29 @@ set(CMAKE_MACOSX_RPATH 1)
 set_target_properties(bar PROPERTIES INSTALL_RPATH "@loader_path/../lib")
 -->
 
+#### 文件路径
+
+CMake 在编译时会使用到绝对路径，而在打印日志时可能会导致文件长度过大，有几种方式修改。
+
+{% highlight c %}
+#include <string.h>
+#define __FILENAME__                             \
+        (strrchr(__FILE__, '/') ?                \
+	strrchr(__FILE__, '/') + 1 : __FILE__)
+{% endhighlight %}
+
+不过这种方式会在执行时计算，也可以使用如下宏定义，此时会使用相对路径。
+
+{% highlight text %}
+SET(CMAKE_C_FLAGS         "${CMAKE_C_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
+{% endhighlight %}
+
+或者只使用文件名。
+
+{% highlight text %}
+SET(CMAKE_C_FLAGS         "${CMAKE_C_FLAGS} -D__FILENAME__='\"$(notdir $(abspath $<))\"'")
+{% endhighlight %}
+
 #### 常用命令
 
 指令是大小写无关的，参数和变量是大小写相关的，参数使用空格或者分号隔开。如 `MESSAGE (STATUS "This is BINARY dir" ${HELLO_BINARY_DIR})` 和 `MESSAGE (STATUS "This is BINARY dir ${HELLO_BINARY_DIR}")` 相同。
@@ -943,6 +1132,18 @@ http://www.pchou.info/linux/2016/09/16/gnu-build-system-1.html
 
 CMake如何查找链接库
 http://www.yeolar.com/note/2014/12/16/cmake-how-to-find-libraries/
+
+
+http://huqunxing.site/2016/08/26/CMake%E5%85%A5%E9%97%A8%E6%8C%87%E5%8D%97/#编译32位和64位程序
+
+CPACK_GENERATOR RPM TBZ2 ZIP
+
+cpack -D CPACK_GENERATOR="ZIP;TGZ" /path/to/build/tree
+
+ AC_PLUGIN([cpu],                 [$plugin_cpu],             [CPU usage statistics])
+
+
+http://cmake.3232098.n2.nabble.com/Adding-a-custom-line-to-CMake-s-makefiles-td5984979.html
 
 -->
 

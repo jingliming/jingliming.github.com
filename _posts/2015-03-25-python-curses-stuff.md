@@ -294,6 +294,24 @@ http://www.cnblogs.com/eledim/p/4857557.html
 http://www.cnblogs.com/starof/p/4703820.html
 
 
+https://stackoverflow.com/questions/7738546/how-to-set-a-timeout-for-a-function-in-c
+https://github.com/tony/NCURSES-Programming-HOWTO-examples
+https://github.com/ffainelli/bqlmon
+https://github.com/mazarf/editor
+https://github.com/weechat/weechat
+https://github.com/ulfalizer/readline-and-ncurses
+http://blog.chinaunix.net/uid-29547110-id-5047281.html
+
+https://github.com/JFreegman/toxic
+https://github.com/boothj5/profanity
+https://github.com/rofl0r/ncdu
+https://github.com/wereHamster/ncurses
+https://github.com/FedeDP/ncursesFM
+https://github.com/jubalh/nudoku
+https://github.com/jvns/snake
+https://cmake.org/cmake/help/v3.0/command/configure_file.html
+
+http://keyvanfatehi.com/2011/08/02/Asynchronous-c-programs-an-event-loop-and-ncurses/
 
 BSD Games is a collection of the classic text based games distributed with *BSD
 http://wiki.linuxquestions.org/wiki/BSD_games

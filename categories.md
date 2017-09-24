@@ -72,6 +72,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Nginx 监控](/post/nginx-monitor.html)，关于 Nginx 的简单监控内容。
 * [Nginx 源码解析](/post/nginx-sourecode-analyze.html)，介绍主要的代码实现过程。
 * [Nginx https](/post/nginx-https.html)，简单介绍如何使用 Nginx 搭建 https 服务。
+* [HTTP 协议简介](/post/network-http-introduce.html)，简单介绍下 HTTP 内容以及其演变过程。
 * [HTTPS 协议详解](/post/https-introduce.html)，简单介绍下 HTTPS 协议是如何实现的
 
 <!--
@@ -162,6 +163,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [RPM 包制作](/post/linux-create-rpm-package.html)，如何在 CentOS 中创建 RPM 包。
 * [Linux 常用技巧](/post/linux-tips.html)，简单记录了一些在 Linux 中常用的技巧。
 * [Linux 常用命令 \-\- 文本处理](/post/linux-commands-text.html)，简单介绍下 Linux 常用的文本处理方式。
+* [Linux 常用命令 \-\- 杂项](/post/linux-commands-tips.html)，常用命令，如 find 。
 * [TMUX 简介](/post/tmux-introduce.html)，一个终端复用工具，类似 screen 但是更加方便使用，更加高端。
 * [Linux 绘图工具](/post/linux-gnuplot.html)，这是一个命令行驱动的绘图工具，支持多个平台。
 * [Bash 相关内容](/post/linux-bash-related-stuff.html)，一些与 Bash 相关的内容，如命令执行顺序、配置文件等。

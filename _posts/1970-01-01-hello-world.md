@@ -2643,6 +2643,329 @@ https://cmake.org/Wiki/CMake_FAQ
 cmake最终打印信息
 https://stackoverflow.com/questions/25240105/how-to-print-messages-after-make-done-with-cmake
 
+
+
+
+
+http://jialeicui.github.io/blog/file_atomic_operations.html
+
+当多个进程通过 write/read 调用同时访问一个文件时，无法保证操作的原子性，因为在两个函数调用间，内核可能会将进程挂起执行另外的进程。
+
+如果想要避免这种情况的话，则需要使用 pread/pwrite 函数。
+
+ssize_t pread(int fd ，void *buffer ，size_t size，off_t offset);
+  返回读取到的字节数，offset是指的从文件开始位置起的offset个字节数开始读。
+  其定位和读取操作为原子操作，而且读取过后的文件偏移量不会发生改变。
+
+https://github.com/Garik-/ev_httpclient
+https://github.com/zhaojh329/evmongoose
+https://github.com/dexgeh/webserver-libev-httpparser
+https://github.com/bachan/ugh
+https://github.com/novator24/libeva
+https://github.com/titilambert/packaging-efl
+https://github.com/hyperblast/libevhtp
+https://github.com/novator24/fcgi-libev
+https://github.com/tailhook/libwebsite
+https://github.com/cinsk/evhttpserv
+https://github.com/erikarn/libevhtp-http
+http://beej.us/guide/bgnet/output/html/multipage/recvman.html
+
+LMDB 中所有的读写都是通过事务来执行，其事务具备以下特点：
+
+支持事务嵌套(??)
+读写事务可以并发执行，但写写事务需要被串行化
+因此，在lmdb实现中，为了保证写事务的串行化执行，事务执行之前首先要获取全局的写锁。
+
+底层读写的实现
+
+lmdb 使用 mmap 访问存储，不管这个存储是在内存上还是在持久存储上，都是将需要访问的文件只读地装载到宿主进程的地址空间，直接访问相应的地址。
+
+减少了硬盘、内核地址控件和用户地址空间之间的拷贝，也简化了平坦的“索引空间”上的实现，因为使用了read-only的mmap，规避了因为宿主程序错误将存储结构写坏的风险。IO的调度由操作系统的页调度机制完成。
+
+而写操作，则是通过write系统调用进行的，这主要是为了利用操作系统的文件系统一致性，避免在被访问的地址上进行同步。
+
+https://hackage.haskell.org/package/lmdb
+http://wiki.dreamrunner.org/public_html/C-C++/Library-Notes/LMDB.html
+http://www.jianshu.com/p/yzFf8j
+http://www.d-kai.me/lmdb%E8%B0%83%E7%A0%94/
+https://github.com/exabytes18/mmap-benchmark
+https://symas.com/understanding-lmdb-database-file-sizes-and-memory-utilization/
+https://github.com/pmwkaa/sophia
+
+http://www.zkt.name/skip-list/
+https://symas.com/understanding-lmdb-database-file-sizes-and-memory-utilization/
+
+FIXMAP 是什么意思
+MDB_FIXEDMAP
+
+MDB_DUPFIXED
+MDB_DUPSORT
+内存减小时的优化场景
+http://www.openldap.org/conf/odd-sandiego-2004/Jonghyuk.pdf
+https://symas.com/performance-tradeoffs-in-lmdb/
+http://gridmix.blog.51cto.com/4764051/1731411
+
+## 事务
+
+LMDB 每个事务都会分配唯一的事务编号 (txid)，而且会被持久化。
+
+### 事务表
+
+初始化时会创建一张读事务表，该表记录了当前所有的读事务以及读事务的执行者 (持有该事务的进程与线程 id )；读事务表不仅会在内存中维护，同时会将该信息持久化到磁盘上，也就是位与数据库文件相同目录下的 lock.mdb 文件。
+
+事务表的文件存储格式如下图所示：
+http://www.d-kai.me/lmdb%E8%B0%83%E7%A0%94/
+
+该事务表会在 LMDB 打开时初始化，也就是在 `mdb_env_setup_locks()` 函数中，其调用流程如下：
+
+mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode) {
+    ......
+    /* For RDONLY, get lockfile after we know datafile exists */
+    if (!(flags & (MDB_RDONLY|MDB_NOLOCK))) {      
+        rc = mdb_env_setup_locks(env, lpath, mode, &excl);
+        if (rc)
+             goto leave;
+    }
+    ......
+}
+
+### 页管理
+
+这应该是 lmdb 中最核心的数据结构了，所有的数据和元数据都存储在page内。
+
+#### Meta Page
+
+Meta Page 使用了起始的两个 Page，在第一次创建的时候会初始化页面，并将相同的内容写入到 Page0 和 Page1 中，也就是说开始时两个页的内容一致；写入是通过 `mdb_env_init_meta()` 函数完成。
+
+因为存在两个页，每次写入或者读取时需要选一个页，其计算规则很简单：
+
+meta = env->me_metas[txn->mt_txnid & 1];
+
+也就是用本次操作的事务 id 取最低位，后面解释这么使用的原因。
+
+main()
+ |-mdb_env_create()
+ |-mdb_env_set_maxreaders()
+ |-mdb_env_set_mapsize()
+ |-mdb_env_open()
+ | |-mdb_fname_init()
+ | |-pthread_mutex_init()
+ | |-mdb_fopen()
+ | |-mdb_env_setup_locks()
+ | | |-mdb_fopen()
+ | | |-mdb_env_excl_lock()
+ | |-mdb_env_open2()
+ |   |-mdb_env_read_header()   尝试从头部读取信息，如果是第一次创建，则会调用如下函数
+ |   |-mdb_env_init_meta0()  第一次创建
+ |   |-mdb_env_init_meta()   第一次创建时同样需要初始化
+ |   |-mdb_env_map()  调用mmap进行映射
+ |-mdb_txn_begin()  开启事务，允许嵌套
+   |-mdb_txn_renew0()
+ |-mdb_dbi_open()
+ |-mdb_put()
+   |-mdb_cursor_put() 最复杂的函数处理
+ |-mdb_txn_commit()
+ |-mdb_env_stat()
+mdb_get
+
+#ifndef LOG_ERR
+/* NOTE: please keep consistent with <syslog.h> */
+#define LOG_EMERG       0       /* system is unusable */
+#define LOG_ALERT       1       /* action must be taken immediately */
+#define LOG_CRIT        2       /* (used) critical conditions, print stack message and quit, nomemory */
+#define LOG_ERR         3       /* (used) error conditions */
+#define LOG_WARNING     4       /* (used) warning conditions */
+#define LOG_NOTICE      5       /* normal but significant condition */
+#define LOG_INFO        6       /* (used) informational */
+#define LOG_DEBUG       7       /* (used) debug-level messages */
+#define LOG_DEBUG0      8       /* (used) print more debug-level messages */
+#else
+/* Others check the <syslog.h> file. */
+#define LOG_DEBUG0      8       /* (used) print more debug-level messages */
+#endif
+int main(int argc, char *argv[])
+{
+        char time_str[16]; /* 08-28 12:07:11 */
+        time_t tt;
+        struct tm local_time;
+        time(&tt);
+        localtime_r(&tt, &local_time);
+        strftime(time_str, sizeof(time_str), "%m-%d %T", &local_time);
+        puts(time_str);
+        static char level_info[] = {' ', ' ', 'C', 'E', 'W', ' ', 'I', 'D', '0'};
+        return 0;
+}
+
+FIXME:
+/post/linux-monitor-cpu.html
+  ps -Lf 60010 查看线程
+
+CMAKE教程，很不错
+https://blog.gmem.cc/cmake-study-note
+
+
+https://github.com/jamesroutley/write-a-hash-table
+
+使用场景：
+1. 不判断内存是否申请失败
+
+cJSON *tag = cJSON_CreateObject() 不判断是否为NULL
+cJSON_AddStringToObject(tag, "key", "value"); 可能会导致内存泄露。场景tag=NULL时，会通过"value"创建一个对象，当tag为NULL时，则会直接退出，那么通过 "value" 创建的对象将无法释放。
+
+cJSON_AddItemToArray(data, metric = cJSON_CreateObject());
+cJSON_AddStringToObject(metric, "mi_n", m->string);
+
+比如 Facebook 的 wdt (https://github.com/facebook/wdt)，Twitter 的 ( https://github.com/lg/murder )，百度的 Ginko 等等，还有包括亚马逊 Apollo 里面的文件分发系统，它们那个和我们的有点不太一样，他们的是基于 S3 做的。
+蜻蜓 - P2P文件分发
+AOL - 集中配置管理
+
+插件
+
+PING_OPT_QOS:
+  通过setsockopt()配置IP_TOS，实际上是设置IP头的Type-of-Service字段，用于描述IP包的优先级和QoS选项，例如IPTOS_LOWDELAY、IPTOS_THROUGHPUT等。
+
+会议内容：
+1. 监控需求。通过常驻进程记录上次历史数据，用于计数类型指标统计，目前方案可能会丢失部分监控数据。该问题CloudAgent方的郑力、王一力认可。
+2. CloudAgent实现。目前针对日志采集普罗米修斯已经开始开发常驻监控端口，细节尚未讨论，该功能点基本功能满足指标上报的需求。
+3. 对接CloudAgent方案。具体细节需要接下来讨论，包括对接方式、保活检测、常驻进程的管理等等。
+4. 监控Uagent需求。需要提供动态修改功能，目前来看开发量还比较大；监控插件部分需要做少量修改，之前实现的中间件如haproxy、nginx可以继续使用。
+
+参数修改
+PING_OPT_TIMEOUT:
+  设置超时时间。
+PING_OPT_TTL:
+  同样是通过setsockopt()配置IP_TTL。
+PING_OPT_SOURCE:
+  需要通过getaddrinfo()获取。
+
+ENOTSUP
+
+main()
+ |-ping_construct()
+ |-ping_setopt()
+ |-ping_host_add()
+ | |-ping_alloc()
+ | |-getaddrinfo() reverse查找
+ |-ping_send()
+   |-ping_open_socket() 如果还没有打开
+   |-select() 执行异步接口
+   |-ping_receive_one()
+   |-ping_send_one()
+
+
+https://stackoverflow.com/questions/16010622/reasoning-behind-c-sockets-sockaddr-and-sockaddr-storage?answertab=votes
+
+FIXME:
+获取CPU核数
+http://blog.csdn.net/turkeyzhou/article/details/5962041
+浮点数比较
+http://www.cnblogs.com/youxin/p/3306136.html
+MemAvailable
+https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=34e431b0ae398fc54ea69ff85ec700722c9da773
+
+https://stackoverflow.com/questions/1631450/c-regular-expression-howto
+
+Share your terminal over the web
+https://github.com/tsl0922/ttyd
+http-parser
+https://github.com/nodejs/http-parser
+picohttpparser
+https://github.com/h2o/picohttpparser
+为什么会使用http-parser
+https://stackoverflow.com/questions/28891806/what-is-http-parser-where-it-is-used-what-does-it-do
+http://mendsley.github.io/2012/12/19/tinyhttp.html
+https://github.com/tinylcy/tinyhttpd
+
+
+
+
+pthread_rwlock_t lock = PTHREAD_RWLOCK_INITIALIZER;
+http://www.cnblogs.com/renxinyuan/p/3875659.html
+http://blog-kingshaohua.rhcloud.com/archives/54
+
+设置线程名称
+http://blog.csdn.net/jasonchen_gbd/article/details/51308638
+https://gxnotes.com/article/78417.html
+http://www.cprogramming.com/debugging/segfaults.html
+http://cering.github.io/2015/11/10/%E8%BD%AC-%E8%AF%A6%E8%A7%A3coredump/
+https://www.ibm.com/developerworks/cn/linux/l-cn-deadlock/
+http://blog.jobbole.com/106738/
+http://blog.csdn.net/gebushuaidanhenhuai/article/details/73799824
+http://www.cnblogs.com/yuuyuu/p/5103744.html
+http://blog.csdn.net/sunshixingh/article/details/50988109
+https://michaelyou.github.io/2015/03/07/epoll%E7%9A%84%E4%BA%8B%E4%BB%B6%E8%A7%A6%E5%8F%91%E6%96%B9%E5%BC%8F/
+http://kimi.it/515.html
+https://jeff-linux.gitbooks.io/muduo-/chapter2.html
+https://www.zhihu.com/question/20502870
+http://www.firefoxbug.com/index.php/archives/1942/
+http://cr.yp.to/daemontools.html
+http://www.voidcn.com/article/p-vfwivasm-ru.html
+
+如果没有将线程设置为 detached ，而且没有显示的 pthread_exit()，那么在通过 valgrind 进行测试时会发现出现了内存泄露。
+
+在通过 pthread_key_create() 创建私有变量时，只有调用 pthread_exit() 后才会调用上述函数注册的 destructor ；例如主进程实际上不会调用 destructors，此时可以通过 atexit() 注册回调函数。
+
+
+post/ssh-proxy.html
+也可以理解为，A 提供了一个服务，D 想要访问这个服务，但是 A 没有公网 IP，导致 D 无法直接访问。
+
+此时就需要建立一个 D->A 的链接，然后 A 通过这个链接访问即可。
+
+A1-3000 SVR(ssh-CLI) 172.16.0.163
+B1 CLI(ssh-SVR) 10.120.185.240
+http://linuxperf.com/?p=30
+
+ssh -N -f -R 39607:127.0.0.1:39607 root@10.120.185.240
+UdCf5@My
+必须要开启Port forwarding
+AllowTcpForwarding yes
+AllowAgentForwarding no
+GatewayPorts yes
+PermitTunnel yes
+
+-R [remote-ip]:remote-port:local-ip:local-port user@
+
+ssh -R 39607:localhost:39607 user@remote-ip
+
+此时，访问 remote-ip:remote-port 等价于 local-ip:local-port 。
+
+
+
+
+
+#ifndef LOG_EMERG
+        /* NOTE: Keep the following same with <syslog.h> file. */
+        #define LOG_EMERG       0       /* system is unusable */
+        #define LOG_ALERT       1       /* (used)action must be taken immediately, such as no memory */
+        #define LOG_CRIT        2       /* critical conditions */
+        #define LOG_ERR         3       /* (used)error conditions */
+        #define LOG_WARNING     4       /* (used)warning conditions */
+        #define LOG_NOTICE      5       /* normal but significant condition */
+        #define LOG_INFO        6       /* (used)informational */
+        #define LOG_DEBUG       7       /* (used)debug-level messages */
+        #define LOG_DEBUG0      8       /* (used)more details for debug-level */
+#else
+        #define LOG_DEBUG0      8       /* (used)more details for debug-level */
+#endif
+#define LOG_LEVEL_NUM   9
+
+/* Categories */
+enum {
+        LOG_CATE_QUEUE  = 0,            /* write queue */
+        LOG_CATE_PLUGIN = 1,
+        LOG_CATE_INTERN = 2,
+        LOG_CATE_SCHED  = 3,
+        LOG_CATE_DAEMON = 4,
+        LOG_CATE_CONFIG = 5,
+        LOG_CATE_NUM    = 6
+};
+################################
+# Core Dump
+################################
+http://happyseeker.github.io/kernel/2016/03/04/core-dump-mechanism.html
+http://blog.csdn.net/work_msh/article/details/8470277
+
+
 ←
 -->
 
