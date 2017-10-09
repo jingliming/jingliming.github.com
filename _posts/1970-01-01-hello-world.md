@@ -2931,34 +2931,6 @@ ssh -R 39607:localhost:39607 user@remote-ip
 
 
 
-
-
-#ifndef LOG_EMERG
-        /* NOTE: Keep the following same with <syslog.h> file. */
-        #define LOG_EMERG       0       /* system is unusable */
-        #define LOG_ALERT       1       /* (used)action must be taken immediately, such as no memory */
-        #define LOG_CRIT        2       /* critical conditions */
-        #define LOG_ERR         3       /* (used)error conditions */
-        #define LOG_WARNING     4       /* (used)warning conditions */
-        #define LOG_NOTICE      5       /* normal but significant condition */
-        #define LOG_INFO        6       /* (used)informational */
-        #define LOG_DEBUG       7       /* (used)debug-level messages */
-        #define LOG_DEBUG0      8       /* (used)more details for debug-level */
-#else
-        #define LOG_DEBUG0      8       /* (used)more details for debug-level */
-#endif
-#define LOG_LEVEL_NUM   9
-
-/* Categories */
-enum {
-        LOG_CATE_QUEUE  = 0,            /* write queue */
-        LOG_CATE_PLUGIN = 1,
-        LOG_CATE_INTERN = 2,
-        LOG_CATE_SCHED  = 3,
-        LOG_CATE_DAEMON = 4,
-        LOG_CATE_CONFIG = 5,
-        LOG_CATE_NUM    = 6
-};
 ################################
 # Core Dump
 ################################

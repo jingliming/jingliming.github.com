@@ -71,6 +71,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Nginx 入门](/post/nginx-introduce.html)，介绍一些常见的操作，例如安装、启动、设置等。
 * [Nginx 监控](/post/nginx-monitor.html)，关于 Nginx 的简单监控内容。
 * [Nginx 源码解析](/post/nginx-sourecode-analyze.html)，介绍主要的代码实现过程。
+* [Nginx 通用网关](/post/nginx-cgi-introduce.html)，与 CGI 相关的内容，以及部分的实现。
 * [Nginx https](/post/nginx-https.html)，简单介绍如何使用 Nginx 搭建 https 服务。
 * [HTTP 协议简介](/post/network-http-introduce.html)，简单介绍下 HTTP 内容以及其演变过程。
 * [HTTPS 协议详解](/post/https-introduce.html)，简单介绍下 HTTPS 协议是如何实现的
@@ -273,13 +274,12 @@ Just More Pythonic ~~~
 记录 C 语言实现的 Python 的简介。
 
 * [Python 模块简介](/post/python-modules.html)，简单介绍一下 Python 中的模块，以及一些常用的模块。
+* [Python 的垃圾回收](/post/python-garbage-collection.html)，详细介绍 Python 特有的垃圾回收机制。
+* [Python 动态执行](/post/python-eval.html)，允许通过 exec 和 eval 执行以字符串形式表示的代码片段，这里简单介绍。
 * [Python 杂项](/post/python-tips.html)，记录了 Python 中常见技巧，一些乱七八糟的东西。
 
 <!--
-* [Python 的垃圾回收机制](/post/python-garbage-collection.html)，详细介绍 Python 特有的垃圾回收机制。
 * [Python 异常处理](/post/python-exception.html)，介绍如何处理 Python 的异常。
-* [Python Greenlet](/post/python-greenlet.html)，
-* [Python Gevent](/post/python-gevent.html)，
 -->
 
 #### Flask
@@ -296,6 +296,15 @@ Just More Pythonic ~~~
 * [Flask 单元测试](/post/flask-unittest.html)，简单介绍对 flask 进行单元测试。
 * [Flask 完整例子](/post/flask-examples.html)，实际上就是 Flask 中的完整示例，包括了单元测试等相关的内容。
 -->
+
+#### Others
+
+记录乱七八糟的东西。
+
+* [SaltStack 简介](/post/saltstack-introduce.html)，一个轻量级的运维工具，具备配置管理、远程执行、监控等功能。
+* [Ansible 简介](/post/python-ansible.html)，一个配置管理工具，无需安装服务端和客户端，只要有ssh即可，而且使用简单。
+* [Python 异步任务队列](/post/python-async-queue.html)，介绍一些常用的调度系统，如APScheduler、Redis Queue、Celery等。
+* [ZeroMQ 简介](/post/zeromq-introduce.html)，一个 C++ 编写的高性能分布式消息队列，非常简单好用的传输层。
 
 ----------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------

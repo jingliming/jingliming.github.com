@@ -266,6 +266,9 @@ def application(env, start_response):
 } -->
 
 
+## 参考
+
+[FastCGI.com Archives](https://fastcgi-archives.github.io/)，包括了 FastCGI 标准，以及 C 的实现 fcgi library。
 
 
 <!--

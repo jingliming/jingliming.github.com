@@ -519,7 +519,11 @@ VERSION 参数标记着修正版本，可以从 [BASENAME] 开始，[BASENAME] �
 $ git flow hotfix finish VERSION
 {% endhighlight %}
 
+### 其它
 
+##### unable to start editor
+
+可以通过 `git config --global core.editor "vim"` 命令设置。
 
 ## 参考
 
