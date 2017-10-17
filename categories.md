@@ -288,12 +288,15 @@ Just More Pythonic ~~~
 
 * [Flask 简介](/post/flask-introduce.html)，简单介绍 flask 的安装、配置、使用，常用的三方模块等。
 * [Flask 常见示例](/post/flask-tips.html)，包括了 Flask 中的一些常见示例，可以作为参考使用。
-
-<!--
+* [Nginx uWSGI Flask](/post/nginx-uwsgi-flask.html)，这里简单介绍如何通过 Nginx + uWSGI 搭建 Flask 运行环境。
 * [Flask 请求处理流程](/post/flask-request-process.html)，介绍一次请求所经过的处理过程。
 * [Flask 上下文理解](/post/flask-context.html)，主要介绍上下文、session 的使用以及源码的实现。
 * [Flask 路由控制](/post/flask-route.html)，介绍 flask 中 URL 是如何进行路由的。
 * [Flask 单元测试](/post/flask-unittest.html)，简单介绍对 flask 进行单元测试。
+
+
+
+<!--
 * [Flask 完整例子](/post/flask-examples.html)，实际上就是 Flask 中的完整示例，包括了单元测试等相关的内容。
 -->
 
@@ -347,4 +350,22 @@ http://marklodato.github.io/visual-git-guide/index-en.html
 
 一个不错的网站，包含了各种书籍。
 http://apprize.info/
+
+当浏览器输入地址时发生了什么
+https://github.com/alex/what-happens-when
+
+
+
+
+1. Hesitate 犹豫不决
+2. Procastination 拖延，逃避问题和懒惰
+3. Never last long 三分钟热度
+4. Afraid of rejection 害怕拒绝
+5. Limit yourself 自我设限
+6. Runaway from reality 逃避现实
+7. Always find execuess 总是寻找接口
+8. Fearness 恐惧
+9. Refuse to learn 拒绝学习
+
+
 -->

@@ -14,6 +14,8 @@ Ansible 是一个配置管理工具，当然同类的产品还有 Puppet、Chef�
 
 ## 简介
 
+Ansible 是基于 Python 的配置管理和应用部署工具，这个非常简单，只需要 sshd 服务就可以，不需要客户端，官方称之为 "Ansible is Simple IT Automation"。
+
 Ansible 采用模块化设计，基于 Python 实现，其底层调用 Paramiko 库实现并发连接 ssh 主机，另外还包括了两个基本库：PyYAML 和 Jinja2，分别用于配置文件以及模板化。
 
 ![ansible]({{ site.url }}/images/network/ansible-arch.png "ansible"){: .pull-center width="600"}
@@ -621,14 +623,13 @@ theUser.removeRoot()
 
 可以查看中文帮助 [www.ansible.com.cn](http://www.ansible.com.cn)，源码参考 [github - ansible](https://github.com/ansible/ansible) 。可以查看 [ansible 中文文档](/reference/linux/Ansible-中文手册.pdf)，其中有介绍一个不错的运维监控工具的总结。
 
+详细的文档可以参考 [Ansible Documentation](http://docs.ansible.com/ansible/) 。
 
 
 <!--
 http://docs.ansible.com/ansible/playbooks_best_practices.html
 
-
 ansible常见用法为 ansible host-pattern -m 模块 -a 命令 ，host-pattern类似于简化的正则表达式，而模块可以通过 ansible-doc -l 命令来查询。下面是一些常用模块的使用方法：
-
 
 http://hakunin.com/six-ansible-practices
 -->

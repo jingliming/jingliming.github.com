@@ -433,6 +433,8 @@ http://ilinuxkernel.com/?p=333
 https://github.com/Leo-G/DevopsWiki/wiki/How-Linux-CPU-Usage-Time-and-Percentage-is-calculated
 http://www.samirchen.com/linux-cpu-performance/
 
+https://linux.cn/article-6201-1.html    *****非常经典：关于现代 CPU，程序员应当更新的知识
+
 -->
 
 {% highlight text %}
