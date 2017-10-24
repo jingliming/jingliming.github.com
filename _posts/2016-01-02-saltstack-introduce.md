@@ -3,7 +3,7 @@ title: SaltStack 简介
 layout: post
 comments: true
 language: chinese
-category: [misc,python]
+category: [misc,linux,python]
 keywords: hello world,示例,sample,markdown
 description: SaltStack 是一个轻量级的运维工具，具备配置管理、远程执行、监控等功能，类似于 Puppet 和 Chef，不过这两者是用 Ruby 写的，而 Salt Stack 用的是 Python。
 ---

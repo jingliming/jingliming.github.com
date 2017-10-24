@@ -3,7 +3,7 @@ title: Lua 简介
 layout: post
 comments: true
 language: chinese
-category: [program,lua]
+category: [program,linux]
 keywords: lua, introduce, 简介
 description: Lua 在葡萄牙语中是 “月亮” 的意思，是一个小巧的脚本语言，官方版本只包括一个精简的核心和最基本的库，使得其体积小、启动速度快，从而特别适合嵌入到其它程序里。Lua 历史可以从 1993 年开始，到现在为止，在很多场景都可以看到 Lua 的影子，如游戏开发、Web 应用脚本、安全系统插件等，像常见的 nmap、sysbench 等程序。这里简单介绍 Lua 的安装使用。
 ---

@@ -3,7 +3,7 @@ title: Lua 协程
 layout: post
 comments: true
 language: chinese
-category: [program, lua]
+category: [program, linux]
 keywords: lua,协程,coroutine
 description: 协程是另外一种并发方式，相比多进程或者多线程来说，其上下文的切换成本开销更小，这也意味这协程的执行更加高效。Lua 作为一种简单的语言，仍然可以支持闭包、协程等较新的特性，在此介绍一下协程相关的内容。
 ---

@@ -3,7 +3,7 @@ title: Lua 源码解析
 layout: post
 comments: true
 language: chinese
-category: [program, lua]
+category: [program, linux]
 keywords: lua,源码解析
 description: Lua 类似于 Java、Python，实际执行的都不是机器码，而是运行在虚拟机上的，而虚拟机则屏蔽了底层不同的硬件，从而使得这些程序可以跨平台执行，包括不同的操作系统以及不同的硬件平台。相比而言，Lua 的代码十分简单，源码总共才 2W 行左右，但是却实现了很多不错的特性。接下来，我们看看 Lua 具体是如何工作的。
 ---

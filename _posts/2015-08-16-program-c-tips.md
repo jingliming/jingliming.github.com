@@ -265,17 +265,17 @@ int main(int argc,char *argv[])
 {% highlight c %}
 // 常用格式
 #ifdef DEBUG
-   #define debug(fmt, args...) printf(fmt, ##args) // OR
-   #define debug(fmt, ...) printf("sth: " fmt, ## __VA_ARGS__);
+	#define debug(fmt, args...) printf("debug: " fmt "\n", ##args) // OR
+	#define debug(fmt, ...) printf("debug: " fmt "\n", ## __VA_ARGS__);
 #else
-   #define debug(fmt,args...)
+	#define debug(fmt,args...)
 #endif
 
 // 输出文件名、函数名、行数
 #ifdef DEBUG
-   #define debug(fmt, args...) printf("%s, %s, %d: " fmt , __FILE__, __FUNCTION__, __LINE__, ##args)
+	#define debug(fmt, args...) printf("%s, %s, %d: " fmt , __FILE__, __FUNCTION__, __LINE__, ##args)
 #else
-   #define debug(fmt, args...)
+	#define debug(fmt, args...)
 #endif
 
 // 输出信息含有彩色
@@ -1134,7 +1134,7 @@ void dump(int signo)
   perror("backtrace_symbols.");
   exit(EXIT_FAILURE);
  }
- 
+
  for (i = 0; i < size; i++)
  {
   fprintf(stdout, "%s\n", strings[i]);
@@ -1193,7 +1193,7 @@ objdump -d test > test.s
 其中80488c时调用（call 8048877）C函数后的地址，虽然并没有直接定位到C函数，通过汇编代码， 基本可以推出是C函数出问题了（pop指令不会导致段错误的）。
 我们也可以通过addr2line来查看
 
-addr2line 0x804888c -e backstrace_debug -f 
+addr2line 0x804888c -e backstrace_debug -f
 
 输出：
 
@@ -1284,9 +1284,31 @@ typedef    u_int32_t         U32;
 typedef    u_int64_t         U64;
 {% endhighlight %}
 
+### 环境变量
+
+简单介绍下 C 中，如何获取以及设置环境变量。
+
+{% highlight c %}
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(void)
+{
+	char * p;
+
+	if((p = getenv("USER")))
+		printf("USER = %s\n", p);
+
+	setenv("USER", "test", 1);
+	printf("USER = %s\n", getenv("USER"));
+
+	unsetenv("USER");
+	printf("USER = %s\n", getenv("USER"));
+}
+{% endhighlight %}
+
 
 ### 其它
-
 
 #### FLT_RADIX
 

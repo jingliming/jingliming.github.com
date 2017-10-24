@@ -124,6 +124,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [C 编译链接](/post/program-c-complie-link.html)，与 C 语言相关的编译链接概念
 * [C 加载过程](/post/program-c-load-process.html)，通过动态库可以减小空间，提高效率，这里简单介绍加载过程。
 * [Linux 线程编程](/post/program-c-linux-pthreads.html)，简单介绍下 Linux 中与线程相关的编程。
+* [Linux 线程同步](/post/program-c-linux-pthreads-synchronize.html)，线程编程时经常使用的同步方式，如锁、条件变量、信号量等。
 * [Linux 时间函数](/post/linux-timer-functions.html)，简单介绍下 Linux 中与时间相关的函数。
 * [Linux IO 多路复用](/post/linux-program-io-multiplexing.html)，通过 IO 多路复用提高系统性能，包括了 select、poll、epoll 。
 * [Linux AIO](/post/linux-program-aio.html)，简单介绍下 Linux 平台下的异步读写模型。
