@@ -2906,30 +2906,6 @@ http://www.voidcn.com/article/p-vfwivasm-ru.html
 在通过 pthread_key_create() 创建私有变量时，只有调用 pthread_exit() 后才会调用上述函数注册的 destructor ；例如主进程实际上不会调用 destructors，此时可以通过 atexit() 注册回调函数。
 
 
-post/ssh-proxy.html
-也可以理解为，A 提供了一个服务，D 想要访问这个服务，但是 A 没有公网 IP，导致 D 无法直接访问。
-
-此时就需要建立一个 D->A 的链接，然后 A 通过这个链接访问即可。
-
-A1-3000 SVR(ssh-CLI) 172.16.0.163
-B1 CLI(ssh-SVR) 10.120.185.240
-http://linuxperf.com/?p=30
-
-ssh -N -f -R 39607:127.0.0.1:39607 root@10.120.185.240
-UdCf5@My
-必须要开启Port forwarding
-AllowTcpForwarding yes
-AllowAgentForwarding no
-GatewayPorts yes
-PermitTunnel yes
-
--R [remote-ip]:remote-port:local-ip:local-port user@
-
-ssh -R 39607:localhost:39607 user@remote-ip
-
-此时，访问 remote-ip:remote-port 等价于 local-ip:local-port 。
-
-
 
 ################################
 # Core Dump

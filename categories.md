@@ -104,6 +104,7 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Linux 内核模块](/post/kernel-modules.html)，简单介绍下 Linux 中的内核模块编写，包括了内核签名机制的配置。
 * [Linux 系统调用](/post/kernel-syscall.html)，简单介绍下 Linux 中系统调用相关的内容。
 * [Linux 调度系统](/post/linux-kernel-scheduler.html)，与内核的进程调度相关的内容。
+* [Linux 进程相关](/post/linux-kernel-process.html)，简单介绍进程相关的东西，如进程创建、优先级、进程之间的关系等。
 * [Linux IO 多路复用](/post/linux-program-io-multiplexing.html)，通过 IO 复用，可以有效提高程序的效率，增加吞吐。
 * [Linux 共享内存](/post/linux-shared-memory-program.html)，Linux 中与共享内存相关的内容。
 * [Linux 物理映射](/post/kernel-memory-virtual-physical-map.html)，x86 中逻辑地址到物理地址的映射关系，包括了具体的实验。
