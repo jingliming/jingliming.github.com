@@ -27,7 +27,26 @@ sminrow, smincol, smaxrow, and smaxcol specify the edges of the rectangle to be 
 The lower right-hand corner of the rectangle to be displayed in the pad is calculated from the screen coordinates, since the rectangles must be the same size. Both rectangles must be entirely contained within their respective structures. Negative values of pminrow, pmincol, sminrow, or smincol are treated as if they were zero.
 -->
 
+## curses
 
+在 C 提供的库中，除了提供标准库之外，还包括了如下的内容。
+
+{% highlight text %}
+/usr/lib64/libform.so.5
+/usr/lib64/libformw.so.5
+/usr/lib64/libmenu.so.5
+/usr/lib64/libmenuw.so.5
+/usr/lib64/libncurses++.so.5
+/usr/lib64/libncurses++w.so.5
+/usr/lib64/libncurses.so.5
+/usr/lib64/libncursesw.so.5
+/usr/lib64/libpanel.so.5
+/usr/lib64/libpanelw.so.5
+/usr/lib64/libtic.so.5
+/usr/lib64/libtinfo.so.5
+{% endhighlight %}
+
+除了上述的库之外，可以从 [github mirro](https://github.com/mirror/ncurses) 下载代码，其中包含了很多的测试或者示例代码。
 
 ### curses.panel
 
@@ -262,6 +281,11 @@ int main(void)
 {% endhighlight %}
 
 可以通过 `gcc -o main main.c -Wall -lncurses -lrt` 编译。
+
+### 异步函数
+
+实际上，也可以直接使用类似 select()、poll()、epoll() 函数。
+
 
 ## 参考
 

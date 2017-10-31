@@ -1736,7 +1736,7 @@ struct _dictobject {
 PyDict_New() 创建新字典对象
  |-PyString_FromString() 第一次会初始化dummy对象
  |-PyObject_GC_New() 如果没有缓存，则通过该函数创建一个
- 
+
 Dict 对象的插入
 字典对象的插入实际是通过 PyDict_SetItem() 函数完成，简单来说就是，如果不存在 Key-Value 则插入，存在则覆盖；基本的处理步骤如下：
 
@@ -1786,11 +1786,11 @@ PyDict_SetItem()
    | |-insertdict_by_entry()
    |-insertdict_by_entry()
    |-dictresize() 只有在插入的时候会调整字典的大小
- 
+
 TODO:
   校验下，循环中可以替换，但是无法新增或者删除。
-  key可以是int和string的混合。 
- 
+  key可以是int和string的混合。
+
 Chrome Vimium 快捷键可以直接通过 ? 查看。
 
 git clone -b 0.10.0 https://github.com/pika/pika.git
@@ -1799,7 +1799,7 @@ git clone -b 0.10.0 https://github.com/pika/pika.git
 日志保存在 /var/log/rabbitmq 目录下。
 
 schema_integrity_check_failed
-一般是由于 mnesia 数据库的问题导致，简单粗暴的方式是直接删除。 
+一般是由于 mnesia 数据库的问题导致，简单粗暴的方式是直接删除。
 
 systemd
 rabbitmq-server.service: Got notification message from PID 10513
@@ -1888,8 +1888,8 @@ http://tonybai.com/2011/04/21/apply-style-check-to-c-code/
 https://github.com/dspinellis/cqmetrics
 
 VGC、RATS、Source Insight
- 
- 
+
+
 测试版本
 
 
@@ -1936,7 +1936,7 @@ $ cd flawfinder-*                # cd into it.
   用于保存、加载、比较hitlist；
 --minlevel=NUMBER
   指定最小的错误汇报级别；
-  
+
 --quiet/-Q
   默认会在检测时打印检查了哪些文件，通过该选项可以关闭，通常用于格式化输出检测；
 --dataonly/-D
@@ -1946,7 +1946,7 @@ $ cd flawfinder-*                # cd into it.
 --immediate/-i
   默认在全部文件检测完之后，进行排序，然后显示最终的结果，该参数可以在监测到异常后立即显示；
 
-  
+
 ----- 检查所有的代码，即使已经标记为ignore的代码
 $ flawfinder --neverignore src
 ----- 可以通过如下命令输出，以供其它自动化工具使用
@@ -2023,7 +2023,7 @@ A basic block is a sequence of instructions with only entry and only one exit. I
 
 
 
- 
+
     基本块图（Basic Block Graph），基本块的最后一条语句一般都要跳转，否则后面一条语句也会被计算为基本块的一部分。 如果跳转语句是有条件的，就产生了一个分支(arc)，该基本块就有两个基本块作为目的地。如果把每个基本块当作一个节点，那么一个函数中的所有基本块就构成了一个有向图，称之为基本块图(Basic Block Graph)。且只要知道图中部分BB或arc的执行次数就可以推算出所有的BB和所有的arc的执行次数；
     打桩，意思是在有效的基本块之间增加计数器，计算该基本块被运行的次数；打桩的位置都是在基本块图的有效边上；
 
@@ -2054,7 +2054,7 @@ vimdiff hello.s hello_c.s
 
 
 2. 后台进程的覆盖率数据收集；
- 
+
 
 其实上述覆盖率信息的产生，不仅可以针对单元测试，对于功能测试同样适用。但功能测试，一般linux下c/c++都是实现了某个Daemon进程，而覆盖率产生的条件是程序需要正常退出，即用户代码调用 exit 正常结束时，gcov_exit 函数才得到调用，其继续调用 __gcov_flush 函数输出统计数据到 *.gcda 文件中。同样2个思路可以解决这个问题，
 
@@ -2077,7 +2077,7 @@ $ lcov -d . -o 'hello_test.info' -t ‘Hello test’ -b . -c
 $ genhtml -o result hello_test.info
 
 
- 
+
 ## 静态检查
 
 http://www.freebuf.com/sectool/119680.html
@@ -2099,8 +2099,8 @@ cppcheck -j 3 --force --enable=all src/*
 --inconclusive
   默认只会打印一些确认的错误，通过该参数配置异常的都打印；
 
-  
-  
+
+
 ### Splint
 
 http://www.cnblogs.com/bangerlee/archive/2011/09/07/2166593.html
@@ -2143,7 +2143,7 @@ HAVE_FNMATCH_H 1
 $ buildbot create-master buildbot_master
 
 
-$ cd buildbot_master && mv master.cfg.sample master.cfg 
+$ cd buildbot_master && mv master.cfg.sample master.cfg
 $ buildbot checkconfig master.cfg
 c['buildbotNetUsageData'] = None
 
@@ -2152,7 +2152,7 @@ $ buildbot start buildbot_master
 # 查看日志
 tail -f master/twistd.log
 
-virtualenv 
+virtualenv
 
 
 
@@ -2242,7 +2242,7 @@ cJSON_Print()
    |-print_value()
 
 
-typedef struct cJSON {    
+typedef struct cJSON {
     /* next/prev allow you to walk array/object chains. Alternatively, use GetArraySize/GetArrayItem/GetObjectItem */
     struct cJSON *next;
     struct cJSON *prev;
@@ -2251,7 +2251,7 @@ typedef struct cJSON {
     char *valuestring;      如果是String或者Raw时使用
     int valueint;           这个已经取消，使用valuedouble替换，为了兼容未删除
     double valuedouble;     如果是Number时使用
-    
+
     /* The item's name string, if this item is the child of, or is in the list of subitems of an object. */
     char *string;
 } cJSON;
@@ -2264,7 +2264,7 @@ cJSON_Parse()
    |-parse_value()  根据不同的字段进行解析
 
 cJSON_Duplicate()
-cJSON_Minify() 
+cJSON_Minify()
 ???cJSON_Compare()
 
 cJSON_Parse()
@@ -2281,9 +2281,9 @@ scanf 中一种很少见但很有用的转换字符 `[...]` 和 `[ ^...]` 。
 
 #include <stdio.h>
 int main()
-{ 
-    char strings[100]; 
-    scanf("%[1234567890]", strings); 
+{
+    char strings[100];
+    scanf("%[1234567890]", strings);
     printf("%s", strings);
     return 0;
 }
@@ -2317,7 +2317,7 @@ int i = sscanf( s, "%*[^=]=%s", szfilename ) ;
               char s[]="notepad=1.0.0.1001" ;
               char szfilename [32] = "" ;
              int i = sscanf( s, "%[^=]", szfilename ) ;
-           // szfilename=notepad 
+           // szfilename=notepad
        如果参数格式是：%[^=:] ，那么也可以从 notepad:1.0.0.1001读取notepad
 http://www.cnblogs.com/mafly/p/postman.html
 
@@ -2328,7 +2328,7 @@ https://meekrosoft.wordpress.com/2009/11/09/unit-testing-c-code-with-the-googlet
 
 https://en.wikipedia.org/wiki/Network_Time_Protocol
 
-Linux 内核通过 adjtime() 或者 ntp_adjtime() 来进行时钟的同步，ntptime 
+Linux 内核通过 adjtime() 或者 ntp_adjtime() 来进行时钟的同步，ntptime
 http://jfcarter.net/~jimc/documents/bugfix/12-ntp-wont-sync.html
 http://libev.schmorp.de/bench.c
 https://stackoverflow.com/questions/14621261/using-libev-with-multiple-threads
@@ -2630,7 +2630,7 @@ Timeout         ping_timeout，超时时间设置
 MaxMissed       ping_max_missed
 
 Timeout 不能超过 Interval ，否则会将 Timeout 调整为 0.9 * Interval 。
-   
+  
 ping_init()
  |-start_thread()
    |-pthread_mutex_lock() 会做条件判断，防止重复创建线程
@@ -2638,7 +2638,7 @@ ping_init()
 会有一个线程ping_thread()一直采集数据，
 
 ./configure --prefix=/usr
-   
+  
 https://cmake.org/Wiki/CMake_FAQ
 cmake最终打印信息
 https://stackoverflow.com/questions/25240105/how-to-print-messages-after-make-done-with-cmake
@@ -2721,7 +2721,7 @@ http://www.d-kai.me/lmdb%E8%B0%83%E7%A0%94/
 mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode) {
     ......
     /* For RDONLY, get lockfile after we know datafile exists */
-    if (!(flags & (MDB_RDONLY|MDB_NOLOCK))) {      
+    if (!(flags & (MDB_RDONLY|MDB_NOLOCK))) {
         rc = mdb_env_setup_locks(env, lpath, mode, &excl);
         if (rc)
              goto leave;
@@ -2915,7 +2915,6 @@ http://blog.csdn.net/work_msh/article/details/8470277
 
 
 ←
--->
 
 
 
@@ -2931,6 +2930,304 @@ http://blog.csdn.net/hbhhww/article/details/8237309
 
 
 
+Address already in use
+
+该错误信息是由于返回了 EADDRINUSE 错误码，通常是由 TCP 套接字的 TIME_WAIT 状态引起，该状态在套接字关闭后会保留约 2~4 分钟，只有在该状态 TIME_WAIT 退出之后，套接字被删除，该地址才能被重新绑定而不出问题。
+
+在 C 中，可以通过如下方式设置端口允许重用。
+
+int opt = 1;
+setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+/linux-monitor-cpu.html
+ps -ax -o uid,pid,ppid,tpgid,pgrp,session,lstart,cmd
+
+Linux查看某个文件被谁占用
+当用户卸载某个目录的时候，因其他用户在当前目录或者当前目录在运行一个程序，卸载时报busy的处理办法：
+
+1：fuser -av /mnt
+查看占用mnt的程序以及pid，根据pid去kill -9
+
+2：fuser -km /mnt
+查看占用mnt的程序并自动kill
+-m是指定被占用的目录，-k是kill
+
+3：losf /mnt
+查看正在使用的某个文件
+4：递归查看某个目录的文件信息
+lsof +D /mnt/fat
+
+5:列出某个用户打开的文件信息
+
+lsof -u student
+
+6：列出某个程序打开的文件信息
+
+lsof -c mysql
+http://blog.csdn.net/kozazyh/article/details/5495532
+
+
+System V IPC 分三类：消息队列、信号量、共享内存区，都采用 `key_t` 作为其内部使用的标示，该类型在 `<sys/types.h>` 中定义，一般是 32 位整数。
+
+通常可以使用 ftok() 函数，也就是 file to key，把一个已存在的路径名和一个整数标识符转换成一个 `key_t` 值，该函数声明如下：
+
+#include <sys/ipc.h>
+key_t ftok (const char *pathname, int proj_id);
+
+pathname 通常是跟本应用相关的路径；proj_id 指的是本应用所用到的 IPC 的一个序列号，通常约定好，这样可以获取相同的 `key_t` 值。
+
+注意，需要保证该路径应用程序可以访问，并且在运行期间不能删除。
+
+#include <stdio.h>        
+#include <stdlib.h>   
+#include <sys/stat.h> 
+ 
+int main() 
+{ 
+        char filename[50]; 
+        struct stat buf; 
+        int ret; 
+        strcpy(filename, "/home/satellite/" ); 
+        ret = stat( filename, &buf ); 
+        if(ret) { 
+                printf( "stat error\n" ); 
+                return -1; 
+        } 
+ 
+        printf( "the file info: ftok( filename, 0x27 ) = %x, st_ino = %x, st_dev= %x\n", ftok( filename, 0x27 ), buf.st_ino, buf.st_dev );
+
+        return 0; 
+}
+
+通过执行结果可看出，ftok获取的键值是由ftok()函数的第二个参数的后8个bit，st_dev的后两位，st_ino的后四位构成的
+
+### semget
+
+创建一个新的信号量或获取一个已经存在的信号量的键值。
+
+#include <sys/sem.h>
+int semget(key_t key, int nsems, int semflg);
+
+key: 为整型值，可以自己设定，有两种场景
+   1. IPC_PRIVATE 通常为 0，创建一个仅能被本进程给我的信号量。
+   2. 非 0 的值，可以自己手动指定，或者通过 ftok() 函数获取一个唯一的键值。
+nsems: 初始化信号量的个数。
+semflg: 信号量创建方式或权限，包括了 IPC_CREAT(不存在则创建，存在则获取)；IPC_EXCL(不存在则建立，否则报错)。
+
+#include <stdio.h>
+#include <sys/sem.h>
+
+int main()
+{
+ int semid;
+ semid = semget(666, 1, IPC_CREAT | 0666); // 创建了一个权限为666的信号量
+ printf("semid=%d\n", semid);
+ return 0;
+}
+
+可以用 ipcs –s 来查看是否创建成功。
+用 ipcrm -s semid 号来删除指定的信号量。
+
+
+
+################################
+# CMake
+################################
+
+
+针对特定对象，可以通过如下方式指定特定的编译选项、头文件路径、宏定义。
+
+target_compile_definitions(audio_decoder_unittests
+ PRIVATE "AUDIO_DECODER_UNITTEST"
+ PRIVATE "WEBRTC_CODEC_PCM16")
+target_include_directories(audio_decoder_unittests
+ PRIVATE "interface"
+ PRIVATE "test"
+ PRIVATE "../codecs/g711/include")
+target_compile_options(RTPencode PRIVATE "/wd4267")
+
+
+## 配置文件
+CheckSymbolExists.cmake   宏定义检查
+
+
+################################
+# Curl
+################################
+
+详细可以查看 http://php.net/manual/zh/function.curl-setopt.php
+https://moz.com/devblog/high-performance-libcurl-tips/
+
+CURLOPT_NOSIGNAL
+
+CURLOPT_WRITEFUNCTION 用于设置数据读取之后的回调函数，通过该函数可以保存结果，其函数声明如下。
+    size_t function( char *ptr, size_t size, size_t nmemb, void *userdata);
+CURLOPT_WRITEDATA 定义了上述函数声明中userdata的值。
+
+#include <stdio.h>
+#include <curl/curl.h>
+
+size_t save_data(void *ptr, size_t size, size_t nmemb, FILE *stream)
+{
+    size_t written;
+    written = fwrite(ptr, size, nmemb, stream);
+    return written;
+}
+
+int main(void)
+{
+    CURL *curl;
+    CURLcode res;
+    FILE *fp;
+
+    fp = fopen("index.html", "wb");
+
+    curl = curl_easy_init();
+    if (curl) {
+        curl_easy_setopt(curl, CURLOPT_URL, "www.baidu.com");
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, save_data);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+        curl_easy_perform(curl);
+        curl_easy_cleanup(curl);
+        fclose(fp);
+    }
+
+    return 0;
+}
+
+CURLOPT_USERNAME
+CURLOPT_PASSWORD 分别设置用户名密码，低版本可以通过CURLOPT_USERPWD选项设置，其值为"user:password" 。
+
+CURLOPT_TIMEOUT_MS 设置超时时间。
+
+CURLOPT_MAXREDIRS
+CURLOPT_FOLLOWLOCATION 允许重定向，以及设置重定向的跳转次数。
+
+
+CURLOPT_SSL_VERIFYPEER 验证证书，证书信息可以通过 CURLOPT_CAINFO 设置，或在 CURLOPT_CAPATH 中设置证书目录。
+
+CURLOPT_SSL_VERIFYHOST 设置为 1 是检查服务器SSL证书中是否存在一个公用名(common name)。译者注：公用名(Common Name)一般来讲就是填写你将要申请SSL证书的域名 (domain)或子域名(sub domain)。 设置成 2，会检查公用名是否存在，并且是否与提供的主机名匹配。 0 为不检查名称。 在生产环境中，这个值应该是 2（默认值）。
+
+
+./configure  \
+    --disable-shared --enable-static                     不使用动态库，而是静态编译
+    --without-libidn2 --without-winidn                   忽略国际化库
+ --disable-ipv6 --disable-unix-sockets                关闭IPV6以及Unix Socket
+ --without-ssl --without-gnutls --without-nss         关闭安全配置项1
+ --without-libssh2 --disable-tls-srp --without-gssapi 关闭安全配置项2
+    --without-zlib                                       不支持压缩
+ --disable-ares --disable-threaded-resolver      
+ --without-librtmp  --disable-rtsp                    关闭不需要的协议1
+ --disable-ldap --disable-ldaps                       关闭不需要的协议2
+ --disable-dict --disable-file --disable-gopher
+ --disable-ftp --disable-imap --disable-pop3
+ --disable-smtp --disable-telnet --disable-tftp
+ --disable-sspi                                       Windows选项
+ --without-libpsl --without-libmetalink
+    --with-nghttp2
+ 
+resolver:         ${curl_res_msg}
+Built-in manual:  ${curl_manual_msg}
+--libcurl option: ${curl_libcurl_msg}
+Verbose errors:   ${curl_verbose_msg}
+ca cert bundle:   ${ca}${ca_warning}
+ca cert path:     ${capath}${capath_warning}
+ca fallback:      ${with_ca_fallback}
+HTTP2 support:    ${curl_h2_msg}                                                                               
+Protocols:        ${SUPPORT_PROTOCOLS}
+
+
+curl_code = curl_easy_perform (session);
+long http_code = 0;
+curl_easy_getinfo(session, CURLINFO_RESPONSE_CODE, &http_code);  /* 获取返回码 */
+
+
+
+http://187.0.0.1:8080/status
+
+
+
+使用 curl 测量 Web 站点的响应时间。
+
+curl -o /dev/null -s -w '%{http_code}-%{time_namelookup}:%{time_connect}:%{time_appconnect}:%{time_pretransfer}:%{time_redirect}:%{time_starttransfer}:%{time_total}\n' 'http://187.0.0.1:8080/status'
+
+time_namelookup     DNS解析时间，从请求开始到DNS解析完毕所用时间
+time_connect     建立到服务器的 TCP 连接所用的时间
+time_appconnect     连接建立完成时间，如SSL/SSH等建立连接或者完成三次握手时间
+time_pretransfer    准备传输的时间，对于一些协议需要做一些初始化操作
+time_redirect       重定向时间，包括到最后一次传输前的几次重定向的DNS解析、连接、预传输、传输时间
+time_starttransfer 传输时间，在发出请求之后，服务器返回数据的第一个字节所用的时间
+time_total          完成请求所用的时间
+speed_download      下载速度，单位是字节/秒
+http_code           返回码
+
+注意，如果某一步失败了，该步骤对应的值实际上显示的是 0 ，此时需要通过总时间减去上一步的消耗时间。
+
+上述的执行，是在执行 curl_easy_perform() 函数的时候开始的，在 docs/examples 目录下，有很多的参考实例。
+
+
+const char *optstr;
+char *endptr = NULL;
+double v;
+long value;
+
+/* NOTE: if optstr = NULL, strtol() will raise 'Segmentation fault' */
+optstr = "  not a number"; /* errno=0, optstr == endptr */
+errno = 0;
+value = strtol(optstr, &endptr, /* base = */ 0);
+assert(value == 0);
+assert(errno == 0);
+assert(optstr == endptr);
+printf("errno=%d, optstr=%p, endptr=%p, endchar='%c'/0x%02x, value=%ld\n", errno, optstr, endptr, *endptr, *endptr, value);
+
+optstr = "  12part number";
+errno = 0;
+value = strtol(optstr, &endptr, /* base = */ 0);
+printf("errno=%d, optstr=%p, endptr=%p, endchar='%c'/0x%02x, value=%ld\n", errno, optstr, endptr, *endptr, *endptr, value);
+
+optstr = "  12";
+errno = 0;
+value = strtol(optstr, &endptr, /* base = */ 0);
+printf("errno=%d, optstr=%p, endptr=%p, endchar='%c'/0x%02x, value=%ld\n", errno, optstr, endptr, *endptr, *endptr, value);
+
+
+memory-barriers
+https://www.kernel.org/doc/Documentation/memory-barriers.txt
+http://ifeve.com/linux-memory-barriers/
+https://dirtysalt.github.io/memory-barrier.html
+http://preshing.com/20120625/memory-ordering-at-compile-time/
+http://events.linuxfoundation.org/sites/events/files/slides/dbueso-elc2016-membarriers-final.pdf
+http://larmbr.com/2014/02/14/the-memory-barriers-in-linux-kernel(1)/
+https://www.zhihu.com/question/47990356
+http://www.wowotech.net/kernel_synchronization/Why-Memory-Barriers.html
+http://blog.csdn.net/qb_2008/article/details/6840570
+
+网卡缓存
+https://zrj.me/archives/1102
+
+
+
+http://www.cnblogs.com/bodhitree/p/6018369.html
+sed高级用法
+https://www.zhukun.net/archives/6975
+http://gohom.win/2015/06/20/shell-symbol/
+mysql core dump
+http://xiezhenye.com/2015/05/%E8%8E%B7%E5%8F%96-mysql-%E5%B4%A9%E6%BA%83%E6%97%B6%E7%9A%84-core-file.html
+文件句柄数
+http://blog.sina.com.cn/s/blog_919f173b01014vol.html
+http://www.opstool.com/article/166
+rpm 升级到旧的版本
+http://ftp.rpm.org/max-rpm/s1-rpm-upgrade-nearly-identical.html#S2-RPM-UPGRADE-OLDPACKAGE-OPTION
+https://stackoverflow.com/questions/2452226/master-branch-and-origin-master-have-diverged-how-to-undiverge-branches
+C hash算法
+http://troydhanson.github.io/uthash/index.html
+
+https://blog.zengrong.net/post/1746.html
+https://stackoverflow.com/questions/9537392/git-fetch-remote-branch
+
+http://www.cnblogs.com/yuuyuu/p/5103744.html
+https://codeascraft.com/2011/02/15/measure-anything-measure-everything/
+-->
 
 {% highlight text %}
 {% endhighlight %}

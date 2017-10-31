@@ -165,6 +165,108 @@ and push
 # git push origin master
 -->
 
+### 子模块
+
+子模块可用于多项目使用共同类库的工具，允许类库项目做一个库，子项目做为一个单独的 git 项目存在父项目中。
+
+{% highlight text %}
+----- 添加submodule仓库
+$ git submodule add <remote_url> <local_path>
+$ git submodule add -b branch <remote_url> <local_path>
+$ git submodule add git@your.gitlab.com:Project/nodus.git Specific/Subdir
+
+----- 查看相关配置信息
+$ cat .gitmodules
+$ cat .git/config
+
+----- 对于clone一个有submodule的仓库，默认是不会把submodule也clone下来，需要执行如下步骤
+----- 1. 注册submodule到.git/config里
+$ git submodule init
+----- 2. clone submodule
+$ git submodule update --recursive
+----- 上面两步等价于下面
+$ git submodule update --init --recursive
+
+----- 然后可以直接从submodule的库中拉取代码进行测试，也可以指定具体分支
+$ git submodule foreach --recursive git fetch origin
+$ git submodule add -b branch-name GIT-URL
+{% endhighlight %}
+
+<!--
+#### No submodule mapping found in .gitmodules for path
+
+在Stage中存在一个特殊类型的目录，可以通过如下方式进行查看。
+
+git ls-files --stage | grep 160000
+git rm --cached <path_to_submodule>
+
+#### 指定分支/TAG
+
+----- 查看当前所有分支信息
+cd SUBMODULE_DIRECTORY
+git branch -avv
+----- 切换到某个远程分支上，添加并提交相关信息
+git checkout release/v1.8.4
+git add SUBMODULE_DIRECTORY
+git commit -m "moved submodule to v1.0"
+
+----- 然后通过如下命令更新git的代码，会通过.submodule中的配置拉取相应的分支
+git submodule update
+git submodule update --remote
+
+----- 子模块更新后，可以通过如下方式拉去最新的配置，并查看当前状态
+git submodule foreach git pull
+git submodule status
+
+Read-function of the
+
+// 如果修改了.gitmodule的remote url，使用下面的命令更新submodule的remote url
+git submodule sync
+git submodule update --init --recursive
+
+1.) Delete the relevant section from the .gitmodules file. You can use below command:
+
+----- 1.1 删除.gitmodules中的配置，默认submodule_name是路径名；也可以手动删除
+git config -f .gitmodules --remove-section "submodule.SUBMODULE_NAME"
+----- 1.2 删除.git/config中的相关配置
+
+----- 1. 删除.git/config中的配置，同上两步
+git submodule deinit -f "SUBMODULE_NAME"
+
+----- 2 保存.gitmodules的配置
+git add .gitmodules
+
+----- 3. 删除gitlink，注意没有/
+git rm --cached PATH_TO_SUBMODULE
+
+----- 4. 清理.git/modules模块
+rm -rf .git/modules/PATH_TO_SUBMODULE
+
+----- 5. 此时可以提交保存一份数据
+git commit -m "Removed submodule <name>"
+
+----- 6. 删除相关的文件
+rm -rf PATH_TO_SUBMODULE
+
+fatal: Not a git repository
+
+有两个文件保存了 submodule 的绝对路径，当移动了路径之后，如下的内容就需要进行修改。
+
+{submodule}/.git
+.git/modules/{submodule}/config
+
+.git/config
+.gitmodules
+
+http://www.jianshu.com/p/ed0cb6c75e25
+
+Branches 'master' and 'origin/master' have diverged.
+And branch 'master' may be fast-forwarded.
+
+git cherry origin/master
+-->
+
+
 
 ### 配置文件
 
@@ -564,6 +666,51 @@ Changes to be committed:
 
 另外，任何已经提交到 git 的都可以被恢复，即便在已经删除分支中的提交，或者用 `--amend` 重新改写的提交；可能失去的数据，仅限于没有提交过的，因为对 git 来说它们就像从未存在过一样。
 
+### 合并冲突
+
+在对分支进行合并的时候，难免会发生冲突，可以通过如下方式设置。
+
+{% highlight text %}
+----- 获取分支代码
+$ git fetch origin
+$ git checkout -b branch origin/branch
+
+----- 切换到开发分支，准备合并代码
+$ git checkout develop
+$ git merge --no-ff branch
+
+----- 查找冲突，一般类似与如下的代码，修改冲突代码
+<<<<<<< HEAD
+foobar
+=======
+conflict
+>>>>>>> 6853e5ff961e684d3a6c02d4d06183b5ff330dcc
+
+----- 提交修复后的代码
+$ git add src/conflict.c
+$ git commit -m "fix the confict"
+$ git push origin develop
+{% endhighlight %}
+
+### 版本号
+
+通过 `git describe` 可以输出类似如下的内容。
+
+{% highlight text %}
+$ git describe
+v1.8.3.1-8-e1f4155b
+{% endhighlight %}
+
+这里告诉你当前的版本号，也就是距离 `v1.8.3.1` 这个 tag 的第 8 次提交，其提交的 SHA 是 `e1f4155b` 。
+
+也可以通过如下方式设置。
+
+{% highlight text %}
+$ git describe --match "v[0-9]*" --abbrev=12 HEAD
+{% endhighlight %}
+
+
+
 ### 其它
 
 {% highlight text %}
@@ -579,6 +726,21 @@ $ git log -p <FILENAME>                      ← 某个文件修改历史
 git ls-tree -r --name-only HEAD | while read filename; do
   echo "$(git log -1 --format="%an %ae" -- $filename) $filename"
 done
+
+----- 同步tags
+$ git fetch origin --prune --tags            ← 1.7之后版本
+$ git tag -l | xargs git tag -d              ← 1.7之前版本需要删除后重新获取
+$ git fetch
+
+----- 同步branches，更新远端已经删除的分支，以及手动删除本地分支
+$ git fetch --prune
+$ git branch -D local-branch
+
+----- 设置跟踪远程分支
+$ git checkout --track origin/serverfix
+
+----- 设置代理
+$ git config --global http.proxy 'http://user-name:user-password@proxy.foobar.com:8080'
 {% endhighlight %}
 
 #### 更新单个文件
