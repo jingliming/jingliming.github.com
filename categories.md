@@ -274,7 +274,9 @@ MySQL 号称是使用最广泛的开源数据库，而 PG 则被称为功能最�
 
 #### 文章
 
-* [PostgreSQL 简单介绍](/post/postgresql-introduce.html)，简单介绍 PostgreSQL 的使用方法，如安装启动、客户端使用、调试等。
+* [PostgreSQL 简单介绍](/post/postgresql-introduce.html)，简单介绍 PG 的使用方法，如安装启动、客户端使用、调试等。
+* [PostgreSQL 结构及权限](/post/postgresql-structure-privileges.html)，介绍 PG 中常见的概念，如 Schema、Database 等，以及权限管理。
+* [PostgreSQL C 语言编程](/post/postgresql-c-language-pgcenter.html)，PG 通过 libpq 库提供 C 语言对外的 API 接口，这里简单介绍使用方法。
 
 ----------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------

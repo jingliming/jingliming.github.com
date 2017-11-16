@@ -70,12 +70,17 @@ void pthread2(void* arg)
 读写锁与互斥量类似，不过读写锁允许更高的并行性，适用于读的次数大于写的次数的数据结构。一次只有一个线程可以占有写模式的读写锁，但是多个线程可以同时占有读模式的读写锁。
 
 {% highlight text %}
+pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
 int pthread_rwlock_init(pthread_rwlock_t* rwlock, const pthread_rwlockattr_t* attr);
+
 int pthread_rwlock_rdlock(pthread_rwlock_t* rwlock);
 int pthread_rwlock_wrlock(pthread_rwlock_t* rwlock);
+
 int pthread_rwlock_unlock(pthread_rwlock_t* rwlock);
 int pthread_destroy(pthread_rwlock_t* rwlock);
 {% endhighlight %}
+
+
 
 ### 自旋锁
 

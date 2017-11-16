@@ -1145,6 +1145,11 @@ cpack -D CPACK_GENERATOR="ZIP;TGZ" /path/to/build/tree
 
 http://cmake.3232098.n2.nabble.com/Adding-a-custom-line-to-CMake-s-makefiles-td5984979.html
 
+
+%defattr(file mode, user, group, dir mode)
+
+默认的是 `%defattr(644, user, group, 755)` 或者 `%defattr(-, user, group)` ，对于普通文件是 644 而可执行文件以及目录使用 755 。
+
 -->
 
 

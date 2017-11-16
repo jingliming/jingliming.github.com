@@ -14,7 +14,7 @@ PostgreSQL 可以说是目前功能最强大、特性最丰富和结构最复杂
 
 <!-- more -->
 
-![PostgreSQL Logo]({{ site.url }}/images/databases/postgresql/postgresql-logo.jpg "PostgreSQL Logo"){: .pull-center width="50%" }
+![PostgreSQL Logo]({{ site.url }}/images/databases/postgresql/postgresql-logo.jpg "PostgreSQL Logo"){: .pull-center width="30%" }
 
 ## 简介
 
@@ -96,6 +96,13 @@ $ /opt/postgre/bin/pg_ctl -D $PGDATA -l logfile start
 $ /opt/postgre/bin/pg_ctl -D $PGDATA -l logfile stop
 {% endhighlight %}
 
+### 日志查看
+
+PG 的日志分为三类，分别是 `pg_log`、`pg_xlog` 和 `pg_clog`，一般保存在 `$PGDATA` 对应的目录下。
+
+1. pg_log  数据库运行日志，默认开启，可以通过配置 `$PGDATA/postgresql.conf` 。
+2. pg_xlog WAL日志，强制开启。
+3. pg_clog 事务提交日志，记录事务的元数据，强制开启。
 
 ### 防火墙、SELinux 设置
 
@@ -215,7 +222,7 @@ achiever process: 事务日志归档进程。
 postgres: user database host activity
 {% endhighlight %}
 
-其中 activity 的状态为 idle (正在等待用户输入命令)、idle in transaction、waiting (等待锁)、SQL 。
+其中 activity 的状态为 idle (正在等待用户输入命令)、idle in transaction、waiting (等待锁) 等。
 
 ### CTID
 
@@ -287,8 +294,77 @@ postgre=# \e
 postgre=# \conninfo
 
 ----- 其它杂项
-postgre=# \! shell-command     # 执行终端的命令
+postgre=# \! shell-command                   # 执行终端的命令
+postgre=# \set COMP_KEYWORD_CASE upper       # 设置自动提示关键字大写显示
+postgre=# \x auto                            # 如果列较多时，通过行显示，其中\x表示直接行显示
+postgre=# \pset null ¤                       # 当值为NULL时显示如下的字符，以区分空格
 {% endhighlight %}
+
+PG 中通过 `::` 进行类型转换；另外，支持一些常见的字符串匹配函数，如 `ilike`、`~*` 等，详细可以参考 [Pattern Matching](https://www.postgresql.org/docs/9.6/static/functions-matching.html) 。
+
+## 常用概念
+
+在 PostgreSQL 中，有各种各样的概念，常见的有表空间、数据库、模式、表、用户、角色等。
+
+### 角色 VS. 用户
+
+这两个可以理解为相同，只是两者在创建时默认行为的区别，其它基本一致。文档中，对两者进行了简单的说明 `CREATE USER is the same as CREATE ROLE except that it implies LOGIN.` ，也就是说如下的命令是等价的。
+
+{% highlight text %}
+CREATE ROLE foobar PASSWORD 'foobar' LOGIN;
+CREATE USER foobar PASSWORD 'foobar';
+{% endhighlight %}
+
+### 数据库 VS. 模式
+
+简单来说模式 (Schema) 就是对数据库 (Database) 的逻辑分割，而且在数据库创建的时候，已经默认创建了一个 public 模式，在此数据库中创建的对象，如表、函数、试图、索引、序列等都保存在这个模式中。
+
+{% highlight text %}
+----- 1. 创建一个数据库
+CREATE DATABASE tsdb;
+----- 2. 链接到新建的数据库，并查看其中的模式
+\c tsdb
+\dn
+----- 3. 新建一张测试表
+CREATE TABLE test(id INTEGER NOT NULL);
+\d
+----- 4. 创建新的模式，同时设置属主为默认用户，并查看当前库所有的表
+CREATE SCHEMA foobar AUTHORIZATION postgres;
+CREATE TABLE foobar.test (id INTEGER NOT NULL);
+SELECT * FROM pg_tables WHERE schemaname NOT IN('pg_catalog', 'information_schema');
+----- 5. 如果通过\d查看时，需要设置搜索路径
+SHOW search_path;
+SET search_path TO 'foobar,public'
+\d
+{% endhighlight %}
+
+也就是说，数据库通过模式做逻辑区分，而且一个数据库至少包含一个模式，接到一个数据库后，可以通过 `search_path` 设置搜索顺序。
+
+### 表空间 VS. 数据库
+
+在通过 `CREATE DATABASE dbname` 语句创建数据库时，默认的数据库所有者是当前创建数据库的角色，默认表空间是系统的默认表空间 pg_default ，其主要原因是创建是通过克隆数据库模板实现的。
+
+如上创建数据库时，如果没有指明数据库模板，系统将默认克隆 template1 数据库，其默认表空间是 pg_default ，其完整的语句如下。
+
+{% highlight text %}
+CREATE DATABASE dbname OWNER foobar TEMPLATE template1 TABLESPACE tablespacename;
+{% endhighlight %}
+
+实际上可以通过如下的步骤进行测试：
+
+{% highlight text %}
+----- 1. 切换到template1数据库并新建一个表进行测试
+\c template1
+CREATE TABLE test(id INTEGER NOT NULL);
+INSERT INTO test VALUES (1);
+----- 2. 创建一个表空间，需要注意对应的目录存在且为空
+CREATE TABLESPACE tsfoobar OWNER postgres LOCATION '/tmp/foobar';
+----- 3. 创建一个数据库
+CREATE DATABASE dbfoobar TEMPLATE template1 OWNERE postgres TABLESPACE tsfoobar;
+{% endhighlight %}
+
+链接查看新数据库时，实际上存在一个表，而且有上述写入的数据。表空间是一个存储区域，在一个表空间中可以存储多个数据库，尽管 PostgreSQL 不建议这么做，例如将索引保存到 SSD 中，而数据保存到 SATA 中。
+
 
 ## 常用特性
 
@@ -507,13 +583,15 @@ pg_ctl reload 重新加载即可。
 
 ## 参考
 
-可以参考官方网站 [www.postgresql.org](http://www.postgresql.org/)，以及 [PostgreSQL 中文社区](http://www.postgres.cn/) 。
+可以参考官方网站 [www.postgresql.org](http://www.postgresql.org/)，以及 [PostgreSQL 中文社区](http://www.postgres.cn/) 。国内 PG 研究比较多的人，可以查看 [PostgreSQL Research](http://blog.163.com/digoal@126/)。
 
-国内 PG 研究比较多的人，可以查看 [PostgreSQL Research](http://blog.163.com/digoal@126/)，[xxxx](http://blog.itpub.net/30088583) 。
+源码可以参考 [Github Postgres](https://github.com/postgres/postgres) 。
 
 <!--
 pgcli.com
 http://www.rails365.net/groups/postgresql
+
+[xxxx](http://blog.itpub.net/30088583) 。
 
 http://www.postgres.cn/news/viewone/1/99                 参考资料
 https://github.com/ty4z2008/Qix/blob/master/pg.md
@@ -523,14 +601,8 @@ https://pan.baidu.com/share/home?uk=1982970774#category/type=0
 
 pgadmin3  管理工具
 
-
-libzdb
-pgpool  提供连接池+负载均衡
-pgbouncer  只有连接池
-
 PostgreSQL 9 Administration CookBook    一本不错的书籍
 -->
-
 
 
 {% highlight text %}

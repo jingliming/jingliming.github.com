@@ -472,6 +472,13 @@ http://www.linuxatemyram.com/
 http://linuxperf.com/?cat=7
 Linux内存中的Cache真的能被回收么？
 http://liwei.life/2016/04/26/linux%e5%86%85%e5%ad%98%e4%b8%ad%e7%9a%84cache%e7%9c%9f%e7%9a%84%e8%83%bd%e8%a2%ab%e5%9b%9e%e6%94%b6%e4%b9%88%ef%bc%9f/
+
+
+举例介绍 cache/buffers，比较有意思，介绍如何强制刷新 cache，<a href="http://www.linuxatemyram.com/">http://www.linuxatemyram.com/</a>，也可以参考 <a href="reference/block/Linux_ate_my_ram.html">本地版本</a> 。<br><br>
+
+<a href="http://www.ibm.com/developerworks/cn/linux/l-cache/">Linux 内核的文件 Cache 管理机制介绍</a>，一篇很好的关于 cache 的详解，可以参考 <a href="reference/block/Linux 内核的文件 Cache 管理机制介绍.html">本地文档</a> 。<br><br>
+
+<a href="http://blog.csdn.net/shanshanpt/article/details/39258373">Linux文件系统(五)---三大缓冲区之buffer块缓冲区</a>，不错的文章，介绍 buffer 的。
 -->
 
 
