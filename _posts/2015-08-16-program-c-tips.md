@@ -78,6 +78,109 @@ int main(int argc, char *argv[])
 {% endhighlight %}
 
 
+## qsort
+
+`qsort()` 会根据给出的比较函数进行快排，通过指针移动实现排序，时间复杂度为 `n*log(n)`，排序之后的结果仍然放在原数组中，不保证排序稳定性，如下是其声明。
+
+{% highlight text %}
+void qsort(void *base, size_t nmemb, size_t size, int (*compar)(const void *, const void *));
+void qsort_r(void *base, size_t nmemb, size_t size, int (*compar)(const void *, const void *, void *), void *arg);
+    base: 数组起始地址；
+    nmemb: 数组元素个数；
+    size: 每个元素的大小；
+    compar: 函数指针，指向定义的比较函数，当elem1>elem2返回正数，此时不交换。
+{% endhighlight %}
+
+通常可以对整数、字符串、结构体进行排序，如下是常用示例。
+
+{% highlight text %}
+----- 对int类型数组排序
+int num[100];
+int cmp(const void *a , const void *b)
+{
+	return *(int *)a - *(int *)b;
+}
+qsort(num, sizeof(num)/sizeof(num[0]), sizeof(num[0]), cmp);
+
+----- 对结构体进行排序
+struct foobar {
+	int data;
+	char string[10];
+} s[100]
+int cmp_int(const void *a, const void *b) /* 按照data递增排序 */
+{
+	return (*(struct foobar *)a).data > (*(struct foobar *)b).data ? 1 : -1;
+}
+int cmp_string(const void *a, const void *b)
+{
+	return strcmp((*(struct foobar *)a).string, (*(struct foobar *)b).string);
+}
+qsort(num, sizeof(num)/sizeof(num[0]), sizeof(num[0]), cmp);
+{% endhighlight %}
+
+以及示例程序。
+
+{% highlight c %}
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+struct foobar {
+	int data;
+	char string[100];
+} array[10];
+
+int cmp_int(const void * a, const void * b)
+{
+	return (*(struct foobar *)a).data - (*(struct foobar *)b).data;
+}
+
+int cmp_string(const void * a, const void * b)
+{
+	return strcmp((*(struct foobar *)a).string, (*(struct foobar *)b).string);
+}
+
+int main (void)
+{
+	int i, j;
+	int array_size = sizeof(array)/sizeof(array[0]);
+	printf("Array size %d\n", array_size);
+
+	srand((int)time(0));
+	for (i = 0; i < array_size; i++) {
+		int r = rand() % 100;
+		array[i].data = r;
+		for (j = 0; j < r; j++)
+			array[i].string[j] = 'A' + rand() % 26;
+		array[i].string[r] = 0;
+	}
+
+	printf("Before sorting the list is: \n");
+	for (i = 0 ; i < array_size; i++ )
+		printf("%d ", array[i].data);
+	puts("");
+	for (i = 0 ; i < array_size; i++ )
+		printf("%s\n", array[i].string);
+
+	printf("\nAfter sorting the list is: \n");
+	qsort(array, array_size, sizeof(struct foobar), cmp_int);
+	for (i = 0 ; i < array_size; i++ )
+		printf("%d ", array[i].data);
+	puts("");
+
+	printf("\nAfter sorting the list is: \n");
+	qsort(array, array_size, sizeof(struct foobar), cmp_string);
+	for (i = 0 ; i < array_size; i++ )
+		printf("%s\n", array[i].string);
+
+	return 0;
+}
+{% endhighlight %}
+
+<!--
+https://www.felix021.com/blog/read.php?entryid=1951
+-->
+
 ## 指针
 
 指针或许是 C 语言中最复杂的东西了。
@@ -290,6 +393,21 @@ int main(int argc,char *argv[])
    #define debug(fmt,args...)
 #endif
 {% endhighlight %}
+
+另外，也可以通过如下方式判断支持可变参数的格式。
+
+{% highlight c %}
+#if defined __STDC_VERSION__ && __STDC_VERSION__ >= 199901L
+	#define _debug(...) do { printf("debug: " __VA_ARGS__); putchar('\n'); } while(0);
+	#define _warn(...)  do { printf("warn : " __VA_ARGS__); putchar('\n'); } while(0);
+	#define _error(...) do { printf("error: " __VA_ARGS__); putchar('\n'); } while(0);
+#elif defined __GNUC__
+	#define _debug(fmt, args...)  do { printf("debug: " fmt, ## args); putchar('\n'); } while(0);
+	#define _warn(fmt, args...)   do { printf("warn: "  fmt, ## args); putchar('\n'); } while(0);
+	#define _error(fmt, args...)  do { printf("error: " fmt, ## args); putchar('\n'); } while(0);
+#endif
+{% endhighlight %}
+
 
 ## 对齐操作
 

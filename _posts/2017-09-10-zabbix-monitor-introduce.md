@@ -386,6 +386,13 @@ zabbix配置内容比较多，我们要分为9大块来讲解。分别如下：
 Host groups（主机组）→Hosts（主机）→Applications（监控项组）→Items（监控项）→Triggers（触发器）→Event（事件）→Actions（处理动作）→User groups（用户组）→Users（用户）→Medias（告警方式）→Audit（日志审计）
 http://www.xuliangwei.com/xubusi/175.html
 http://www.cnblogs.com/ningskyer/articles/5546894.html
+
+
+https://xiaofandh12.github.io/Zabbix-Server
+https://xiaofandh12.github.io/Zabbix-Server-poller
+http://blog.csdn.net/liujian0616/article/details/7946492
+http://blog.51cto.com/john88wang/1833636
+https://www.ibm.com/developerworks/cn/linux/l-lexyac.html
 -->
 
 ## 参考
