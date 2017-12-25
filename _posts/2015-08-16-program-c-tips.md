@@ -361,6 +361,38 @@ int main(int argc,char *argv[])
 }
 {% endhighlight %}
 
+其中函数传参是通过栈传递，保存时从右至左依次入栈，以函数 `void func(int x, float y, char z)` 为例，调用该函数时 z、y、x 依次入栈，理论上来说，只要知道任意一个变量地址，以及所有变量的类型，那么就可以通过指针移位获取到所有的输入变量。
+
+`va_list` 是一个字符指针，可以理解为指向当前参数的一个指针，取参必须通过这个指针进行。
+
+在使用时，其步骤如下：
+1. 调用之前定义一个 va_list 类型的变量，一般变量名为 ap 。
+ 2. 通过 va_start(ap, first) 初始化 ap ，指向可变参数列表中的第一个参数，其中 first 就是 ... 之前的那个参数。
+ 3. 接着调用 va_arg(ap, type) 依次获取参数，其中第二个参数为获取参数的类型，该宏会返回指定类型的值，并指向下一个变量。
+ 4. 最后关闭定义的变量，实际上就是将指针赋值为 NULL 。
+
+其中的使用关键是如何获取变量的类型，通常有两种方法：A) 提前约定好，如上面的示例；B) 通过入参判断，如 printf() 。
+ 
+另外，常见的用法还有获取省略号指定的参数，例如：
+
+{% highlight c %}
+void foobar(char *str, size_t size, const char *fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	_vsnprintf(str, size, fmt, ap);
+	va_end(ap);
+}
+{% endhighlight %}
+
+假设，在调用上述的函数时，如果在 `_vsnprintf()` 中会再调用类似的函数，那么可以通过 `va_list args; va_copy(args, ap);` 复制一份。
+
+{% highlight text %}
+va_list args;
+va_copy(args, ap);
+some_other_foobar(str, size, fmt, args);
+{% endhighlight %}
+
 ## 调试
 
 当调试时定义 DEBUG 输出信息，通常有如下的几种方式。
@@ -1340,6 +1372,43 @@ http://gcc.gnu.org/onlinedocs/cpp/Macros.html
 # ln -s libxerces-c.so.3.0 libxerces-c-3.0.so
 {% endhighlight %}
 
+### 结构体初始化
+
+对于 C 中结构体初始化可以通过如下设置。
+
+{% highlight c %}
+#include <stdio.h>
+
+struct foobar {
+        int foo;
+        struct a {
+                int type;
+                int value;
+        } *array;
+        int length;
+};
+
+int main(int argc, char **argv)
+{
+        int i = 0;
+
+        struct foobar f = {
+                .foo = 1,
+                .length = 3,
+                .array = (struct a[]){
+                        {.type = 1, .value = 2},
+                        {.type = 1, .value = 3},
+                        {.type = 1, .value = 3}
+                }
+        };
+
+        for (i = 0; i < f.length; i++)
+                printf(">>>> %d %d\n", i, f.array[i].type);
+
+        return 0;
+}
+{% endhighlight %}
+
 ### 指针参数修改
 
 一个比较容易犯错的地方，愿意是在 `foobar()` 函数内修改 `main()` 中的 v 指向的变量，其中后者实际上是修改的本地栈中保存的临时版本。
@@ -1457,6 +1526,13 @@ FLT 是 float 的 缩写。( DBL 是 double 的 缩写。)
 这里是由于 `nanosleep()` 函数的报错，而实际上 `time.h` 头文件已经包含了，后来才发现原来是在 `Makefile` 中添加了 `-std=c99` 导致，可以通过 `-std=gnu99` 替换即可。
 
 另外，不能定义 `-D_POSIX_SOURCE` 宏。
+
+
+
+## 参考
+
+[Schemaless Benchmarking Suite](https://github.com/ludocode/schemaless-benchmarks)
+
 
 
 {% highlight text %}

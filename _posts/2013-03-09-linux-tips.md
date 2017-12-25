@@ -55,6 +55,25 @@ $ dd if=/dev/urandom of=urandom.dat bs=512 count=5
 <!--
 可以参考本地文档Myths about /dev/urandom
 /reference/linux/kernel/myths_about_dev_urandom.maff
+
+
+Linux 中的随机数可从 /dev/{random,urandom} 两个特殊的设备文件中产生，会利用当前系统的熵池计算出一定数量的随机比特，然后将这些比特作为字节流返回。熵池就是当前系统的环境噪音，可以通过很多参数来评估，如内存、文件的使用、不同类型的进程数量等等。
+
+如果当前环境噪音变化的不是很剧烈或者当前环境噪音很小，比如刚开机的时候，而当前需要大量的随机比特，这时产生的随机数的随机效果就不是很好了。
+
+这也就是上述两个文件的区别，前者不能产生新的随机数时会阻塞，直到根据熵池产生新的随机字节之后才返回；而后者不会阻塞，只是此时产生的可能是伪随机数，对加密解密这样的应用来说就不是一种很好的选择。
+
+所以使用 `/dev/random` 比使用 `/dev/urandom` 产生大量随机数的速度要慢。
+
+$ dd if=/dev/random of=random.dat bs=1024b count=1
+0+1 records in
+0+1 records out
+128 bytes (128 B) copied, 0.000169 seconds, 757 kB/s
+
+$ dd if=/dev/urandom of=random.dat bs=1024b count=1
+1+0 records in
+1+0 records out
+524288 bytes (524 kB) copied, 0.091297 seconds, 5.7 MB/s
 -->
 
 

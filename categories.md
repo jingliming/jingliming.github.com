@@ -378,7 +378,10 @@ http://apprize.info/
 当浏览器输入地址时发生了什么
 https://github.com/alex/what-happens-when
 
-内存的战争
+内存的战争，不错的文章
+
+一个web tty共享
+https://tsl0922.github.io/ttyd/
 
 
 1. Hesitate 犹豫不决
@@ -391,5 +394,31 @@ https://github.com/alex/what-happens-when
 8. Fearness 恐惧
 9. Refuse to learn 拒绝学习
 
+Python 资源大全中文版
+ttps://github.com/jobbole/awesome-python-cn
+
+SQLite源码解析
+http://huili.github.io/srcAnaly/selectExec.html
+
+CVE库
+https://www.cvedetails.com/
+WebSockets库
+https://github.com/uNetworking/uWebSockets
+C++使用mysql,断线重连问题
+http://www.paobuke.com/zh-cn/develop/c/pbk1821.html
+蛋疼的mysql_ping()以及MYSQL_OPT_RECONNECT
+https://www.felix021.com/blog/read.php?2102
+CA
+http://www.barretlee.com/blog/2016/04/24/detail-about-ca-and-certs/
+StatsD Python上报示例
+https://github.com/etsy/statsd/blob/master/examples/python_example.py
+使用C写的editline库，用于替换readline()函数
+https://github.com/troglobit/editline
+MYSQL C使用
+http://zetcode.com/db/mysqlc/
+PG用户管理
+http://www.davidpashley.com/articles/postgresql-user-administration/
+ZeroMQ
+https://github.com/anjuke/zguide-cn
 
 -->

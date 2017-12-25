@@ -192,6 +192,20 @@ $ git submodule foreach --recursive git fetch origin
 $ git submodule add -b branch-name GIT-URL
 {% endhighlight %}
 
+如果已经设置了 submodule ，后面做了修改，那么可以直接通过如下步骤操作。
+
+{% highlight text %}
+----- 添加子目录，并提交
+git add PLUGIN/SUBMODULE/DIRECTORY
+git commit -m "Add new sub-module"
+
+----- 查看子模块状态，获取到对应的commit-id
+git submodule status
+
+----- 通过上述的commit-id到对应的子模块下查看日志
+git log XXXXXXXXXX
+{% endhighlight %}
+
 <!--
 #### No submodule mapping found in .gitmodules for path
 
