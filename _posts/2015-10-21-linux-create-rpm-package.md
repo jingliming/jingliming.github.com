@@ -101,6 +101,31 @@ $ rpmbuild -bb SPECS/librdkafka.spec --define "__version 0.9.4" --define "__rele
 
 一般来说，执行的顺序为 `rpmbuild -bp`，再 `-bc` 再 `-bi`，如果没问题，`rpmbuild -ba` 生成 src 包与二进制包，使用时通过 `rpm -ivh xxx.rpm;` 以及 `rpm -e xxx.rpm` 进行安装卸载。
 
+### 执行步骤
+
+{% highlight text %}
+1. 在 %prep 段中，通过 %setup -q 宏解压、打补丁，一般是从 SOURCES 目录下解压到 BUILD 目录下，一般目录是 "NAME-VERSION" 。
+2. 通过 %build 段定义了如何进行编译，编译目录就是上述的 BUILD/NAME-VERSION 。
+   2.1 首先通过 %configure %cmake 进行配置。
+   2.2 然后利用 %{__make} %{?_smp_mflags} 进行并行编译。
+3. 接着就是安装，也就是 %install 字段，一般会在 BUILDROOT/NAME-VERSION-RELEASE-ARCH 目录下。
+   3.1 通常为了清理环境会先使用 rm -rf %{buildroot} 清理。
+   3.2 接着通过 %{__make} install DESTDIR=%{buildroot} 命令进行安装，其中 DESTDIR 相当于是根目录了。
+   3.3 通过上步安装的文件，需要都打包到 RPM 包中，如果不需要那么就先清理掉。
+   3.4 编译没有生成的也可以通过 %{__install} %{__mv} %{__rm} 命令直接复制。
+4. 执行检查规范，对应了 %test 段，一般执行一些单元测试。
+5. 开始打包
+6. 在 %clean 段处理清理操作，通常会通过 rm -rf %{buildroot} 删除编译的中间内容。
+{% endhighlight %}
+
+另外，还有 `%check` 字段，用于做些检查。
+
+<!--
+%check
+ctest -V %{?_smp_mflags}
+%{!?el5:-N}
+-->
+
 ## SPEC 文件
 
 接下来准备 spec 文件，也是核心的内容，该文件包括三部分：介绍部分，编译部分，files 部分。接下来，是一个简单的示例，可以看看到底是如何制作 RPM 包的。
@@ -308,6 +333,44 @@ SM5DLUGT c filename
 
 接下来，看看一些常用的实用技巧。
 
+在一个 SPEC 文件中可以同时打包多个 RPM 包，当然也可以通过 `%package -n foobar` 指定子模块 (subpackage) 的名称 。
+
+<!--
+http://ftp.rpm.org/max-rpm/s1-rpm-subpack-building-subpackages.html
+http://ftp.rpm.org/max-rpm/s1-rpm-subpack-spec-file-changes.html
+http://ftp.rpm.org/max-rpm/ch-rpm-b-command.html
+-->
+
+### 宏定义
+
+在定义文件的安装路径时，通常会使用类似 ```%_sharedstatedir``` 的宏，这些宏一般会在 ```/usr/lib/rpm/macros``` 中定义，当然部分会同时在不同平台上覆盖配置，可以直接 ```grep``` 查看。
+
+RPM 内建宏定义在 `/usr/lib/rpm/redhat/macros` 文件中，这些宏基本上定义了目录路径或体系结构等等；同时也包含了一组用于调试 spec 文件的宏，关于 Macro 详细可以查看 [Macro syntax](http://rpm.org/user_doc/macros.html)，其中常用如下：
+
+{% highlight text %}
+%dump                 打印宏的值，包括一些内建的宏定义，也可以通过rpm --showrc查看
+%{echo:message}       打印信息到标准输出
+%{warn:message}       打印信息到标准错误
+%{error:message}      打印信息到标准错误，然后返回BADSPEC
+%{expand:expression}  类似Bash中的eval内置命令
+{% endhighlight %}
+
+另外常用的是根据宏来设置变量。
+
+{% highlight text %}
+%{?foobar:expr} 如果宏 foobar 存在则使用 expand expr，否则为空；也可以取反 %{!?foobar:expr}
+%{?macro}       只测试该宏是否存在，存在就用该宏的值，反之则不用，如 %configure %{?_with_foobar}
+{% endhighlight %}
+
+另外，在判断宏的 Bool 值时，可以通过如下方式测试，如果 `variable` 定义，则为 `01` 也就是 `true` 否则为 `0` 。
+
+{% highlight text %}
+%if 0%{?variable:1}
+... ...
+%endif
+{% endhighlight %}
+
+
 ### 配置脚本
 
 很多制作 RPM 包的操作都是通过宏定义设置的，如下简单列举一下常见的宏定义操作。
@@ -429,10 +492,6 @@ $ rpm --define='_without_foobar 1' --define='with_foobar 0%{!?_without_foobar:1}
 foobar:0
 {% endhighlight %}
 
-### 初始宏定义
-
-在定义文件的安装路径时，通常会使用类似 ```%_sharedstatedir``` 的宏，这些宏一般会在 ```/usr/lib/rpm/macros``` 中定义，当然部分会同时在不同平台上覆盖配置，可以直接 ```grep``` 查看。
-
 
 ### 其它
 
@@ -499,6 +558,11 @@ $ rpm --info -qp XXX.rpm
 $ rpm --scripts -qp XXX.rpm
 {% endhighlight %}
 
+#### 变量定义
+
+在定义 `Version` 时，如果使用 `%{?package_version:1.0.0}` 可以工作但是，使用 `%{!?package_version:1.0.0}` 却无效。
+
+而且这里的参数不能通过类似 `rpmbuld --define='package_version 1.9.1' foobar.spec` 的方式传入。
 
 ### 测试脚本
 
@@ -616,6 +680,7 @@ http://giovannitorres.me/how-to-build-rpms-collectd-example.html
 
 rpm mock
 https://leo108.com/pid-2207.asp
+
 -->
 
 {% highlight text %}

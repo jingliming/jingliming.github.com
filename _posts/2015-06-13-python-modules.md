@@ -113,6 +113,46 @@ bar("function in bar/test.py")        # 执行bar/test.py中的函数
 
 接下来列举的就是一些常用的三方模块了，可以在使用的时候以供参考。
 
+## 搜索路径
+
+模块搜索顺序。
+
+1. 导入的模块是否为内置模块；
+2. 从 sys.path 变量中搜索模块名。
+
+可以通过 `python -c "import sys; print sys.path"` 查看搜索路径，默认是 A) 当前目录；B) `PYTHONPAHT` 环境变量；C) 安装默认路径。
+
+如果新安装的模块在其它路径下，那么就需要动态添加搜索路径，可以有如下的几种方式。
+
+1. 修改 `PYTHONPATH` 环境变量。
+2. 增加 `*.pth` 文件，在遍历已知目录时，如果遇到 `.pth` 文件，会自动将其中的路径添加到 `sys.path` 变量中。
+3. 通过 `sys` 模块的 `append()` 方法增加搜索路径。
+
+操作详见如下内容。
+
+{% highlight text %}
+----- 修改~/.bashrc文件
+export PYTHONPATH=$PYTHONPATH:/home/foobar/workspace
+
+----- 在默认安装路径/usr/lib64/python2.7下增加extra.pth文件，内容如下
+/home/foobar/workspace
+
+----- 通过append()函数添加路径
+import sys
+sys.path.append('/home/foobar/workspace')
+{% endhighlight %}
+
+在加载完模块之后，可以通过如下命令查看模块的路径。
+
+{% highlight python %}
+import sys
+sys.modules['foobar']
+
+foobar.__file__
+{% endhighlight %}
+
+另外遇到一个比较奇葩的问题，安装完 Redis 之后，发现 root 用户可以 import 模块，而非 root 用户会报错。首先，十有八九是权限的问题导致的，在 root 导入模块后查看其路径，修改权限；对于 easy_install 安装，会修改 easy-install.pth 文件，也需要保证其它用户对该文件可读。
+
 ## functools 模块
 
 functools 是 python2.5 引人的，可以参考官方文档 [functools — Higher-order functions and operations on callable objects](https://docs.python.org/2/library/functools.html)
@@ -261,6 +301,9 @@ deque 除了实现 list 的 append() 和 pop() 外，还支持 appendleft() 和 
 JSON (JavaScript Object Notation) 是一种轻量级的数据交换格式，采用完全独立于语言的文本格式，是 "名称/值" 的集合，详细可以参考 [官方文档](http://json.org/) 。Python2.6 开始加入了 JSON 标准模块，序列化与反序列化的过程分别是 encoding 和 decoding 。
 
 对于简单数据类型，如 string、unicode、int、float、list、tuple、dict，可以直接处理，详细的也可以参考 [Python 操作 json 的标准 api 库](http://docs.python.org/library/json.html) 。
+
+urllib 和 urllib2 的区别
+http://www.hacksparrow.com/python-difference-between-urllib-and-urllib2.html
 -->
 
 {% highlight python %}

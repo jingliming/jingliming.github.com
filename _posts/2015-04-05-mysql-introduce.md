@@ -241,6 +241,9 @@ default-character-set=utf8
     可通过该参数设置 mysql 提示符中显示当前用户、数据库、时间等信息；例如，可以通过如下方式启动：
     $ mysql -u root -p --prompt="\\u@\\h:\\d >"
 
+--column-type-info
+    显示元数据信息。
+
 -A, --no-auto-rehash
     不预读数据库信息（默认操作），切换数据库时不会预读，因此切换更快。可以使用反之为--auto-rehash，此时可以补全表明/库名。
 

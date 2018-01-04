@@ -2152,7 +2152,6 @@ $ buildbot start buildbot_master
 # 查看日志
 tail -f master/twistd.log
 
-virtualenv
 
 
 
@@ -2693,7 +2692,6 @@ https://symas.com/understanding-lmdb-database-file-sizes-and-memory-utilization/
 https://github.com/pmwkaa/sophia
 
 http://www.zkt.name/skip-list/
-https://symas.com/understanding-lmdb-database-file-sizes-and-memory-utilization/
 
 FIXMAP 是什么意思
 MDB_FIXEDMAP
@@ -3263,77 +3261,207 @@ https://github.com/axel-download-accelerator/axel
 
 
 
-http://www.tldp.org/HOWTO/html_single/NCURSES-Programming-HOWTO/
 https://github.com/MarkDickinson/scheduler
 https://github.com/Meituan-Dianping/DBProxy
 https://github.com/greensky00/avltree
 http://www.freebuf.com/sectool/151426.html
 http://www.freebuf.com/sectool/150367.html
-/post/linux-create-rpm-package.html
 
-在一个 SPEC 文件中可以同时打包多个 RPM 包，当然也可以通过 `%package -n foobar` 指定 subpackage 。
-
-http://ftp.rpm.org/max-rpm/s1-rpm-subpack-building-subpackages.html
-http://ftp.rpm.org/max-rpm/s1-rpm-subpack-spec-file-changes.html
-http://ftp.rpm.org/max-rpm/ch-rpm-b-command.html
-
-RPM 内建宏定义在 `/usr/lib/rpm/redhat/macros` 文件中，这些宏基本上定义了目录路径或体系结构等等；同时也包含了一组用于调试 spec 文件的宏，关于 Macro 详细可以查看 [Macro syntax](http://rpm.org/user_doc/macros.html)，其中常用如下：
-
-%dump                 打印宏的值，包括一些内建的宏定义，也可以通过rpm --showrc查看
-%{echo:message}       打印信息到标准输出
-%{warn:message}       打印信息到标准错误
-%{error:message}      打印信息到标准错误，然后返回BADSPEC
-%{expand:expression}  类似Bash中的eval内置命令
-
-另外常用的是根据宏来设置变量。
-
-%{?foobar:expr} 如果宏 foobar 存在则使用 expand expr，否则为空；也可以取反 %{!?foobar:expr}
-%{?macro}       只测试该宏是否存在，存在就用该宏的值，反之则不用，如 %configure %{?_with_foobar}
-
-另外，在判断宏的 Bool 值时，可以通过如下方式测试，如果 `variable` 定义，则为 `01` 也就是 `true` 否则为 `0` 。
-
-%if 0%{?variable:1}
-... ...
-%endif
-
-奇葩问题
-
-在定义 `Version` 时，如果使用 `%{?package_version:1.0.0}` 可以工作但是，使用 `%{!?package_version:1.0.0}` 却无效。
-
-而且这里的参数不能通过类似 `rpmbuld --define='package_version 1.9.1' foobar.spec` 的方式传入。
-
-
-1. 在 `%prep` 段中，通过 `%setup -q` 宏解压、打补丁，一般是从 SOURCES 目录下解压到 BUILD 目录下，一般目录是 `"NAME-VERSION"` 。
-2. 通过 `%build` 段定义了如何进行编译，编译目录就是上述的 BUILD/NAME-VERSION 。
-   2.1 首先通过 `%configure` `%cmake` 进行配置。
-   2.2 然后利用 `%{__make} %{?_smp_mflags}` 进行并行编译。
-3. 接着就是安装，也就是 `%install` 字段，一般会在 BUILDROOT/NAME-VERSION-RELEASE-ARCH 目录下。
-   3.1 通常为了清理环境会先使用 `rm -rf %{buildroot}` 清理。
-   3.2 接着通过 `%{__make} install DESTDIR=%{buildroot}` 命令进行安装，其中 DESTDIR 相当于是根目录了。
-   3.3 通过上步安装的文件，需要都打包到 RPM 包中，如果不需要那么就先清理掉。
-   3.4 编译没有生成的也可以通过 %{__install}、%{__mv}、%{__rm} 命令直接复制。
-4. 执行检查规范，对应了 `%test` 段，一般执行一些单元测试。
-5. 开始打包
-   
-
-
-5. 在 `%clean` 段处理清理操作，通常会通过 `rm -rf %{buildroot}` 删除编译的中间内容。
-
-
-%check
-ctest -V %{?_smp_mflags}
-%{!?el5:-N}
-If cmake is installed, see /usr/lib/rpm/macros.d/cmake or /etc/rpm/macros.cmake on EL6.
-Manually-specified variables were not used by the project
-
-
-home/jinyang/workspace/0-nodus/uagent/rpm-maker/BUILD
 
 
 tar 打包可以通过 --exclude=dir 排除。
 通过 `--transform` 参数可以根据 `sed` 语法进行一些转换，例如增加前缀 `'s,^,prefix/,'` 或者 `s%^%prefix/%`。
 
 
+
+支持数据类型float, int, str, text, log
+
+支持函数：
+    abschange 计算最新值和上次采集值相减的绝对值，对于字符串0/相同、1/不同，1->5=4, 3->1=2
+
+https://www.zabbix.com/documentation/3.0/manual/appendix/triggers/functions
+
+
+支持数据类型：
+   Numeric (unsigned) - 64位无符号整数；
+   Numeric (float) - 浮点数，可以存储负值，范围是 [-999999999999.9999, 999999999999.9999]，同时可以支持科学计算 1e+7、1e-4；
+   Character - 短文本数据，最大255字节；
+  
+  
+Log - 具有可选日志相关属性的长文本数据(timestamp, source, severity, logeventid)
+Text - 长文本数据
+
+
+Tim O’Reilly and Crew [5, p.726]
+The load average tries to measure the number of active processes at any time. As a measure of CPU utilization, the load average is simplistic, poorly defined, but far from useless.
+
+Adrian Cockcroft [6, p. 229]
+The load average is the sum of the run queue length and the number of jobs currently running on the CPUs.
+
+
+默认没有移动平均值计算，只是针对单个值进行计算。
+
+threshold_tree 仍然通过format_name格式化名称。
+ 
+目前分为了三种类型，分别为 Host > Plugin > Type ，需要按照层级进行排列，例如 Host 下面可以有 Plugin 和 Type 段；Plugin 下可以有 Type 但是不能有 Host 。
+
+其它的配置项用于一些类似阈值的判断等，只能在 Type 下面配置。
+
+FailureMax Value
+WarningMax Value
+ 设置报警的上限值，如果没有配置则是正无穷。告警发送规则如下：
+    A) (FailureMax, +infty) 发送 FAILURE 通知；
+    B) (WarningMax, FailureMax] 发送 WARNING 通知；
+
+FailureMin Value
+WarningMin Value
+ 设置报警的下限值，如果没有配置则是负无穷。告警发送规则如下：
+    A) (-infty, FailureMin) 发送 FAILURE 通知；
+    B) [FailureMin, WarningMin) 发送 WARNING 通知；
+
+Persist true|false(default)
+ 多久发送一次报警，设置规则如下：
+    true) 每次超过阈值之后都会发送一次报警通知；
+    false) 只有在状态发生转换且前一次状态是OKAY时才会发送一次通知。
+
+PersistOK true|false(default)
+ 定义如何发送OKAY通知，设置规则如下：
+    true) 每次在正常范围内都会发送通知；
+    false) 当本次状态正常而且之前状态不正常时才发送一次OK通知。
+
+Hysteresis Value
+ 迟滞作用，用于处理在一个状态内重复变换，在该阈值范围内不会告警。
+
+Hits Value
+    告警条件必须连续满足多少次之后才会发送告警。
+
+Interesting true(default)|false
+ 发现数据未更新时是否发送告警，会根据插件的采集时间间隔以及 Timeout 参数判断是否有事件发生。
+    true) 发送FAILURE报警；
+    false) 忽略该事件。
+
+DataSource  <-> Types.db 中字段，例如midterm
+Host <-> host
+Plugin <-> plugin
+Type <-> type
+Instance <-> type_instance
+
+1. 根据value list中的参数获取到具体的配置。
+2.
+
+Invert true|false
+Percentage true|false
+
+以 loadavg 为例，其实现在 fs/proc/loadavg.c 中。
+calc_global_load()
+监控指标，其中监控插件包括了
+
+https://en.wikipedia.org/wiki/Moving_average
+http://www.perfdynamics.com/CMG/CMGslides4up.pdf
+https://zh.wikipedia.org/wiki/%E7%A7%BB%E5%8B%95%E5%B9%B3%E5%9D%87
+
+移动平均 (Moving Average) 可以处理短期波动，反映长期趋势或周期，从数学上看做是卷积。
+
+
+## 简单移动平均
+
+Simple Moving Average, SMA 将变量的前 N 值做平均。
+
+SMA = (V1 + V2 + ... + Vn) / n
+
+当有新值之后，无需重复计算，只需要将最老的旧值删除，然后加入新值。
+
+SMAn = SMAn-1 - V1/n + V/n
+
+这样需要保存 N 个值。
+
+## 加权移动平均
+
+Weighted Moving Average, WMA 也就是在计算平均值时将部分数据乘以不同数值，
+
+## 指数移动平均
+
+Exponential Moving Average, EMA
+
+
+----- 锁定用户该用户不能再次登录
+ALTER USER username ACCOUNT LOCK;
+----- 解锁用户
+ALTER USER username ACCOUNT UNLOCK;
+
+aussdb plugin: Connect to database failed: FATAL:  The account has been locked.
+FATAL:  The account has been locked.
+
+Zabbix上报数据格式
+http://www.ttlsa.com/zabbix/zabbix-active-and-passive-checks/
+Open-falcon 上报数据
+http://blog.niean.name/2015/08/06/falcon-intro
+main_timer_loop() 周期计算定义的触发值，如果有事件发生，那么就直接写入到数据库中。
+
+
+timer_thread()     main_timer_loop时间相关的处理
+ |-process_time_functions()
+ | |-DCconfig_get_time_based_triggers() 从缓存中获取trigger表达式
+ | |-evaluate_expressions()       触发器表达式的主要处理函数，同时会产生事件
+ | | |-substitute_simple_macros() 宏分为两类，分别是{...} {$...}
+ | | |-substitute_functions()
+ | | | |-zbx_evaluate_item_functions()
+ | | |   |-evaluate_function()
+ | | |-evaluate()
+ | |
+ | |-DBbegin()
+ | |-process_triggers() T:triggers
+ | | |-process_trigger()
+ | |   |-add_event()              会保存到内存的events数组中
+ | |-process_events()             处理事件，主要是将新事件插入数据库
+ | | |-save_events() T:events
+ | | |-process_actions() T:actions
+ | | |-clean_events()
+ | |-DBcommit()
+ |
+ |-process_maintenance()
+
+
+源码解析
+https://jackywu.github.io/articles/zabbix_server%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/
+
+## 表结构
+
+{<server>:<key>.<function>(<parameter>)}<operator><constant>
+
+hosts  包含了主机以及模板信息。
+    select hostid, host from hosts where status = 0;
+    hostid  主机ID
+ host    主机、模板名
+ status  0->主机 3->模板
+goups   主机的逻辑分组
+hosts_grous 分组和主机之间的关联关系
+items 监控项，保存了每个主机的监控项，该监控项来自的模板ID
+    select itemid, name, key_, templateid, delay, status, units from items where hostid = 10107;
+triggers 触发器，其中表达式中使用的是function id
+ select triggerid, expression, status, value, description from triggers;
+ select * from functions where functionid = 13302;
+functions
+
+Paxos协议解析
+https://zhuanlan.zhihu.com/p/21438357?refer=lynncui
+
+https://github.com/hanc00l/wooyun_public
+https://github.com/niezhiyang/open_source_team
+http://www.jianshu.com/p/43c604177c08
+http://kenwheeler.github.io/slick/
+
+http://lovestblog.cn/blog/2016/07/20/jstat/
+http://blog.phpdr.net/java-visualvm%E8%AE%BE%E7%BD%AEjstat%E5%92%8Cjmx.html
+
+
+http://metrics20.org/spec/
+Stack Overflow 的架构
+https://zhuanlan.zhihu.com/p/22353191
+GCC部分文件取消告警
+http://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
+http://gcc.gnu.org/onlinedocs/gcc/Diagnostic-Pragmas.html
+http://gcc.gnu.org/onlinedocs/gcc-4.0.4/gcc/Warning-Options.html
 
 
 
