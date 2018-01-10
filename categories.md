@@ -147,15 +147,6 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Linux 密码管理](/post/security-how-to-save-password.html)，简单介绍下 Linux 中的密码管理。
 * [SELinux 简介](/post/linux-selinux-introduce.html)，一种强制存取控制的实现。
 
-#### SSH
-
-主要介绍 SSH 一些常见的操作。
-
-* [SSH 简介](/post/ssh-introduce.html)，简单介绍 OpenSSH 相关的内容。
-* [SSH 代理设置](/post/ssh-proxy.html)，关于一些常见代理设置，如本地转发、远程转发、动态转发等。
-* [SSH Simplify Your Life](/post/ssh-simplify-your-life.html)，用来配置一些常见的设置，简化登陆方式。
-* [SSH 杂项](/post/ssh-tips.html)，记录一些常见的示例。
-
 #### Miscellaneous
 
 简单记录一些乱七八糟的东西。
@@ -174,9 +165,6 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 * [Logrotate 使用方法](/post/logrotate-usage.html)，一个不错的日志切割管理程序。
 * [Linux 后台服务管理](/post/linux-daemon-tools.html)，介绍目前常用的后台服务管理。
 * [你所不知道的定时任务](/post/details-about-cronie.html)，也就是 Linux 中如何使用 crontab，以及常见错误。
-* [Git 简明教程](/post/git-simple-guide.html)，简单介绍常见操作。
-* [Git 分支管理](/post/git-branch-model.html)，主要介绍 git 的分支处理常用操作，以及比较经典的版本分支管理方式。
-* [Git 使用杂项](/post/git-tips.html)，记录 git 常见的示例，可以用来作为参考使用。
 * [Linux 时间同步](/post/linux-sync-time.html)，介绍部分与时间相关的概念，例如时区、闰秒、夏令时、NTP 等。
 * [Systemd 使用简介](/post/linux-systemd.html)，一般新发行版本采用的是 systemd，在此简单介绍下。
 * [Rsync & Inotify](/post/rsync-inotify.html)，通过这两个命令可以快速实现文件的同步。
@@ -357,6 +345,45 @@ Golang 从 2007 年末由 Robert Griesemer、Rob Pike、Ken Thompson 主持开�
 
 * [InfluxDB 简介](/post/influxdata-influxdb.html)，简单介绍常见概念，如何安装，常用操作等。
 
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+
+一些杂七杂八的东西。
+
+
+![Lua Logo]({{ site.url }}/images/programs/lua-logo.png "Lua Logo"){: .pull-center width="125" }
+
+Lua 在葡萄牙语中是 “月亮” 的意思，是一个小巧的脚本语言，官方版本只包括一个精简的核心和最基本的库，使得其体积小、启动速度快，从而特别适合嵌入到其它程序里。
+
+这里简单介绍其使用方法。
+
+* [Lua 简介](/post/lua-introduce.html)，简单介绍常见概念，包括安装、语法规则、常用模块等。
+* [Lua 协程](/post/lua-coroutine.html)，作为一种简单的语言，仍支持闭包、协程等较新的特性，简单介绍协程使用。
+* [Lua 源码解析](/post/lua-sourcecode.html)，其核心代码总共才 2W 行左右，但是却实现了很多不错的特性。
+* [Lua CAPI 使用](/post/lua-how-capi-works.html)，简单介绍 Lua 和 C 之间的调用，常见的概念如栈、CAPI等概念。
+
+
+![OpenSSH Logo]({{ site.url }}/images/misc/openssh-logo-1.jpg "OpenSSH Logo"){: .pull-center width="150" }
+
+OpenSSH 是 SSH (Secure SHell) 协议的免费开源实现，一种命令行的远程登录工具，使用加密的远程登录实现，可以有效保护登录及数据的安全，同时提供了安全的文件传输功能。
+
+这里主要介绍 SSH 一些常见的操作。
+
+* [SSH 简介](/post/ssh-introduce.html)，简单介绍 OpenSSH 相关的内容。
+* [SSH 代理设置](/post/ssh-proxy.html)，关于一些常见代理设置，如本地转发、远程转发、动态转发等。
+* [SSH Simplify Your Life](/post/ssh-simplify-your-life.html)，用来配置一些常见的设置，简化登陆方式。
+* [SSH 杂项](/post/ssh-tips.html)，记录一些常见的示例。
+
+
+![Git Logo]({{ site.url }}/images/misc/git-logo.jpg "Git Logo"){: .pull-center width="130" }
+
+Git 是一免费、开源的分布式版本控制系统，可有效、高速的处理从很小到非常大的项目版本管理，该工具是 Linus Torvalds 为了帮助管理 Linux 内核开发而开发，其本意是为了替换 BitKeeper 。
+
+这里简单介绍一下常见概念及其操作。
+
+* [Git 简明教程](/post/git-simple-guide.html)，简单介绍常见操作。
+* [Git 分支管理](/post/git-branch-model.html)，主要介绍 git 的分支处理常用操作，以及比较经典的版本分支管理方式。
+* [Git 使用杂项](/post/git-tips.html)，记录 git 常见的示例，可以用来作为参考使用。
 
 ## Tags
 

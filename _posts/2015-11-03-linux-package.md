@@ -1106,6 +1106,7 @@ $ gcc sample.c -o sample `pkg-config --cflags --libs glib-2.0`
 
 关于 CMake 相关的文档可以参考 [CMake 实践](/reference/linux/CMake_Practice.pdf) ，或者参考 [CMake 入门实战](http://hahack.com/codes/cmake/) 以及 [CMake Tutorial](https://cmake.org/cmake-tutorial/)；搭建 GTest 环境可以参考 [Unit testing with GoogleTest and CMake](http://kaizou.org/2014/11/gtest-cmake/) 。
 
+常见的命令参考 [cmake-commands](https://cmake.org/cmake/help/v3.0/manual/cmake-commands.7.html) 。
 
 
 <!--
@@ -1149,6 +1150,7 @@ http://cmake.3232098.n2.nabble.com/Adding-a-custom-line-to-CMake-s-makefiles-td5
 %defattr(file mode, user, group, dir mode)
 
 默认的是 `%defattr(644, user, group, 755)` 或者 `%defattr(-, user, group)` ，对于普通文件是 644 而可执行文件以及目录使用 755 。
+
 
 -->
 

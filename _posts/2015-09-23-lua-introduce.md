@@ -337,7 +337,9 @@ sock:close()
 
 ## 参考
 
-[Lua 官方网站](http://www.lua.org/)，[The evolution of an extension language: a history of Lua](http://www.lua.org/history.html)。
+官方文档 [www.lua.org](http://www.lua.org/)，以及相关的参考文档 [Lua 5.3 Reference Manual](http://www.lua.org/manual/5.3/) 。
+
+Lua 的历史简介 [The evolution of an extension language: a history of Lua](http://www.lua.org/history.html)。
 
 
 
