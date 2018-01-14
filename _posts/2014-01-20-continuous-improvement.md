@@ -1,5 +1,5 @@
 ---
-title: 丰田理念的核心：持续改进
+title: 【转】丰田理念的核心：持续改进
 layout: post
 comments: true
 language: chinese

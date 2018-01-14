@@ -1,5 +1,5 @@
 ---
-title: 一个银行劫匪的止损策略
+title: 【转】一个银行劫匪的止损策略
 layout: post
 comments: true
 language: chinese

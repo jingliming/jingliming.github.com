@@ -1,10 +1,10 @@
 ---
-source: http://www.dapenti.com/blog/more.asp?name=xilei&id=88296
-title: 总有一个人要先走
+title: 【转】总有一个人要先走
 layout: post
 comments: true
 category: [misc]
 language: chinese
+source: http://www.dapenti.com/blog/more.asp?name=xilei&id=88296
 keywords: 总有一个人要先走
 description: 转自打喷嚏的一篇文章，有勇气来改变可以改变的事情，有胸怀来接受不可改变的事情，珍惜所拥有的，享受生活，随遇而安。
 ---

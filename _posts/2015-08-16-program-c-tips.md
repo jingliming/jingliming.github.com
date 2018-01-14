@@ -1409,6 +1409,46 @@ int main(int argc, char **argv)
 }
 {% endhighlight %}
 
+### 结构体地址定位
+
+通过结构体可以将多种不同类型的对象聚合到一个对象中，编译器会按照成员列表顺序分配内存，不过由于内存对齐机制不同，导致不同架构有所区别，所以各个成员之间可能会有间隙，所以不能简单的通过成员类型所占的字长来推断其它成员或结构体对象的地址。
+
+假设有如下的一个链表。
+
+{% highlight text %}
+typedef struct list_node {
+	int ivar;
+	char cvar;
+	double dvar;
+	struct list_node *next;
+} list_node;
+{% endhighlight %}
+
+当已知一个变量的地址时，如何获取到某个成员的偏移量，Linux 内核中的实现如下。
+
+{% highlight c %}
+#define offsetof(TYPE, MEMBER) ((size_t) &((TYPE *)0)->MEMBER)
+{% endhighlight %}
+
+当知道了成员偏移量，那么就可以通过结构体成员的地址，反向求结构体的地址，如下。
+
+{% highlight c %}
+#define container_of(ptr, type, member) ({
+	const typeof(((type *)0)->member ) *__mptr = (ptr);
+	(type *)((char *)__mptr - offsetof(type,member));
+	})
+{% endhighlight %}
+
+现在很多的动态语言是可以支持动态获取变量类型的，其中 GCC 提供了 `typeof` 关键字，所不同的是这个只在预编译时，最后实际转化为数据类型被编译器处理。基本用法是这样的：
+
+{% highlight c %}
+int a;
+typeof(a)  b; // int b;
+typeof(&a) c; // int* c;
+{% endhighlight %}
+
+如上的宏定义中， ptr 代表已知成员的地址，type 代表结构体的类型，member 代表已知的成员。
+
 ### 指针参数修改
 
 一个比较容易犯错的地方，愿意是在 `foobar()` 函数内修改 `main()` 中的 v 指向的变量，其中后者实际上是修改的本地栈中保存的临时版本。

@@ -3,11 +3,12 @@ title: Bash 安全编程
 layout: post
 comments: true
 language: chinese
-category: [linux, bash]
+category: [linux, program]
 keywords: bash,编程,安全
 description:
 ---
 
+简单介绍下 Linux 中 Bash 编程所需要注意的内容。
 
 <!-- more -->
 
@@ -514,6 +515,8 @@ Bash 老司机也可能忽视的 10 大编程细节
 https://www.leiphone.com/news/201703/i49ztcRDDymM7Id5.html
 初识Bash编程
 http://www.jianshu.com/p/d590aa13b124
+
+ShellCheck
 -->
 
 {% highlight text %}

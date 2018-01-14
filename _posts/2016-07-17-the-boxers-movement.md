@@ -1,5 +1,5 @@
 ---
-title: 民族英雄还是爱国贼：起底义和团
+title: 【转】民族英雄还是爱国贼：起底义和团
 layout: post
 comments: true
 language: chinese

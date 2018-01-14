@@ -56,10 +56,9 @@ countor:1|c
 
 #### 关于sample_rate
 
-这个参数的主要作用是降低网络的传输带宽，例如 0.5 表示 UDP 包减少一半，其代价是降低了精确度。
+这个参数的主要作用是降低网络的传输带宽，例如 0.5 表示 UDP 包减少一半，其代价是降低了精确度。对于客户端，如果设置了 0.5 ，也就意味着只有原先 50% 的时间发送统计值；在服务端，会根据采样值进行一些修正，简单来说就是乘以 2 。
 
-对于客户端，如果设置了 0.5 ，也就意味着只有原先 50% 的时间发送统计值；在服务端，会根据采样值进行一些修正，简单来说就是乘以 2 。
-
+实际上，在客户端每次调用发送接口会计算其发送概率。
 
 ### Timing
 
@@ -120,6 +119,19 @@ seter:765|s
 <!--
 https://github.com/etsy/statsd/blob/master/docs/metric_types.md
 https://blog.pkhamre.com/understanding-statsd-and-graphite/
+
+https://github.com/statsite/statsite
+https://github.com/github/brubeck
+https://github.com/jbuchbinder/statsd-c
+
+
+StatsD 的 APM 实现
+https://docs.datadoghq.com/tracing/
+Datadog StatsD 的消息格式
+https://docs.datadoghq.com/developers/dogstatsd/
+
+
+单行最大为 1024 字节，超过将会返回 `-ENOSPC(28)` 错误。
 -->
 
 

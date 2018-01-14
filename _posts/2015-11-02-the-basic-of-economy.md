@@ -1,5 +1,5 @@
 ---
-title: 你应该知道的10个经济学原理
+title: 【转】你应该知道的10个经济学原理
 layout: post
 comments: true
 language: chinese

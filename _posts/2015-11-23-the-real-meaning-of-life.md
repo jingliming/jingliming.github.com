@@ -1,5 +1,5 @@
 ---
-title: 人生的意义
+title: 【转】人生的意义
 layout: post
 comments: true
 language: chinese

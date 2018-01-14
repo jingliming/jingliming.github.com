@@ -1,5 +1,5 @@
 ---
-title: 政府是越小越好吗？
+title: 【转】政府是越小越好吗？
 layout: post
 comments: true
 source: https://mp.weixin.qq.com/s/oR_yhCqZQ_CJkT38EOD-9g

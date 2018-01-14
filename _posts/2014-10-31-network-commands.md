@@ -12,6 +12,194 @@ description: 简单记录一下 Linux 中的常用网络命令，如 tcpdump、n
 
 <!-- more -->
 
+
+
+## Wget
+
+一个下载文件的工具，支持断点下载、FTP 和 HTTP 下载、代理服务器，如下简单介绍其使用方法。
+
+##### 1. 下载单个文件
+
+以下的例子是从网络下载一个文件并保存在当前目录
+
+{% highlight text %}
+$ wget http://foobar.example.com/your-file-name.tar.bz2
+{% endhighlight %}
+
+在下载的过程中会显示进度条，包含下载完成百分比，已经下载的字节，当前下载速度，剩余下载时间。
+
+##### 2. 重命名保存文件
+
+默认会以最后一个符合 `"/"` 的后面的字符来命名文件，对于动态链接的下载通常文件名会不正确，如下示例会下载一个文件并以名称 `download.php?id=1` 保存。
+
+{% highlight text %}
+$ wget https://www.example.com/download?id=1
+{% endhighlight %}
+
+即使下载后的文件是 zip 格式，仍然以 `download.php?id=1` 命令，此时可以通过 `-O` 来指定一个下载文件名。
+
+{% highlight text %}
+$ wget -O example.zip https://www.example.com/download.php?id=1
+{% endhighlight %}
+
+##### 3. 限速下载
+
+当执行 wget 时，默认会占用全部可能的宽带下载，但是当你准备下载一个大文件，而你还需要下载其它文件时就有必要限速了。
+
+{% highlight text %}
+$ wget --limit-rate=300k http://foobar.example.com/your-file-name.tar.bz2
+{% endhighlight %}
+
+##### 4. 断点续传
+
+通过 `-c` 参数重新启动下载中断的文件。
+
+{% highlight text %}
+$ wget -c http://foobar.example.com/your-file-name.tar.bz2
+{% endhighlight %}
+
+对于下载大文件时突然由于网络等原因中断时非常有用。
+
+##### 5.  后台下载
+
+下载非常大的文件时，可以使用参数 `-b` 进行后台下载。
+
+{% highlight text %}
+$ wget -c http://foobar.example.com/your-file-name.tar.bz2
+Continuing in background, pid 9817.
+Output will be written to `wget-log'.
+{% endhighlight %}
+
+可以使用 `tail -f wget-log` 命令查看进度。
+
+##### 6. 伪装代理下载
+
+有些网站能根据代理是不是浏览器而拒绝下载，此时可以通过 `--user-agent` 参数伪装代理。
+
+{% highlight text %}
+$ wget --user-agent="Mozilla/5.0 (Windows NT 6.1; en-US)" http://foobar.example.com/file.tar.bz2
+{% endhighlight %}
+
+##### 7. 测试下载链接
+
+通常在 A) 定时下载之前进行检查；B) 间隔检测网站是否可用；C) 检查网站页面的死链接，可以通过 `--spider` 检查链接是否可用。
+
+如果下载链接正常，将会显示：
+
+{% highlight text %}
+$ wget --spider URL
+Spider mode enabled. Check if remote file exists.
+HTTP request sent, awaiting response... 200 OK
+Length: unspecified [text/html]
+Remote file exists and could contain further links,
+but recursion is disabled -- not retrieving.
+{% endhighlight %}
+
+而对于错误链接，将会显示如下错误：
+
+{% highlight text %}
+$ wget --spider URL
+Spider mode enabled. Check if remote file exists.
+HTTP request sent, awaiting response... 404 Not Found
+Remote file does not exist -- broken link!!!
+{% endhighlight %}
+
+##### 8. 增加重试次数
+
+如果网络有问题或下载一个大文件也有可能失败，默认重试 20 次连接下载文件，如果需要，可以使用 `--tries` 增加重试次数。
+
+{% highlight text %}
+$ wget --tries=40 URL
+{% endhighlight %}
+
+##### 9. 下载多个文件
+
+通过 `-i` 参数指定下载文件，下载多个文件。
+
+{% highlight text %}
+$ cat filelist.txt
+url1
+url2
+url3
+
+$ wget -i filelist.txt
+{% endhighlight %}
+
+##### 10. 镜像网站
+
+使用 `--mirror` 下载整个网站，下面的例子是下载整个网站到本地。
+
+{% highlight text %}
+$ wget --mirror -p --convert-links -P ./LOCAL URL
+--miror  镜像下载
+-p       下载所有为了html页面显示正常的文件
+--convert-links  下载后，转换成本地的链接
+-P ./LOCAL       保存所有文件和目录到本地指定目录
+{% endhighlight %}
+
+##### 11. 过滤指定格式
+
+你想下载一个网站，但你不希望下载图片，你可以使用以下命令。
+
+{% highlight text %}
+$ wget --reject=gif url
+{% endhighlight %}
+
+
+<!--
+12、使用wget -o把下载信息存入日志文件
+
+你不希望下载信息直接显示在终端而是在一个日志文件，可以使用以下命令：
+
+    wget -o download.log URL
+
+13、使用wget -Q限制总下载文件大小
+
+当你想要下载的文件超过5M而退出下载，你可以使用以下命令:
+
+    wget -Q5m -i filelist.txt
+
+注意：这个参数对单个文件下载不起作用，只能递归下载时才有效。
+14、使用wget -r -A下载指定格式文件
+
+可以在以下情况使用该功能
+
+    下载一个网站的所有图片
+    下载一个网站的所有视频
+    下载一个网站的所有PDF文件
+
+    wget -r -A.pdf url
+
+15、使用wget FTP下载
+
+你可以使用wget来完成ftp链接的下载。
+使用wget匿名ftp下载
+
+    wget ftp-url
+
+使用wget用户名和密码认证的ftp下载
+
+    wget --ftp-user=USERNAME --ftp-password=PASSWORD url
+-->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <!--
 ## Wget
 
@@ -235,11 +423,6 @@ wget各种选项分类列表
 指定下载时的用户名和密码。
 <pre># wget --http-user=narad --http-password=password http://ftp.gnu.org/gnu/wget/wget-1.5.3.tar.gz
 # wget --ftp-user=narad --ftp-password=password ftp://ftp.gnu.org/gnu/wget/wget-1.5.3.tar.gz</pre>
-</li></ul>
-
-</p>
-
-
 -->
 
 ## tcpdump
