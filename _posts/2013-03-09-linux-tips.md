@@ -25,6 +25,9 @@ $ cat /dev/urandom | strings -n C | head -n L
 
 ----- 生成数字加字母的随机字串
 $ cat /dev/urandom | sed 's/[^a-zA-Z0-9]//g' | strings -n C | head -n L
+
+----- 也可以直接通过Base64转换
+$ head -c 32 /dev/random | base64
 {% endhighlight %}
 
 注意，如上的方式中会存在换行符，只有在出现长度是 ```C``` 的字符串时才打印，会导致打印速度很慢；所以，最好是通过如下方式生成，然后手动截取。
