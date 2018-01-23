@@ -161,6 +161,33 @@ Sec-WebSocket-Accept: 4O33ZinyFxWKCaxf7T4yCA==
 
 不过，如果消息是从客户端发送到服务器，那么 mask 一定是 1，而 Masking-key 一定是一个 32bit 的值。
 
+### 分片 (Fragment)
+
+理论上来说，每个帧 (Frame) 的大小是没有限制的，但是发送的数据有不能太大，否则无法高效的利用网络带宽 (由于MSS)，如果要传输大片数据就需要使用分片。
+
+将原本一个大的帧拆分成数个小的帧，下面是把一个大的 Frame 分片的图示：
+
+Number:
+
+   FIN:
+Opcode: !0 0 0
+
+  编号：      0  1  ....  n-2 n-1
+    分片：     |——|——|......|——|——|
+      FIN：      0  0  ....   0  1
+        Opcode：   !0 0  ....   0  0
+
+由上述可知，第一个分片的 FIN 为0，Opcode为非0值（0x1或0x2），最后一个分片的FIN为1，Opcode为0。中间分片的FIN和Opcode二者均为0。
+
+	Note1：消息的分片必须由发送者按给定的顺序发送给接收者。
+
+	Note2：控制帧禁止分片
+
+	Note3：接受者不必按顺序缓存整个frame来处理
+
+
+
+
 ## 参考
 
 类似 CGI ，通过标准输入输出作为 WebSocket 的输入输出，很特别但是实用的服务器 [http://websocketd.com/](http://websocketd.com/) ，一个通过前端显示 vmstats 的工程实现，详见 [Github web-vmstats](https://github.com/joewalnes/web-vmstats) 。

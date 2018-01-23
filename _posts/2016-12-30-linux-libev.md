@@ -873,22 +873,25 @@ fork 一个新进程，给它安装一个child处理器等待进程结束。
 ev_child cw;
 static void child_cb (EV_P_ ev_child *w, int revents)
 {
-    ev_child_stop (EV_A_ w);
-    printf ("process %d exited with status %x\n", w->rpid, w->rstatus);
+	ev_child_stop (EV_A_ w);
+	printf ("process %d exited with status %x\n", w->rpid, w->rstatus);
 }
 pid_t pid = fork ();
 if (pid < 0) {            // error
-    perror("fork()");
-    exit(EXIT_FAILURE);
+	perror("fork()");
+	exit(EXIT_FAILURE);
 } else if (pid == 0) {    // child
-    // the forked child executes here
-    sleep(1);
-    exit (EXIT_SUCCESS);
+	// the forked child executes here
+	sleep(1);
+	exit (EXIT_SUCCESS);
 } else {                  // parent
-    ev_child_init (&cw, child_cb, pid, 0);
-    ev_child_start (EV_DEFAULT_ &cw);
+	ev_child_init (&cw, child_cb, pid, 0);
+	ev_child_start (EV_DEFAULT_ &cw);
 }
 {% endhighlight %}
+
+实际上，是通过注册一个 `SIGCHILD` 信号进行处理的，其回调函数是 `childcb` 。
+
 
 ### Filestat Watcher
 
