@@ -6,7 +6,7 @@ language: chinese
 category: [network]
 keywords: zeromq,架构
 description: 之前介绍了 ZeroMQ 的基本使用方法，接下来介绍一下其架构。
---- 
+---
 
 之前介绍了 ZeroMQ 的基本使用方法，接下来介绍一下其架构。
 
@@ -18,11 +18,11 @@ ZMQ 是通过 C++ 实现，相比来说 ZMQ 的实现非常复杂，这里的复
 
 ### 全局变量
 
-在 ZMQ 中是没有全局变量的，而是通过 zmq::ctx_t 保存了相关的上下文信息，之所以这么做，按照作者的意思，如果一个应用程序的库之间存在如下的依赖关系，也就是存在两个库 libx、liby 同时依赖 libzmq，那么就会导致全局变量被初始化两次，从而可能会导致不可预期的错误。
+在 ZMQ 中是没有全局变量的，而是通过 `zmq::ctx_t` 保存了相关的上下文信息，之所以这么做，按照作者的意思，如果一个应用程序的库之间存在如下的依赖关系，也就是存在两个库 libx、liby 同时依赖 libzmq，那么就会导致全局变量被初始化两次，从而可能会导致不可预期的错误。
 
 ![ZeroMQ Architecture Libraries Depdents]({{ site.url }}/images/network/zmq-arch-global-state.png "ZeroMQ Architecture Libraries Depdents"){: .pull-center}
 
-从 libzmq 看来，ctx_t 就相当于一个全局变量，老版本是通过 zmq_init() 进行初始化，而最新的版本则是通过 zmq_ctx_new() 初始化。
+从 libzmq 看来，`ctx_t` 就相当于一个全局变量，老版本是通过 `zmq_init()` 进行初始化，而最新的版本则是通过 `zmq_ctx_new()` 初始化。
 
 ## 源码解析
 

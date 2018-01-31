@@ -12,11 +12,17 @@ description: 简单记录一下一些常见的资源。
 
 <!-- more -->
 
+## 运维监控平台
+
+* [AdminLTE](https://adminlte.io/) ，一个开源的后台控制面板和仪表盘模板，基于 Bootstrap3 框架。
+
+## 其它
+
 * [Let's Build a Simple Database](https://cstack.github.io/db_tutorial/) ，详细介绍如何构建一个小型数据库，基本类似于 SQLite 。
 
 <!---
 https://github.com/miloyip/nativejson-benchmark
-http://zserge.com/jsmn.html 
+http://zserge.com/jsmn.html
 http://json.org/
 https://github.com/json-c/json-c
 https://github.com/akheron/jansson

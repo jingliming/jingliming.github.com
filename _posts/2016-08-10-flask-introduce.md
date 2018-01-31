@@ -240,6 +240,18 @@ Flask 一个好处就是其灵活性，很多功能都可以直接通过三方�
 
 可以从 [Github - maxcountryman/flask-login](https://github.com/maxcountryman/flask-login) 上下载。
 
+### Flask-Security
+
+这一模块可以支持会话管理、权限分类、密码加密、基本的 HTTP 鉴权、Token 鉴权、邮箱验证、密码重置、用户注册、用户跟踪等等。
+
+类似，可以通过如下方式安装。
+
+{% highlight text %}
+# pip install flask-security
+{% endhighlight %}
+
+可以从 [Flask Security](https://pythonhosted.org/Flask-Security/index.html) 上下载。
+
 ### Flask-bcrypt
 
 这个实际上只是简单的对 bcrypt 的封装，而 bcrypt 依赖 cffi 依赖 pycparser，这个通常用在用户的加密认证。
@@ -255,7 +267,6 @@ Flask-DebugToolbar|
 Flask-Login|
 Flask-Cache|
 flask-sqlalchemy|
-flask-security|
 Flask-mako|
 Flask-Genshi|
 WTForms
