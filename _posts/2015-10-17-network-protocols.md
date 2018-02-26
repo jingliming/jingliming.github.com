@@ -3,7 +3,6 @@ title: Linux 通讯协议
 layout: post
 comments: true
 language: chinese
-usemath: true
 category: [linux,misc]
 keywords: linux,network,snmp
 description: 简单记录下 Linux 常见的通讯协议，如 SNMP 协议。

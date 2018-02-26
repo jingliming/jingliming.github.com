@@ -3,7 +3,6 @@ title: Linux 线程编程
 layout: post
 comments: true
 language: chinese
-usemath: true
 category: [program,linux]
 keywords: linux,program,pthread
 description: 简单介绍下 Linux 中与线程相关的编程。

@@ -3,7 +3,6 @@ title: Linux 启动过程
 layout: post
 comments: true
 language: chinese
-usemath: true
 category: [linux]
 keywords: linux,内核,kernel,编译,启动流程
 description: 现在的 Linux 启动过程一般分成了两步，也就是首先调用 GRUB 作为通用的启动服务，然后可以选择 Windows 或者 Linux 加载。下来，看看 Linux 的加载过程。

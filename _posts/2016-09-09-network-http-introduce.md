@@ -164,6 +164,44 @@ Content-Encoding: deflate
 Accept-Encoding: gzip, deflate
 {% endhighlight %}
 
+### Content-Range 字段
+
+一般断点下载时才会用到 `Range` 和 `Content-Range` 实体头；其中 `Range` 用于请求头，指定第一个字节的位置和最后一个字节的位置，如 `Range: 200-300`；而 `Content-Range` 用于响应头。
+
+其示例请求头如下：
+
+{% highlight text %}
+GET /test.rar HTTP/1.1
+Connection: close
+Host: 116.1.219.219
+Range: bytes=0-100
+{% endhighlight %}
+
+其中，Range 头可以请求实体的一个或者多个子范围，第一个字节是 0 ，常见的表示如下：
+
+{% highlight text %}
+bytes=0-499      头500个字节
+bytes=500-999    第二个500字节
+bytes=-500       最后500个字节
+bytes=500-       500字节以后的范围
+bytes=0-0,-1     第一个和最后一个字节
+bytes=500-600,601-999  同时指定几个范围
+{% endhighlight %}
+
+一般正常响应如下：
+
+{% highlight text %}
+HTTP/1.1 206 OK
+Content-Length:  801
+Content-Type:  application/octet-stream
+Content-Location: http://www.onlinedown.net/hj_index.htm
+Content-Range: bytes 0-100/2350
+Last-Modified: Mon, 16 Feb 2009 16:10:12 GMT
+Accept-Ranges: bytes
+{% endhighlight %}
+
+上述的响应头中，其中的 `2350` 表示文件总大小，如果用户的请求中含有 `Range` 且服务器支持断点续传，那么服务器的相应代码为 `206` 。
+
 ### 缺点
 
 `HTTP/1.0` 版的主要缺点是，每个 `TCP` 连接只能发送一个请求，发送数据完毕，连接就关闭，如果还要请求其它资源，就必须再新建一个连接。

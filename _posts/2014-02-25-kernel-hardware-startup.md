@@ -3,7 +3,6 @@ title: Linux 硬件启动
 layout: post
 comments: true
 language: chinese
-usemath: true
 category: [linux]
 keywords: linux,内核,kernel,编译,启动流程
 description: 从内核加电之后，简单介绍如何从硬件加载启动。

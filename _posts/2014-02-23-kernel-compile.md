@@ -3,7 +3,6 @@ title: Linux 内核编译
 layout: post
 comments: true
 language: chinese
-usemath: true
 category: [linux]
 keywords: linux,内核,kernel,编译
 description: 现在安装时，一般是发行版本已经编译创建好的通用内核，对于一些特定的需求，如嵌入式设置，那么可能就需要手动编译内核镜像。这里简单介绍如何手动编译内核。

@@ -3,7 +3,6 @@ title: StatsD 监控简介
 layout: post
 comments: true
 language: chinese
-usemath: true
 category: [misc]
 keywords: linux,statsd,monitor
 description:

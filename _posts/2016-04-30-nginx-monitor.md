@@ -3,7 +3,6 @@ title: Nginx 监控
 layout: post
 comments: true
 language: chinese
-usemath: true
 category: [linux,webserver]
 keywords: nginx,monitor,监控
 description: Nginx 服务器在生产环境中运行时，可以通过类似 Nagios、Zabbix、Munin 之类的网络监控软件。然而，很多时候处理问题时，只需要快速简单的查看当前 Nginx 服务器的状态请求。可以使用一个 Python 编写的工具 ngxtop，可以直接从 [www.github.com](https://github.com/lebinh/ngxtop) 上下载相应的源码。接下来介绍一下该工具的使用方法。

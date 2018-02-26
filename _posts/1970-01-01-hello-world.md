@@ -2549,7 +2549,6 @@ https://github.com/bachan/ugh
 https://github.com/novator24/libeva
 https://github.com/titilambert/packaging-efl
 https://github.com/hyperblast/libevhtp
-https://github.com/novator24/fcgi-libev
 https://github.com/tailhook/libwebsite
 https://github.com/cinsk/evhttpserv
 https://github.com/erikarn/libevhtp-http
@@ -3128,8 +3127,6 @@ git push
 
 http://docs.python-requests.org/zh_CN/latest/user/quickstart.html
 https://liam0205.me/2016/02/27/The-requests-library-in-Python/
-文件下载
-https://github.com/axel-download-accelerator/axel
 
 
 
@@ -3348,9 +3345,6 @@ GCC部分文件取消告警
 http://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
 http://gcc.gnu.org/onlinedocs/gcc/Diagnostic-Pragmas.html
 http://gcc.gnu.org/onlinedocs/gcc-4.0.4/gcc/Warning-Options.html
-
-
-
 -->
 
 {% highlight text %}

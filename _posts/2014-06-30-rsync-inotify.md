@@ -3,7 +3,6 @@ title: Rsync & Inotify
 layout: post
 comments: true
 language: chinese
-usemath: true
 category: [linux,misc]
 keywords: rsync,inotify
 description: rsync 是一个远程数据同步工具，使用 "rsync算法" 来使本地和远程两个主机之间的文件达到同步，该算法只传送两个文件的不同部分；而 inotify 是一种强大的、细粒度的、异步的文件系统事件监控机制。这里介绍下 rsync 和 inotify 的使用。

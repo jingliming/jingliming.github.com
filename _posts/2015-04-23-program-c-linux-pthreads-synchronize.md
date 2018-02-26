@@ -3,7 +3,6 @@ title: Linux 线程同步
 layout: post
 comments: true
 language: chinese
-usemath: true
 category: [program,linux]
 keywords: linux,program,pthread
 description: 线程的三个主要同步原语：互斥锁 (mutex)、信号量 (semaphore) 和条件变量 (cond)。其中 mutex 和 sem 都是对应 futex 进行了简单的封装，在不存在冲突的情况下就不用陷入到内核中进行仲裁；而且 pthread_join 也是借助 futex 来实现的。简单介绍下 Linux 中与线程相关的编程。

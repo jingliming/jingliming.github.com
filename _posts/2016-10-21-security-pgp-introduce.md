@@ -3,7 +3,6 @@ title: PGP 简介
 layout: post
 comments: true
 language: chinese
-usemath: true
 category: [linux,misc]
 keywords: linux,pgp
 description: PGP 是一个基于公钥加密体系的加密软件，功能强大，有很快的速度，而且源码是免费的。这里简单介绍下 PGP 相关内容。

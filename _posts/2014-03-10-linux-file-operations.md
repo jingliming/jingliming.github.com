@@ -3,7 +3,6 @@ title: Linux 文件操作
 layout: post
 comments: true
 language: chinese
-usemath: true
 category: [linux,misc]
 keywords: linux,文件系统
 description: Linux 的设计理念是：一切都是文件！在此简单介绍下 Linux 中常见的文件操作。

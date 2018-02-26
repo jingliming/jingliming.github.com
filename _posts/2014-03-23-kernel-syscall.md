@@ -3,10 +3,9 @@ title: Linux 系统调用
 layout: post
 comments: true
 language: chinese
-usemath: false
 category: [linux,misc]
 keywords: linux,内核,kernel,系统调用
-description:
+description: Intel 的 x86 架构的 CPU 提供了 0 到 3 四个特权级，而在 Linux 操作系统中主要采用了 0 和 3 两个特权级，也就是我们通常所说的内核态和用户态。从用户态向内核态切换通常有 3 种情况： A) 系统调用(主动)，用户态的进程申请操作系统的服务，通常用软中断实现；B) 产生异常，如缺页异常、除0异常；C) 外设产生中断，如键盘、磁盘等。下面以系统调用来讲解。
 ---
 
 Intel 的 x86 架构的 CPU 提供了 0 到 3 四个特权级，而在 Linux 操作系统中主要采用了 0 和 3 两个特权级，也就是我们通常所说的内核态和用户态。

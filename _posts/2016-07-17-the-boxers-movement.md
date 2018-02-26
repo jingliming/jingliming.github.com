@@ -3,7 +3,6 @@ title: 【转】民族英雄还是爱国贼：起底义和团
 layout: post
 comments: true
 language: chinese
-usemath: true
 category: [misc]
 keywords: 义和团
 description: 义和团运动又称 “庚子事变”，是在晚清时期发生的一场由民间发起的运动，教科书上介绍说是中国传统势力在历史上第一次也是目前唯一一次采取群众运动方式对外国势力发起反击。那么真实的情况真是如此吗？在此，简单记录下聂作平发表的一篇文章。

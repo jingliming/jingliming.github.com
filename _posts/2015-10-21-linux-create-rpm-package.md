@@ -329,6 +329,114 @@ SM5DLUGT c filename
   d: 文档文件。
 {% endhighlight %}
 
+## 增加签名
+
+当制作 RPM 包之后，为了防止被篡改，可以使用私钥进行签名，然后将公钥开放出去，然后用户下载完软件包可以通过公钥进行验证签名，从而确保文件的原始性。
+
+可以通过如下步骤进行操作。
+
+### 1. 生成密钥对
+
+首先，需要使用 gpp 来生成公私钥对，一般可以使用 RSA 非对称加密。
+
+{% highlight text %}
+$ gpg --gen-key
+{% endhighlight %}
+
+此时会在 `~/.gnupg` 目录下创建相关文件，创建完后可以通过如下命令查看当前的密钥对。
+
+{% highlight text %}
+$ gpg --list-keys
+/home/foobar/.gnupg/pubring.gpg
+------------------------------
+pub   2048R/860FB269 2017-01-13
+uid                  foobar (just for test) <foobar@example.com>
+{% endhighlight %}
+
+其中 UID 分别对应了用户名、注释、邮箱。
+
+<!-- Repository Signer (OSSXP) -->
+
+### 2. 软件包签名
+
+修改 RPM 宏，使用上述生成的密钥对。
+
+{% highlight text %}
+$ echo %_signature gpg >> ~/.rpmmacros
+$ echo "%_gpg_name foobar (just for test)" >> ~/.rpmmacros
+{% endhighlight %}
+
+对已有 rpm 软件包进行签名。
+
+{% highlight text %}
+$ rpm --addsign package_name.rpm
+Enter pass phrase:
+Pass phrase is good.
+package_name.rpm
+{% endhighlight %}
+
+如果失败，则会出现如下的错误。
+
+{% highlight text %}
+$ rpm --addsign package_name.rpm
+Enter pass phrase:
+Pass phrase check failed.
+{% endhighlight %}
+
+此时需要仔细检查密钥名称和写入 rpm 宏里面的是否一致，最好是将 `--list-keys` 显示的内容整体复制出来。
+
+当然也可以在通过 `rpmbuild --sign` 打包时自动包含签名。
+
+### 3. 增加签名
+
+生成签名使用的是私钥，验证签名需要使用公钥。简单来说需要执行：1)将 gpg 产生的公钥导出到一个文件；2) 将这个公钥文件导入到 RPM 数据库里；3) 使用 rpm 命令进行检验。
+
+{% highlight text %}
+----- 导出公钥到一个文本文档
+$ gpg --export -a "foobar (just for test)" > RPM-GPG-KEY-FOOBAR
+
+----- 查看rpm数据库中已有的公钥
+$ rpm -q gpg-pubkey-*
+gpg-pubkey-f4a80eb5-53a7ff4b
+gpg-pubkey-352c64e5-52ae6884
+gpg-pubkey-442df0f8-4783f24a
+
+----- 将公钥导入到RPM数据库，注意需要root用户执行
+# rpm --import RPM-GPG-KEY-FOOBAR
+{% endhighlight %}
+
+通过上述命令重新查看公钥时，会发现新增了一个 `gpg-pubkey-860fb269-5a65a0ad` 公钥，其中 `860FB269` 与上述 gpg 生成的密钥信息相同。
+
+如果不需要，可以通过 `rpm -e gpg-pubkey-860fb269-5a65a0ad` 删除即可。
+
+### 4. 签名验证
+
+通过 `rpm -K package_name.rpm` 命令对签名验证即可，如下是验证成功以及失败时输出的内容。
+
+{% highlight text %}
+package_name.rpm: rsa sha1 (md5) pgp md5 OK
+package_name.rpm: RSA sha1 (MD5) (PGP) (MD5) (PGP) md5 NOT OK (MISSING KEYS: PGP#c0eb63c7 PGP#c0eb63c7)
+{% endhighlight %}
+
+### 其它
+
+如果导入公钥失败，那么在安装时会生成一个类似 `Header V3 RSA/SHA1 signature: NOKEY, key ID c0eb63c7` 的告警信息。
+
+如果要在 YUM 中验证签名，可以将公钥复制到系统 RPM 公钥目录，一般如下操作即可。
+
+{% highlight text %}
+# cp RPM-GPG-KEY-FOOBAR /etc/pki/rpm-gpg/
+{% endhighlight %}
+
+在源配置文件中通过如下两行来指定 gpg key 检验：
+
+{% highlight text %}
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-FOOBAR
+{% endhighlight %}
+
+这样在通过 YUM 安装软件包时，当下载完毕以后会首先使用公钥进行签名验证。
+
 ## 常用设置
 
 接下来，看看一些常用的实用技巧。

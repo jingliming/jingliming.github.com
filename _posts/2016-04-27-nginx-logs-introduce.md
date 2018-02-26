@@ -1,5 +1,5 @@
 ---
-title: Nginx 日志
+title: Nginx 日志解析
 layout: post
 comments: true
 language: chinese

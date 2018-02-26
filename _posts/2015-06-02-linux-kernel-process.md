@@ -118,7 +118,7 @@ int main()
 
 4. 在进程 S 中，将 0 赋给 pid ，并继续执行 Part.B 的代码。
 
-这里有三个点非常关键: 
+这里有三个点非常关键:
 
 * M 执行了所有程序，而 S 只执行了 Part.B ，即 fork() 后面的程序，(这是因为 S 继承了 M 的 PC-程序计数器)。
 
@@ -220,7 +220,7 @@ fork不对父子进程的执行次序进行任何限制，fork返回后，子进
 
 `fork()` 是进程资源的完全复制，包括进程的 `PCB(task_struct)`、线程的系统堆栈、进程的用户空间、进程打开的设备等，而在 `clone()` 中其实只有前两项是被复制了的，后两项都与父进程共享，对共享数据的保护必须有上层应用来保证。
 
-`vfork()` 与 `fork()` 主要区别: 
+`vfork()` 与 `fork()` 主要区别:
 
 * `fork()` 子进程拷贝父进程的数据段，堆栈段；`vfork()` 子进程与父进程共享数据段。
 * `fork()` 父子进程的执行次序不确定；`vfork()` 保证子进程先运行，在调用 `exec()` 或 `exit()` 之前与父进程数据是共享的，在它调用 `exec()` 或 `exit()` 之后父进程才可能被调度运行，否则会发生错误。
@@ -666,6 +666,103 @@ int main ()
 第一个是孤儿进程，第二次输出时其父进程 PID 变成了 `init(PID=1)`；第二个是僵尸进程，进程退出时会产生 `SIGCHLD` 信号，父进程可以通过捕获该信号进行处理。
 
 
+## 进程退出
+
+当进程正常或异常终止时，内核就向其父进程发送 `SIGCHLD` 信号，对于 `wait()` 以及 `waitpid()` 进程可能会出现如下场景：
+
+* 如果其所有子进程都在运行则阻塞；
+* 如果某个子进程已经停止，则获取该子进程的退出状态并立即返回；
+* 如果没有任何子进程，则立即出错返回。
+
+如果进程由于接收到 `SIGCHLD` 信号而调用 wait，则一般会立即返回；但是，如果在任意时刻调用 wait 则进程可能会阻塞。
+
+{% highlight text %}
+#include <sys/wait.h>
+pid_t wait(int *status);
+pit_t wait(pid_t pid, int *status, int options);
+{% endhighlight %}
+
+### 获取返回值
+
+如果上述参数中的 status 不是 NULL，那么会把子进程退出时的状态返回，该返回值保存了是否为正常退出、正常结束的返回值、被那个信号终止等。
+
+通常使用如下的宏定义。
+
+{% highlight text %}
+WIFEXITED(status)
+    用于判断子进程是否正常退出，正常退出返回0；否则返回一个非零值。
+
+WEXITSTATUS(status)
+    当WIFEXITED返回非零时，可以通过这个宏获取子进程的返回值，如果exit(5)则返回5。
+    注意，如果WIFEXITED返回零时，这个返回值则无意义。
+{% endhighlight %}
+
+可以参考如下示例。
+
+{% highlight c %}
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int main(void)
+{
+	pid_t pid;
+        int status;
+
+	pid = fork();
+	if (pid < 0) {
+		perror("fork");
+		exit(1);
+	} else if (pid == 0) { /* child */
+                exit(7);
+	}
+
+	/* parent */
+	if (wait(&status) < 0) {
+		perror("wait");
+		exit(1);
+	}
+
+	if(WIFEXITED(status)) {
+		fprintf(stdout, "Normal termination, exit status %d\n",
+			WEXITSTATUS(status));
+        } else if(WIFSIGNALED(status)) {
+		fprintf(stderr, "Abnormal termination, signal status %d\n",
+			WTERMSIG(status),
+			WCOREDUMP(status) ? "(core file)" : "");
+        } else if(WIFSTOPPED(status)) {
+		fprintf(stderr, "Child stopped, signal number %d\n",
+			WSTOPSIG(status));
+	}
+
+        exit(0);
+}
+
+{% endhighlight %}
+
+### waitpid()
+
+当要等待一特定进程退出时，可调用 `waitpid()` 函数，其中第一个入参 `pid` 的入参含义如下：
+
+* `pid=-1` 等待任一个子进程，与 wait 等效。
+* `pid>0` 等待其进程 ID 与 pid 相等的子进程。
+* `pid==0` 等待其进程组 ID 等于调用进程组 ID 的任一个子进程。
+* `pid<-1` 等待其进程组 ID 等于 pid 绝对值的任一子进程。
+
+`waitpid` 返回终止子进程的进程 ID，并将该子进程的终止状态保存在 status 中。
+
+<!---
+waitpid的返回值比wait稍微复杂一些，一共有3种情况：
+    当正常返回的时候，waitpid返回收集到的子进程的进程ID；
+    如果设置了选项WNOHANG，而调用中waitpid发现没有已退出的子进程可收集，则返回0；
+    如果调用中出错，则返回-1，这时errno会被设置成相应的值以指示错误所在；
+当pid所指示的子进程不存在，或此进程存在，但不是调用进程的子进程，waitpid就会出错返回，这时errno被设置为ECHILD；
+-->
+
+
+
+
 ## 其它
 
 
@@ -686,7 +783,6 @@ CPU 集可以认为是一个掩码，每个设置的位都对应一个可以合�
 另外可以通过 [schedutils](http://sourceforge.net/projects/schedutils/) 或者 python-schedutils 进行设置，后者现在更加常见。
 
 对于如何将进程和线程绑定到指定的 CPU 可以参考 [github affinity_process.c]({{ site.example_repository }}/linux/process/affinity_process.c)、[github affinity_thread.c]({{ site.example_repository }}/linux/process/affinity_thread.c) 。
-
 
 ### 杀死进程的N中方法
 

@@ -3,7 +3,6 @@ title: 50 行 Python 实现 Bitcoin
 layout: post
 comments: true
 language: chinese
-usemath: true
 category: [misc,python]
 keywords: bitcoin,python,区块链,blockchain
 description: 区块链近年来被越炒越热，是一串使用密码学方法相关联产生的数据块，每一个数据块中包含了一次比特币网络交易的信息，用于验证其信息的有效性和生成下一个区块。而比特币的交易过程中，就使用了区块链技术。

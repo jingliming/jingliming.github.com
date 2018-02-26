@@ -342,6 +342,16 @@ int main (int argc, char **argv)
 }
 {% endhighlight %}
 
+另外是浮点数的转换。
+
+{% highlight text %}
+double strtod (const char* str, char** endptr);
+{% endhighlight %}
+
+会自动扫描参数 `str` 字符串，并跳过空白字符 (通过 isspace 函数检测)，直到遇上数字或正负符号才开始做转换，当出现非数字时停止转换，其中 `endptr` 返回第一个不能转换的字符指针。
+
+当 `endptr` 为 `NULL` 或者 等于 `str` 时表示转换失败。
+
 ## 字符串查找
 
 简单介绍下常见的字符串操作函数。

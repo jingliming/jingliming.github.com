@@ -3,7 +3,6 @@ title: Nginx https
 layout: post
 comments: true
 language: chinese
-usemath: true
 category: [linux,webserver]
 keywords: nginx,https,webserver
 description: 简单介绍如何使用 Nginx 搭建 https 服务。

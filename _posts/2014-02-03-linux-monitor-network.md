@@ -3,7 +3,6 @@ title: Linux 网络常见监控项以及报错
 layout: post
 comments: true
 language: chinese
-usemath: true
 category: [linux, network]
 keywords: 网络,监控,linux,network
 description: 本来是想将报错和监控拆开的，但是发现两者几乎是耦合的，通过监控项才能发现错误，定为错误的原因时也要依赖监控项，索性就将两者合并到了一起。 对于很多的报错，实际上你即使看到报错的信息也不清楚到底是那里报错了，或者模棱两可，甚至是误导。最好的方式是 "Show me the code" 。 在此，简单介绍一下与网络相关的调试、查看方法，当然也包括了报错相关的内容。

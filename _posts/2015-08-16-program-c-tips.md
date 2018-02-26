@@ -1515,19 +1515,26 @@ typedef    u_int64_t         U64;
 
 简单介绍下 C 中，如何获取以及设置环境变量。
 
+其中设置环境变量方法包括了 `putenv()` 以及 `setenv()` 两种，前者必须是 `Key=Value` 这种格式，后者则以参数形式传递。
+
+对于 `putenv()` 如果环境变量已经存在则替换，而 `setenv()` 则可以设置是否覆盖 。
+
 {% highlight c %}
 #include <stdio.h>
 #include <stdlib.h>
 
 int main(void)
 {
-	char * p;
+	char *p;
 
 	if((p = getenv("USER")))
 		printf("USER = %s\n", p);
 
 	setenv("USER", "test", 1);
 	printf("USER = %s\n", getenv("USER"));
+
+	putenv("NAME=foobar");
+	printf("NAME = %s\n", getenv("NAME"));
 
 	unsetenv("USER");
 	printf("USER = %s\n", getenv("USER"));

@@ -265,6 +265,193 @@ int main(void)
 }
 {% endhighlight %}
 
+### 使用示例
+
+这里简单列举一些常见的方法，将 stdout 定向到文件有 3 种方法：
+
+#### 1. close open
+
+在 open 时操作系统会选择最小的一个文件描述符，所以可以使用类似如下的方法，不过只适用于单个的重定向。
+
+{% highlight c %}
+close(1);       // stdout/1 成为最小的空闲文件描述符
+fd = open("/tmp/stdout", O_WRONLY | O_CREAT);
+{% endhighlight %}
+
+#### 2. open close dup close
+
+简单来说操作步骤如下。
+
+{% highlight c %}
+fd = open("/tmp/stdout", O_WRONLY | O_CREAT); // 打开需要重定向的文件
+close(1);   // 关闭标准输出，1成为最小描述符
+dup(fd);    // 复制文件描述符fd，复制时会使用最小的文件描述符也就是1
+close(fd);  // 将原有的文件描述符关闭
+{% endhighlight %}
+
+第一次打开文件获取的描述符非 1 ，因为 1 还在打开着。
+
+#### 3. open dup2 close
+
+这里使用到了 `dup2()` 函数，可以指定复制的目标文件描述符，如下是其声明。
+
+{% highlight c %}
+#include <unistd.h>
+int dup2(oldfd, newfd);
+{% endhighlight %}
+
+oldfd 需要复制的文件描述符，newfd 为期望复制 oldfd 后得到的文件描述符，成功则返回 newfd，否则返回 -1 。
+
+如下是简单将 stdout 重定向到 stdout 文件。
+
+{% highlight c %}
+#include <stdio.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+
+int main(void)
+{
+        int fd;
+
+        fd = open("stdout", O_RDWR | O_CREAT, 0644);
+        close(1);
+        if (dup2(fd, 1) != 1) {
+                fprintf(stderr, "Failed to dup2(%d, 1), %s\n",
+                        fd, strerror(errno));
+                exit(1);
+        }
+        printf("Print sth\n");
+        fprintf(stderr, "Done running\n");
+
+        return 0;
+}
+{% endhighlight %}
+<!--
+#include <stdio.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/wait.h>
+
+int main(void)
+{
+        pid_t pid;
+        int fd;
+
+        printf("About to run the who.\n");
+
+        pid = fork();
+        if (pid < 0) {
+                perror("fork");
+                exit(1);
+        } else if (pid == 0) { /* child */
+                fd = open("userlist", O_RDWR | O_CREAT, 0644);
+                close(1);
+                if (dup2(fd, 1) != 1) {
+                        fprintf(stderr, "Failed to dup2(%d, 1), %s\n",
+                                fd, strerror(errno));
+                        exit(1);
+                }
+                execlp("who", "who", NULL);
+                perror("execlp"); /* NOT reach */
+        }
+
+        wait(0);
+        printf("Done running who. results in userlist.\n");
+
+        return 0;
+}
+-->
+
+如下是通过命名管道 FIFO 将子进程的输出重定向到父进程，也可以使用匿名管道 PIPE 。
+
+{% highlight c %}
+#include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+
+#define FIFO "stdout_fifo"
+
+int main(void)
+{
+        /* Make a fifo that redirect the data from stdout of child */
+        unlink(FIFO);
+        mkfifo(FIFO, 0777);
+
+        /* child process */
+        if(fork() == 0) {
+                int fd = open(FIFO, O_WRONLY);
+                dup2(fd, 1); /* readirect the stdout */
+                execl("/bin/ls", "-a", NULL);
+        } else { /* parent process */
+                char child_stdout[1024] = {0};
+
+                /* Read and print the data from stdout of child */
+                int fd = open(FIFO, O_RDONLY), rc;
+                rc = read(fd, child_stdout, sizeof(child_stdout));
+                child_stdout[rc] = 0;
+                printf("Parent: %s\nFinished\n", child_stdout);
+
+                /* Wait for child process */
+                wait(NULL);
+        }
+
+        return 0;
+}
+{% endhighlight %}
+
+<!--
+子进程将输出重定向到同一个PIPE中
+
+#include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int main(void)
+{
+        int fdpipe[2];
+        pipe(fdpipe); /* 1: write, 0: read */
+
+        /* child process */
+        if(fork() == 0) {
+                close(0);
+                open("/dev/null", O_RDONLY);
+                close(fdpipe[0]);
+                dup2(fdpipe[1], 1); /* readirect the stdout */
+                dup2(fdpipe[1], 2); /* readirect the stderr */
+                close(fdpipe[1]);
+                fprintf(stderr, "Write to STDERR\n");
+                execl("/bin/ls", "-a", NULL);
+        } else { /* parent process */
+                char child_stdout[1024] = {0};
+                int rc;
+
+                close(fdpipe[1]);
+                /* Read and print the data from stdout of child */
+                while ((rc = read(fdpipe[0], child_stdout, sizeof(child_stdout) - 1)) > 0) {
+                        child_stdout[rc] = 0;
+                        puts(child_stdout);
+                };
+
+                /* Wait for child process */
+                wait(NULL);
+        }
+
+        return 0;
+}
+-->
+
+
+
+
 ### 单进程
 
 假设进程 A 拥有一个已打开的文件描述符 fd3，它的状态如下。
@@ -337,7 +524,6 @@ struct files_struct {
 {% endhighlight %}
 
 对于上面的两个句柄 `nfd` `fd3` 他们在 `files_struct` 里面的数组 `fd_array` 里面对应的数值是相等的。
-
 
 <!--
 二、重定向后恢复

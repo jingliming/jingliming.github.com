@@ -3,7 +3,6 @@ title: Linux 内核模块
 layout: post
 comments: true
 language: chinese
-usemath: true
 category: [linux]
 keywords: linux,内核模块,kernel,module
 description: 简单介绍下 Linux 中的内核模块编写，包括了内核签名机制的配置。

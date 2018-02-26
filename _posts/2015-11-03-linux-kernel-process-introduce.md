@@ -5,11 +5,126 @@ comments: true
 language: chinese
 category: [linux]
 keywords: linux,进程,daemon
-description: 
+description: 简单介绍一下 Linux 中的常见的一些与进程相关的操作，例如执行命令、守护进程等。
 ---
 
+简单介绍一下 Linux 中的常见的一些与进程相关的操作，例如执行命令、守护进程等。
 
 <!-- more -->
+
+## 进程执行
+
+Linux 上将进程创建和新进程加载分开，分别通过 `fork()` 和 `execNN()` 执行，其中后者包含了一组可用的函数，包括了 `execl`、`execlp`、`execle`、`execv`、`execvp` 。
+
+创建了一个进程后，再将子进程替换成新的进程，其声明如下：
+
+{% highlight c %}
+#include <unistd.h>
+
+extern char **environ;
+
+int execl(const char *path, const char *arg, ...);
+int execlp(const char *file, const char *arg, ...);
+int execle(const char *path, const char *arg, ..., char * const envp[]);
+int execv(const char *path, char *const argv[]);
+int execvp(const char *file, char *const argv[]);
+{% endhighlight %}
+
+其中，`path` 表示要启动程序的名称包括路径名；`arg` 表示启动程序所带的参数，一般第一个参数为要执行命令名，不是带路径且 arg 必须以 NULL 结束。
+
+注意，上述 exec 系列函数底层都是通过 `execve()` 系统调用实现。
+
+{% highlight python %}
+#include <unistd.h>
+int execve(const char *filename, char *const argv[],char *const envp[]);
+{% endhighlight %}
+
+其中各个函数的区别如下。
+
+#### 1. 带 l 的 exec 函数
+
+包括了 execl、execlp、execle，表示后边的参数以可变参数的形式给出，且都以一个空指针结束。
+
+
+{% highlight c %}
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int main(void)
+{
+	printf("entering main process---\n");
+	execl("/bin/ls","ls","-l",NULL);
+	printf("exiting main process ----\n");
+	return 0;
+}
+{% endhighlight %}
+
+利用 execl 将当前进程 main 替换掉，所有最后那条打印语句不会输出。
+
+#### 2. 带 p 的 exec 函数
+
+也就是 execlp、execvp，表示第一个参数 path 不用输入完整路径，只有给出命令名即可，它会在环境变量 PATH 当中查找命令。
+
+{% highlight python %}
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int main(void)
+{
+	printf("entering main process---\n");
+	execlp("ls","ls","-l",NULL);
+	printf("exiting main process ----\n");
+	return 0;
+}
+{% endhighlight %}
+
+#### 3. 不带 l 的 exec 函数
+
+包括了 execv、execvp 表示命令所需的参数以 `char *arg[]` 形式给出，且 arg 最后一个元素必须是 NULL 。
+
+{% highlight c %}
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int main(void)
+{
+	printf("entering main process---\n");
+	char *argv[] = {"ls","-l",NULL};
+	execvp("ls", argv);
+	printf("exiting main process ----\n");
+	return 0;
+}
+{% endhighlight %}
+
+#### 4. 带 e 的 exec 函数
+
+包括了 execle ，可以将环境变量传递给需要替换的进程，再上述的声明中，有一个指针数组的变量 `extern char **environ;`，每个指针指向的字符串为 KV 结构。
+
+{% highlight c %}
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int main(void)
+{
+	char *const envp[] = {"AA=11", "BB=22", NULL};
+	printf("entering main process---\n");
+	execle("/bin/bash", "bash", "-c", "echo $AA", NULL, envp);
+	printf("exiting main process ----\n");
+	return 0;
+}
+{% endhighlight %}
+
+
+
+
+
+
+
+
 
 ## 守护进程 (daemon)
 
@@ -117,9 +232,6 @@ int main()
         }
 }
 {% endhighlight %}
-
-
-
 
 ### 一次 VS. 两次 fork()
 

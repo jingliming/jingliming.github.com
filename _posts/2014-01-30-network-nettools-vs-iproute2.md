@@ -3,7 +3,6 @@ title: netstat VS. ss
 layout: post
 comments: true
 language: chinese
-usemath: true
 category: [linux]
 keywords: netstat,ss,网络,监控
 description: 现在很多系统管理员仍在使用 ifconfig、route、arp 和 netstat 等命令行工具，来管理和排查各种网络配置。这套工具也就是 net-tools 包，源于 BSD TCP/IP 工具箱，但是自 2001 年以后基本就停滞不前。 iproute 作为一套新的网络配置工具，旨在替换原有的 net-tools 工具包，而且，越来越多的发行版本开始使用 iproute 包替换 net-tools。 netstat 和 ss 命令只是这两个包中的代表，以此大概解析下两者的区别。

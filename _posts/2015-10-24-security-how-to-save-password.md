@@ -3,7 +3,6 @@ title: Linux 密码管理
 layout: post
 comments: true
 language: chinese
-usemath: true
 category: [linux,misc]
 keywords: linux,密码,管理
 description: 简单介绍下 Linux 中的密码管理。
