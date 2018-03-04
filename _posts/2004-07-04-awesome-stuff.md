@@ -32,6 +32,12 @@ https://github.com/udp/json-parser
 
 
 https://github.com/vodik/envoy
+
+
+AIDE 主机级别的安全检测
+http://aide.sourceforge.net/
+SNORT 安全入侵检测
+https://www.snort.org/
 -->
 
 
