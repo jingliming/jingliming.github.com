@@ -1349,6 +1349,10 @@ addr2line 0x804888c -e backstrace_debug -f
 
 func_b
 /home/astrol/c/backstrace_debug.c:57
+
+
+在Linux中如何利用backtrace信息解决问题
+http://blog.csdn.net/jxgz_leo/article/details/53458366
 -->
 
 
@@ -1448,6 +1452,44 @@ typeof(&a) c; // int* c;
 {% endhighlight %}
 
 如上的宏定义中， ptr 代表已知成员的地址，type 代表结构体的类型，member 代表已知的成员。
+
+
+如下示例，如果 `foobar.hello` 是通过内存动态获取的，那么就不能通过 `container_of()` 实现，需要在 `struct hello` 中保存一个反向指针。
+
+{% highlight c %}
+#include <stdio.h>
+#include <stdlib.h>
+
+#define container_of(ptr, type, member)                         \
+        (type *)((char *)(ptr) - (char *) &((type *)0)->member)
+
+struct hello {
+        int id;
+};
+
+struct foobar {
+        char name[10];
+        struct hello *hello;
+};
+
+int main(void)
+{
+        struct foobar *f;
+        struct hello *h;
+        f = malloc(sizeof(struct foobar));
+        h = malloc(sizeof(struct hello));
+        f->hello = h;
+
+        printf("foobar=%p foobar.hello=%p\n", f, &(f->hello));
+
+        /* failed */
+        printf("container foobar=%p\n",
+                        container_of(&h, struct foobar, hello));
+
+        return 0;
+}
+{% endhighlight %}
+
 
 ### 指针参数修改
 

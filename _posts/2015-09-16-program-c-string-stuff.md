@@ -730,6 +730,46 @@ int main()
 }
 {% endhighlight %}
 
+## 其它
+
+添加格式化字符串。
+
+{% highlight c %}
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(void)
+{
+	char buffer[11]; /* including zero-termanation */
+	int rc, offset = 0, length = sizeof(buffer);
+
+#define BUFFER_ADD(...)                                                        \
+	do {                                                                   \
+		rc = snprintf(buffer + offset, length - offset, __VA_ARGS__);  \
+		if (rc <= 0) { /* format error */                              \
+			printf("format error\n");                              \
+			return 1;                                              \
+                } else if ((rc) >= (length - offset)) { /* not enough space */ \
+			printf("no enough space\n");                           \
+			return 0;                                              \
+		} else {                                                       \
+			offset += ((size_t)rc);                                \
+		}                                                              \
+	} while (0)
+
+	BUFFER_ADD("12345");
+	BUFFER_ADD("12345");
+
+	printf("offset=%d string=%s\n", offset, buffer);
+
+	return 0;
+}
+{% endhighlight %}
+
+
+
+
+
 
 {% highlight c %}
 {% endhighlight %}

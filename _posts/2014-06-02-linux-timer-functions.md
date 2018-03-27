@@ -150,32 +150,76 @@ int main(void)
 }
 {% endhighlight %}
 
-<!--
 
-### 时间转换相关
+## 时间转换相关
 
 将时间转换为自 1970.01.01 以来逝去时间的秒数，发生错误时返回 -1 。
 
-{% highlight text %}
+{% highlight c %}
 struct tm {
-    int tm_sec;         /* seconds */
-    int tm_min;         /* minutes */
-    int tm_hour;        /* hours */
-    int tm_mday;        /* day of the month */
-    int tm_mon;         /* month */
-    int tm_year;        /* year */
-    int tm_wday;        /* day of the week */
-    int tm_yday;        /* day in the year */
-    int tm_isdst;       /* daylight saving time */
+	int tm_sec;         /* seconds */
+	int tm_min;         /* minutes */
+	int tm_hour;        /* hours */
+	int tm_mday;        /* day of the month */
+	int tm_mon;         /* month */
+	int tm_year;        /* year */
+	int tm_wday;        /* day of the week */
+	int tm_yday;        /* day in the year */
+	int tm_isdst;       /* daylight saving time */
 };
 
-time_t mktime(struct tm * timeptr);
+time_t mktime(struct tm *timeptr);
 {% endhighlight %}
 
-如果时间在夏令时，tm_isdst 设置为1，否则设置为0，若未知，则设置为 -1。
+如果时间在夏令时，tm_isdst 设置为 1 ，否则设置为 0 ，若未知，则设置为 -1 。
+
+### 字符串转换
+
+其中 `strftime()` 用来格式化日期、日期时间和时间的函数，支持 date、datetime、time 等类，将其转换为字符串；而 `strptime()` 就是从字符串表示的日期时间按格式化字符串要求转换为相应的日期时间。
+
+示例如下：
+
+{% highlight c %}
+#define _XOPEN_SOURCE
+
+#include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int main(void)
+{
+	struct tm tm;
+	char buffer[256], *rcs;
+	int rc;
+
+	memset(&tm, 0, sizeof(struct tm));
+	rcs = strptime("2001-11-12 18:31:01", "%Y-%m-%d %H:%M:%S", &tm);
+	if (rcs == NULL) { /* such as: 20010-10-12 */
+		printf("Format error\n");
+		return -1;
+	}
+
+	rc = strftime(buffer, sizeof(buffer), "%4-%m-%d %H:%M:%S (%Z %z)", &tm);
+	if (rc == 0) { /* Not enough buffer, */
+		buffer[sizeof(buffer) - 1] = 0;
+		printf("Got zero\n");
+		return -1;
+	}
+
+	puts(buffer);
+
+	return 0;
+}
+{% endhighlight %}
+
+其中 `strftime()` 会按照格式将上述内容格式输出，如果不满足则原样复制，而且格式化字符基本已经占满所有 26 个字符。
 
 
 
+
+
+<!--
 ### ANSI clock()
 
 clock() 返回值类型是 clock_t，该值除以 CLOCKS_PER_SEC (GNU 定义为 1000000) 得出消耗的 CPU 时间，一般用两次 clock() 来计算进程自身运行的时间。不过，该函数存在如下的问题：

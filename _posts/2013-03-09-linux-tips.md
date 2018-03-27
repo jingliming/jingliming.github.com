@@ -138,6 +138,9 @@ $ su root                             ← 需要root用户密码
 命令行批量替换多文件中的字符串，常用有三种方法：Mahuinan 法、Sumly 法和 30T 法。
 
 {% highlight text %}
+----- 查看所匹配的字符串
+$ sed -n '/orig/'p *.txt 
+
 ----- Mahuinan法，用sed命令批量替换多个文件中的字符串
 $ sed -i "s/orig/sub/g" "`grep orig -rl directory`"
 解读：

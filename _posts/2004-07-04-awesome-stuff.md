@@ -38,6 +38,12 @@ AIDE 主机级别的安全检测
 http://aide.sourceforge.net/
 SNORT 安全入侵检测
 https://www.snort.org/
+
+EXT类型文件误删恢复
+http://extundelete.sourceforge.net/
+
+
+可以通过情报引擎，例如 zoomeye、shodan 等，查看当前网络。
 -->
 
 
