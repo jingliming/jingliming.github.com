@@ -232,6 +232,10 @@ Max core file size        1024000              1024000              bytes
 
 ## debuginfo
 
+一般线上生成的文件会删除 Debug、符号表信息，但是一旦有问题了，例如发生了 CoreDump ，那么就需要使用符号表了。
+
+使用 `file test` 命令查看时，会显示改文件为 `not stripped` ，当通过 `nm test` 查看时会发现一堆的符号，或者通过 `readelf -S test` 查看。
+
 为了能够使用 gdb 跟踪调试程序，需要在编译期使用 -g 选项；而对于系统库或是 Linux 内核，使用 gdb 调试或使用 systemtap 探测时，还需要安装相应的 debuginfo 包。
 
 例如 glibc 及它的 debuginfo 包。
@@ -286,7 +290,7 @@ glibc的源代码
 
 ### 如何生成
 
-通过 gcc -g 编译时，默认机器码与源代码的映射关系会与可执行程序、动态链接库合并在一起；但是这样就导致文件特别大，而对于普通用户来说是不需要的。
+通过 `gcc -g` 编译时，默认机器码与源代码的映射关系会与可执行程序、动态链接库合并在一起；但是这样就导致文件特别大，而对于普通用户来说是不需要的。
 
 正是了为解决这个问题，在 Linux 上的各种程序和库，在生成 RPM 时，就已经把 debuginfo 单独的抽取出来，因此形成了独立的 debuginfo 包。
 
@@ -302,9 +306,24 @@ EOF
 
 ----- 其中参数-ggdb生成gdb格式调试信息
 $ gcc -ggdb foobar.c -o foobar
+----- 查看段信息，有一堆的.debug段
+$ readelf -S foobar
+
+----- 删除.debug段的信息，符号表和字符串还在，调试仍可以查看符号信息
+$ strip --strip-debug foobar
+----- 同时删除.symtab和.strtab，默认的操作
+$ strip --strip-all foobar
 
 ----- 创建一个包含debuginfo的文件
 $ objcopy --only-keep-debug foobar foobar.debug
+----- 添加一个包含路径文件的.gnu_debuglink section，注意执行时文件必须存在
+$ objcopy --add-gnu-debuglink=foobar.debug foobar
+
+----- 或者一步到位
+$ eu-strip foobar -f foobar.debug
+
+----- 查看新添加的.gnu_debuglink section 
+$ objdump -s -j .gnu_debuglink test
 
 ----- 清除原执行文件中的调试信息，如下两个操作相同
 $ objcopy --strip-debug foobar
@@ -321,12 +340,12 @@ Reading symbols from /tmp/foobar...(no debugging symbols found)...done.
 $ gdb foobar -s foobar.debug
 $ gdb
 (gdb) file foobar
-(gdb) symbol foobar.debug
+(gdb) symbol-file foobar.debug
 {% endhighlight %}
 
 显然，gdb 现在无法找到调试信息了；我们需要告诉 gdb 如何正确地找到它对应的 debug 文件，也就是上述的 foobar.debug 文件。
 
-对于 Linux 下的 ELF(Executable and Linkable Format) 格式文件，可以通过一个 .gnu_debuglink 段来保存信息，可通过 ```objcopy --add-gnu-debuglink``` 添加。
+对于 Linux 下的 ELF(Executable and Linkable Format) 格式文件，可以通过一个 `.gnu_debuglink` 段来保存信息，可通过 ```objcopy --add-gnu-debuglink``` 添加。
 
 {% highlight text %}
 ----- 添加一个包含路径文件的.gnu_debuglink section
@@ -348,7 +367,8 @@ done.
 (gdb)
 {% endhighlight %}
 
-上面的 objcopy 是把 foobar.debug 的文件名以及这个文件的 CRC 校验码，写到了.gnu_debuglink 这个 ELF 的头部值中，但是并没有告诉 foobar.debug 所在的路径。
+上面的 objcopy 是把 foobar.debug 的文件名以及这个文件的 CRC 校验码，写到了`.gnu_debuglink` 这个 ELF 的头部值中，但是并没有告诉 foobar.debug 所在的路径。
+
 
 ### 搜索路径
 
@@ -384,6 +404,22 @@ $ objdump -s -j .note.gnu.build-id foobar
 <!-- readelf -S utmp -->
 
 foobar.debug 默认会采用 DWARF 4 格式来保存调试信息，可以通过 ```readelf -w foobar.debug``` 来查看 DWARF 的内容；详见 [DWARF Debugging Information Format Version 4](http://dwarfstd.org/doc/DWARF4.pdf) 。
+
+如下是放置到默认路径下的一个示例：
+
+{% highlight text %}
+----- 查看二进制文件的BuildID，并添加默认目录下
+$ readelf -n test | grep Build
+    Build ID: e380efb0fe7873bcc96506035e8640a365b29ef4
+$ mkdir -p /usr/lib/debug/.build-id/e3
+$ mv test.debug /usr/lib/debug/.build-id/e3/80efb0fe7873bcc96506035e8640a365b29ef4.debug
+
+----- 查看当前debuginfo默认搜索目录，可通过set debug-file-directory path重新指定
+(gdb) show debug-file-directory
+The directory where separate debug symbols are searched for is "/usr/lib/debug".  
+----- 会自动加载debuginfo文件
+(gdb) file test
+{% endhighlight %}
 
 ### 生成Marker探针
 

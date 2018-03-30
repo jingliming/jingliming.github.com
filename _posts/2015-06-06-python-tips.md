@@ -260,10 +260,44 @@ help(foobar)
 
 ## 其它
 
+### 计算常见HASH值
+
+{% highlight python %}
+import sys
+import hashlib
+
+# BUF_SIZE is totally arbitrary, change for your app!
+BUF_SIZE = 65536  # lets read stuff in 64kb chunks!
+
+md5 = hashlib.md5()
+sha1 = hashlib.sha1()
+sha256 = hashlib.sha256()
+
+with open(sys.argv[1], 'rb') as f:
+    while True:
+        data = f.read(BUF_SIZE)
+        if not data:
+            break
+        md5.update(data)
+        sha1.update(data)
+
+with open(sys.argv[1], 'rb') as f:
+	while True:
+		data = f.read(BUF_SIZE)
+		if not data:
+			break
+		md5.update(data)
+		sha1.update(data)
+		sha256.update(data)
+
+print("MD5: {0}".format(md5.hexdigest()))
+print("SHA1: {0}".format(sha1.hexdigest()))
+print("SHA256: {0}".format(sha256.hexdigest()))
+{% endhighlight %}
 
 ### 首行
 
-可以使用 #!/usr/bin/python 或者 #!/usr/bin/env python ，env 可以通过指定的环境变量执行命令。
+可以使用 `#!/usr/bin/python` 或者 `#!/usr/bin/env python` ，env 可以通过指定的环境变量执行命令。
 
 
 ### 使用 UTF-8
