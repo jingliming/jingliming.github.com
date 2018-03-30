@@ -772,6 +772,21 @@ rpmbuild --clean --define '_topdir /tmp/foobar' -ba SPECS/foobar-1.0.0.spec~
 {% endhighlight %}
 
 
+### 参考示例
+
+如上介绍了手动如何编译生成 rpm 包，这里通过 collectd 看看，如何使用一些常见的工具，更加方便的制作 rpm 包，可以参考 [collectd 创建的示例](http://giovannitorres.me/how-to-build-rpms-collectd-example.html) 。
+
+{% highlight text %}
+# yum install rpmdevtools yum-utils
+
+----- 配置环境，生成topdir工作目录~/rpmbuild，以及配置文件~/.rpmmacros
+$ rpmdev-setuptree
+
+----- 下载collectd源码，并解压
+$ mkdir ~/src && cd ~/src && curl --progress https://collectd.org/files/collectd-5.5.3.tar.gz | tar xz
+{% endhighlight %}
+
+也可以参考 [本地文档](/reference/linux/how_to_build_rpms.html) 。
 
 ## 参考
 
@@ -783,12 +798,8 @@ http://fedoraproject.org/wiki/How_to_create_an_RPM_package
 包含生成GPG签名
 http://laoguang.blog.51cto.com/6013350/1103628
 
-一个collectd创建的示例
-http://giovannitorres.me/how-to-build-rpms-collectd-example.html
-
 rpm mock
 https://leo108.com/pid-2207.asp
-
 -->
 
 {% highlight text %}

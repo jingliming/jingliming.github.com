@@ -313,6 +313,7 @@ bison 读入一个 CFG 文法的文件，在程序内经过计算，输出一个
 
 
 <!--
+GNU Bison是主要采用 `LALR(1)` 的解析器生成器，支持显式指定规则的优先级以及结合性。 
 
 
 <br><br><h2>预读</h2><p>
@@ -399,6 +400,33 @@ yacc 中定义了很多的符号，详细的可以查看 [Bison Symbols](http://
   修改默认的开始规则，例如从foobar规则开始解析，默认从第一条规则开始
 {% endhighlight %}
 
+### 字符串解析
+
+通过如下方式可以设置使用内存字符串而非文件：
+
+
+{% highlight text %}
+YY_BUFFER_STATE yy_scan_string(const char *str);
+YY_BUFFER_STATE yy_scan_bytes(const char *bytes, int len);
+{% endhighlight %}
+
+这里会返回一个 `YY_BUFFER_STATE` 类型，在使用完之后，需要通过 `yy_delete_buffer()` 删除，也就是在通过 `yylex()` 解析前会先复制一份数据，然后解析时会修改缓存。
+
+如果不希望复制，那么可以使用如下函数。
+
+{% highlight text %}
+YY_BUFFER_STATE yy_scan_buffer(char *base, yy_size_t size)
+{% endhighlight %}
+
+下面是一个简单的示例：
+
+{% highlight c %}
+int main() {
+	yy_scan_string("a test string");
+	yylex();
+}
+{% endhighlight %}
+
 
 #### 高级yylval
 
@@ -415,7 +443,18 @@ YACC 的 yylval 类型取决于 YYSTYPE 定义 (一般通过 typedef 定义)，�
 %token <string> WORD
 {% endhighlight %}
 
-定义了我们的联合体，它仅包含数字和字体串，然后使用一个扩展的%token语法，告诉YACC应该取联合体的哪一个部分。
+定义了我们的联合体，它仅包含数字和字体串，然后使用一个扩展的 `%token` 语法，告诉 YACC 应该取联合体的哪一个部分。
+
+{% highlight text %}
+%token TOKEN1 TOKEN2 TOKEN3 ...
+    用于定义终结符。
+%left，%right，%nonassoc
+    类似于终结符，不过同时具有某种优先级和结核性，分别表示左结合、右结合、不结合 (也就是终结符不能连续出现，
+       例如<，此时不允许出现a<b<c这类句子)。
+    优先级与其定义的顺序相关，先定义的优先级低，最后定义的优先级最高，同时定义的优先级相同。
+       例如，如上程序关于计算器中优先级的定义。
+{% endhighlight %}
+
 
 
 <!--
@@ -541,7 +580,105 @@ token 标记<br>
     </p>
 -->
 
+## 示例程序
 
+实现一个简单的计算器程序，能进行加、减、乘、除、幂运算，需要注意优先级。
+
+`calc.l` 文件。
+
+{% highlight text %}
+%{
+    #include "calc.tab.h"
+    #include <stdlib.h>
+    void yyerror(char *);
+%}
+
+%%
+
+[a-z]       {
+                yylval = *yytext - 'a';
+                return VARIABLE;
+                }
+
+[0-9]+      {
+                yylval = atoi(yytext);
+                return INTEGER;
+            }
+
+[-+()=/*\n]     { return *yytext; }
+
+[ \t]   ;       /* skip whitespace */
+
+.               yyerror("Unknown character");
+
+%%
+
+int yywrap(void)
+{
+	return 1;
+}
+{% endhighlight %}
+
+`calc.y` 文件。
+
+{% highlight text %}
+%{
+	#include <stdio.h>
+	void yyerror(char *);
+	int yylex(void);
+	int sym[26];
+%}
+
+%token INTEGER VARIABLE
+%left '+' '-'
+%left '*' '/'
+
+%%
+
+program:
+	program statement '\n'
+	| /* NULL */
+	;
+
+statement:
+	expression                      { printf("%d\n", $1); }
+	| VARIABLE '=' expression       { sym[$1] = $3; }
+	;
+
+expression:
+	INTEGER
+	| VARIABLE                      { $$ = sym[$1]; }
+	| expression '+' expression     { $$ = $1 + $3; }
+	| expression '-' expression     { $$ = $1 - $3; }
+	| expression '*' expression     { $$ = $1 * $3; }
+	| expression '/' expression     { $$ = $1 / $3; }
+	| '(' expression ')'            { $$ = $2; }
+	;
+
+%%
+
+void yyerror(char *s)
+{
+	fprintf(stderr, "%s\n", s);
+}
+
+int main(void)
+{
+	yy_scan_string("1+1\n");
+	yyparse();
+}
+{% endhighlight %}
+
+
+{% highlight text %}
+all:
+	bison -d calc.y
+	flex -o calc.lex.c calc.l
+	gcc calc.lex.c calc.tab.h calc.tab.c -o calc -lm
+
+clean:
+	rm -f calc.lex.c calc.tab.c calc.tab.h calc test
+{% endhighlight %}
 
 
 
@@ -694,6 +831,10 @@ http://blog.csdn.net/huyansoft/article/details/8860224
 http://blog.csdn.net/lidan3959/article/details/8237914
 http://www.tuicool.com/articles/3aMVzi
 http://blog.csdn.net/sfifei/article/details/9449629
+
+
+
+http://www.calvinneo.com/2016/07/29/flex%E5%92%8Cbison%E4%BD%BF%E7%94%A8/
 -->
 
 

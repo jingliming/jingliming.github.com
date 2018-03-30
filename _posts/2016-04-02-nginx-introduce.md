@@ -739,6 +739,35 @@ Reading: 3 Writing: 16 Waiting: 8
 
 注意，对于最后一行的 Waiting，当开启 keep-alive 的情况下，这个值等于 active - (reading + writing)，意思就是说已经处理完正在等候下一次请求指令的驻留连接。
 
+### 文件服务器
+
+在 `/etc/nginx/conf.d` 目录下包含了各种配置文件，如果要增加新配置，可以直接在该目录下新增配置文件 `fileserver.conf` 。
+
+{% highlight text %}
+server {
+	listen 80;                      # 监听端口
+	server_name hostname;           # 如果没有DNS解析，可以设置IP地址
+	client_max_body_size 4G;        # 设置最大文件大小
+	charset utf-8;                  # 防止出现中文乱码
+	root /files;                    # 指定相对路径的根目录，如下的location会相对该路径
+	location /packages {             # 实际存放文件的目录为/files/packages/
+		auth_basic "Restricted"; # 输入密码时的提示语
+		auth_basic_user_file /etc/nginx/pass_file; # 认证时用户密码文件存放路径
+		autoindex on;            # 自动生成文件索引
+		autoindex_exact_size on; # 显示文件大小
+		autoindex_localtime on;  # 显示本地文件时间
+	}
+}
+{% endhighlight %}
+
+然后通过 `nginx -t` 检查语法是否正确，通过 `nginx -s reload` 重新加载配置。
+
+可以通过如下方式添加用户。
+
+{% highlight text %}
+htpasswd -c -d /etc/nginx/pass_file foobar
+{% endhighlight %}
+
 ### 启动报错
 
 记录下遇到的一些常见问题。

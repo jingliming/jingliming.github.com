@@ -82,21 +82,45 @@ uid=68(monitor) gid=995(mysql) groups=995(mysql)
 
 目前这种方案只能满足一个组件的权限设置，因为主要属组只能设置一个。
 
+### Sudoer
+
+简单来说，需要修改 `/etc/sudoer` 配置文件。
+
+{% highlight text %}
+用户 登录的主机=(可以变换的身份) 可以执行的命令
+monitor ALL=(root) NOPASSWD: /usr/sbin/groupadd
+
+其中 ALL 也可以通过 Host_Alias 指定具体的主机信息，包括了主机名、IP地址、网络掩码等
+Host_Alias HT01=localhost,etc01,10.0.0.4,255.255.255.0,192.168.1.0/24
+{% endhighlight %}
+
+<!--
+/* /usr/sbin/groupdel someuser */
+//execl("/usr/sbin/groupadd", "groupadd", "-r", "someuser", NULL);
+execl("/usr/bin/sudo", "sudo", "/usr/sbin/groupadd", "-r", "someuser", NULL);
+-->
+
 ## Capabilities 简介
 
 该机制是在 Linux 2.2 之后引入的，它将 root 用户的权限细分为不同的领域，可以分别启用或禁用；从而，在实际进行特权操作时，如果 euid 不是 root，便会检查是否具有该特权操作所对应的 capabilities，并以此为依据，决定是否可以执行特权操作。
 
+一个完整的能力机制需要满足以下三个条件:
+
+1. 对进程的所有特权操作，Linux 内核必须检查该进程该操作的特权位是否使能。
+2. Linux 内核必须提供系统调用，允许进程能力的修改与恢复。
+3. 文件系统必须支持能力机制可以附加到一个可执行文件上，但文件运行时，将其能力附加到进程当中。
+
+到 Linux 内核版本 2.6.24 之前满足 1、2 两个条件，之后满足上述 3 个条件；也就是说，完整的 capabilities 支持是在 2.6.24 版本以后支持的。
+
 注意，capabilities 是细分到线程的，每个线程都有自己对应的 capabilities 。
-
-文件系统支持文件附加属性，使得可执行文件具有一定的 capabilities，从而在运行时确定其 capabilities，而对于文件 capabilities 的支持，直到内核 2.6.24 之后才完成。
-
-也就是说，完整的 capabilities 支持是在 2.6.24 版本以后支持的。
 
 ### 设置Capabilities
 
-事实上 Linux 本身对权限的检查就是基于 capabilities 的，root 用户有全部的 capabilities，所以啥都能干；常见的操作如下：
+事实上 Linux 本身对权限的检查就是基于 capabilities 的，root 用户有全部的 capabilities，所以啥都能干。
 
-如果想给一个可执行文件加上某个 capability，可以用 setcap 命令，如
+常用程序有：A) `getcap` 查看程序文件所具有的能力；B) `setcap` 设置程序文件的能力；C) `getpcaps` 获得进程所具有的能力。
+
+常见的操作如下：
 
 {% highlight text %}
 ----- 对于ping增加Raw Socket权限
@@ -105,8 +129,8 @@ $ setcap cap_net_raw=+ep ping
    cap_net_raw 对应设置capability的名字；
    mode 也就是等号后面的内容，+ 表示启用，- 表示禁用；
       e 是否激活
-   p 是否允许进程设置
-   i 子进程是否继承
+      p 是否允许进程设置
+      i 子进程是否继承
 
 ----- 同样以ping为例，可以通过如下方法查看其具有的Capability权限
 $ getcap /bin/ping
@@ -116,21 +140,393 @@ $ getcap /bin/ping
 
 内核通过 `setxattr()` 系统调用执行，也就是为文件加上 `security.capability` 扩展属性。
 
+#### 获取和设置
+
+系统调用 `man 2 capget` 和 `man 2 capset` 可被用于获取和设置线程自身的 capabilities；此外，也可以使用 libcap 中提供的接口 `man 3 cap_get_proc` 和 `man 3 cap_set_proc` 。
 
 ### 线程相关
 
 权限控制的最小粒度是线程，每个线程有三个与 Capabilities 相关的位图，分别为：
 
-* Permitted，定义线程所能够拥有的特权的上限，如果需要的特权不在该集合中，是不能进行设置的；
+* Permitted，定义线程所能够拥有的特权的上限，如果需要的特权不在该集合中，是不能进行设置的；如果一个进程在该集合中丢失一个能力，除非特权用户再次赋予权限，否则无论如何不能再次获取该能力。
 * Inheritable，执行 fork() 运行其它进程时允许被继承的权限；
 * Effective，当前允许执行的特权。
 
 对应进程描述符 `struct task_struct` 中的 `cap_effective`、`cap_inheritable`、`cap_permitted`，可以通过 `/proc/PID/status` 来查看进程的能力。
 
-### 获取和设置
+从 2.6.24 开始，Linux 内核可以给可执行文件赋予能力，同样包含三个能力集：
 
-系统调用 `man 2 capget` 和 `man 2 capset` 可被用于获取和设置线程自身的 capabilities；此外，也可以使用 libcap 中提供的接口 `man 3 cap_get_proc` 和 `man 3 cap_set_proc` 。
+* Permitted 当可执行文件执行时自动附加到进程中，会忽略 Inhertiable 集合；
+* Inheritable 与进程 Inheritable 集合做与操作，决定执行 execve 后新进程的 Permitted 集合；
+* Effective  实际不是集合，而是一个单独的位，用来决定进程的 Effective 集合。
 
+也就是说，Linux 系统中的能力分为两部分：A) 进程能力；B) 文件能力。Linux 内核最终检查的是进程能力中的 Effective，文件能力和进程能力中的其他部分用来完整能力继承、限制等方面的内容。
+
+## 能力继承
+
+也就是通过 `fork()` 新建进程时，子进程的能力，可以通过 `man 7 capabilities` 查看规则。
+
+{% highlight text %}
+P'(ambient) = (file is privileged) ? 0 : P(ambient)
+P'(permitted) = (P(inheritable) & F(inheritable)) |
+		(F(permitted) & cap_bset) | P'(ambient)
+P'(effective) = F(effective) ? P'(permitted) : P'(ambient)
+P'(inheritable) = P(inheritable)    [i.e., unchanged]
+{% endhighlight %}
+
+<!--
+https://blog.ploetzli.ch/2014/understanding-linux-capabilities/
+-->
+
+![linux capabilities]({{ site.url }}/images/linux/capabilities-process-introduce.png "linux capabilities"){: .pull-center width="70%" }
+
+带有 `'` 表示新的进程，这里主要讨论后三者的能力。
+
+
+### 测试示例
+
+如下两个分别为 `father.c` 以及 `child.c` 。
+
+{% highlight c %}
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/capability.h>
+
+void list_capability()
+{
+	struct __user_cap_header_struct cap_header_data;
+	cap_user_header_t cap_header = &cap_header_data;
+
+	struct __user_cap_data_struct cap_data_data;
+	cap_user_data_t cap_data = &cap_data_data;
+
+	cap_header->pid = getpid();
+	cap_header->version = _LINUX_CAPABILITY_VERSION_1;
+
+	if (capget(cap_header, cap_data) < 0) {
+		perror("Failed capget");
+		exit(1);
+	}
+
+	printf("Capability data: permitted=0x%x, effective=0x%x, inheritable=0x%x\n",
+		cap_data->permitted, cap_data->effective, cap_data->inheritable);
+}
+
+int main(void)
+{
+	cap_t caps = cap_init();
+	cap_value_t capList[2] = { CAP_DAC_OVERRIDE, CAP_SYS_TIME };
+
+	//cap_set_flag(caps, CAP_EFFECTIVE, 2, capList, CAP_SET);
+	cap_set_flag(caps, CAP_INHERITABLE, 2, capList, CAP_SET);
+	cap_set_flag(caps, CAP_PERMITTED, 2, capList, CAP_SET);
+
+	if(cap_set_proc(caps)) {
+		perror("cap_set_proc");
+		exit(1);
+	}
+
+	list_capability();
+
+	execl("child", NULL);
+
+	sleep(1000);
+}
+{% endhighlight %}
+
+{% highlight c %}
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <linux/capability.h>
+
+void list_capability()
+{
+	struct __user_cap_header_struct cap_header_data;
+	cap_user_header_t cap_header = &cap_header_data;
+
+	struct __user_cap_data_struct cap_data_data;
+	cap_user_data_t cap_data = &cap_data_data;
+
+	cap_header->pid = getpid();
+	cap_header->version = _LINUX_CAPABILITY_VERSION_1;
+
+	if (capget(cap_header, cap_data) < 0) {
+		perror("Failed capget");
+		exit(1);
+	}
+
+	printf("Child capability data: permitted=0x%x, effective=0x%x, inheritable=0x%x\n",
+		cap_data->permitted, cap_data->effective, cap_data->inheritable);
+}
+
+int main(void)
+{
+	list_capability();
+	sleep(1000);
+}
+{% endhighlight %}
+
+{% highlight text %}
+$ gcc child.c -o child
+$ gcc father.c -o father -lcap
+# setcap cap_dac_override,cap_sys_time+ei child
+# setcap cap_dac_override,cap_sys_time+ip father
+{% endhighlight %}
+
+单独执行时，child 可执行文件由 EI 的能力，而调用执行 child 的终端没有任何能力，那么对应公式(cap_bset默认全1)：
+
+{% highlight text %}
+P'(permitted) = (P(inheritable) & F(inheritable)) | (F(permitted) & cap_bset)
+              = (0x0 & 0x2000002) | (0x0 & 全1) = 0x00
+P'(effective) = F(effective) ? P'(permitted) : 0
+              = 1 ? P'(permitted) : 0 = P'(permitted) = 0x00
+P'(inheritable) = P(inheritable) = 0x00
+{% endhighlight %}
+
+通过 father 调用执行时，child 文件有 EI 的能力，father 文件有 EP 能力，那么套用公式：
+
+{% highlight text %}
+P'(permitted) = (P(inheritable) & F(inheritable)) | (F(permitted) & cap_bset)
+              = (0x2000002 & 0x2000002) | (0x2000002 & 全1) = 0x2000002
+P'(effective) = F(effective) ? P'(permitted) : 0
+              = 1 ? P'(permitted) : 0 = P'(permitted) = 0x2000002
+P'(inheritable) = P(inheritable) = 0x2000002
+{% endhighlight %}
+
+上述单独运行 child 可执行程序，其进程没有任何能力；但是有 father 进程来启动运行 child 可执行程序，其进程则有相应的能力。
+
+
+## 示例程序
+
+对于 CentOS ，需要安装 libcap-devel 开发包才可以，当前的 Linux 系统中共有 37 项特权，可以从 `/usr/include/linux/capability.h` 文件中查看，编译使用 `-lcap` 。
+
+**注意** `DAC_OVERRIDE` 是 `DAC_READ_SEARCH` 的超集。
+
+{% highlight c %}
+#include <stdio.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/capability.h>
+
+#define ASIZE(arr)  (sizeof(arr)/sizeof(*arr))
+
+int list_caps(void)
+{
+#if 0
+	cap_t caps;
+	//caps = cap_get_pid(pid); /* get the process capabilities */
+	caps = cap_get_proc();
+	if (caps == NULL) {
+		fprintf(stderr, "[ERROR] Failed to get process capability, %s\n",
+		strerror(errno));
+		return -1;
+	}
+	fprintf(stdout, "[INFO] Process %d was given capabilities %s\n",
+		(int)getpid(), cap_to_text(caps, NULL));
+	cap_free(caps);
+#else
+	struct __user_cap_header_struct cap_header_data;
+	cap_user_header_t cap_header = &cap_header_data;
+
+	struct __user_cap_data_struct cap_data_data;
+	cap_user_data_t cap_data = &cap_data_data;
+
+	cap_header->pid = getpid();
+	cap_header->version = _LINUX_CAPABILITY_VERSION_1;
+
+	if (capget(cap_header, cap_data) < 0) {
+		fprintf(stderr, "[ERROR] Failed to get process cap, %s\n",
+			strerror(errno));
+		return -1;
+	}
+	fprintf(stdout, "[INFO] Capabilities data: permitted=0x%x effective=0x%x inheritable=0x%x\n",
+		cap_data->permitted, cap_data->effective,cap_data->inheritable);
+#endif
+
+	return 0;
+}
+
+int main(void)
+{
+	cap_t caps;
+	cap_value_t caplist[] = {
+		CAP_NET_RAW, CAP_NET_BIND_SERVICE, CAP_SETUID, CAP_SETGID, CAP_SETPCAP
+	};
+
+	if (list_caps() < 0)
+		exit(1);
+
+	//caps = cap_get_proc();
+	if ((caps = cap_init()) == NULL) {
+		fprintf(stderr, "[ERROR] Failed to init capability, %s\n", strerror(errno));
+		exit(1);
+	}
+	if (cap_set_flag(caps, CAP_EFFECTIVE, ASIZE(caplist), caplist, CAP_SET) ||
+	    cap_set_flag(caps, CAP_INHERITABLE, ASIZE(caplist), caplist, CAP_SET) ||
+	    cap_set_flag(caps, CAP_PERMITTED, ASIZE(caplist), caplist, CAP_SET)) {
+		fprintf(stderr, "[ERROR] Failed to set flag, %s\n", strerror(errno));
+		cap_free(caps);
+		exit(1);
+	}
+	if (cap_set_proc(caps) < 0) {
+		fprintf(stderr, "[ERROR] Failed to set capability, %s\n", strerror(errno));
+		cap_free(caps);
+		exit(1);
+	}
+
+	if (list_caps() < 0) {
+		cap_free(caps);
+		exit(1);
+	}
+
+	/* resetting caps storage */
+	if (cap_clear(caps) < 0) {
+		fprintf(stderr, "[ERROR] Failed to clear capability, %s\n", strerror(errno));
+		cap_free(caps);
+		exit(1);
+	}
+	if (cap_set_proc(caps) < 0) {
+		fprintf(stderr, "[ERROR] Failed to set capability, %s\n", strerror(errno));
+		cap_free(caps);
+		exit(1);
+	}
+
+	if (list_caps() < 0) {
+		cap_free(caps);
+		exit(1);
+	}
+
+	cap_free(caps);
+	return 0;
+}
+{% endhighlight %}
+
+
+如下是一个测试程序，确保在切换用户时保留能力： 1) 通过 `prctl(PR_SET_KEEPCAPS, 1L);` 保留能力；2) 通过 `cap_set_proc()` 重新设置 Effective 和 Permitted 的能力。
+
+<!--
+https://stackoverflow.com/questions/12141420/losing-capabilities-after-setuid?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+-->
+
+{% highlight c %}
+void test(void)
+{
+	int fd, rc;
+	char buffer[1024];
+
+	//fd = open("/tmp/user/group/test/read.txt", O_RDONLY);
+	errno = 0;
+	fd = open("/tmp/read.txt", O_RDONLY);
+	if (fd < 0) {
+		fprintf(stderr, "Open read file error: %s\n", strerror(errno));
+		return;
+	}
+	rc = read(fd, buffer, sizeof(buffer));
+	if (rc < 0) {
+		fprintf(stderr, "Read file error: %s\n", strerror(errno));
+		return;
+	}
+	close(fd);
+
+	buffer[rc] = 0;
+	fprintf(stdout, "Got content: %s", buffer);
+
+}
+
+int main(void)
+{
+	const char * const user = "monitor";
+	struct passwd *pwd;
+
+	if (getuid() != 0) {
+		fprintf(stderr, "Should run as root\n");
+		return -1;
+	}
+
+	pwd = getpwnam(user);
+	if (pwd == NULL) {
+		fprintf(stderr, "User '%s'does not exist\n", user);
+		return -1;
+	}
+
+	pid_t pid;
+	pid = fork();
+	if (pid < 0) {
+		fprintf(stderr, "Failed to fork child, %s\n", strerror(errno));
+		return -1;
+	} else if (pid == 0) { /* child */
+		fprintf(stdout, "[INFO] Child PID is %d\n", getpid());
+		if (list_caps() < 0)
+			exit(1);
+
+		/* Set before change the effective user */
+		if (prctl(PR_SET_KEEPCAPS, 1L)) {
+			fprintf(stderr, "Failed to set keep caps flag, %s\n", strerror(errno));
+			exit(1);
+		}
+
+		if (setgid(pwd->pw_gid) < 0) {
+			fprintf(stderr, "Cannot setgid to %s: %s\n", user, strerror(errno));
+			return -1;
+		}
+
+		if (setuid(pwd->pw_uid) < 0) {
+			fprintf(stderr, "Cannot setuid to %s: %s\n", user, strerror(errno));
+			return -1;
+		}
+		fprintf(stdout, "[INFO] Change to user '%s', uid/gid=%d/%d\n",
+			user, pwd->pw_gid, pwd->pw_uid);
+
+		if (list_caps() < 0)
+			exit(1);
+
+		cap_t caps;
+		//CAP_DAC_OVERRIDE, CAP_SETUID, CAP_SETGID, CAP_NET_RAW, CAP_SETPCAP
+		cap_value_t caplist[] = {
+			CAP_DAC_OVERRIDE
+		};
+		if ((caps = cap_init()) == NULL) {
+			fprintf(stderr, "[ERROR] Failed to init capability, %s\n", strerror(errno));
+			exit(1);
+		}
+
+		if (cap_set_flag(caps, CAP_EFFECTIVE, ASIZE(caplist), caplist, CAP_SET) ||
+		    cap_set_flag(caps, CAP_PERMITTED, ASIZE(caplist), caplist, CAP_SET)) {
+			fprintf(stderr, "[ERROR] Failed to set flag, %s\n", strerror(errno));
+			cap_free(caps);
+			exit(1);
+		}
+
+		if (cap_set_proc(caps) < 0) {
+			fprintf(stderr, "[ERROR] Failed to set capability, %s\n", strerror(errno));
+			cap_free(caps);
+			exit(1);
+		}
+
+		if (list_caps() < 0) {
+			cap_free(caps);
+			exit(1);
+		}
+
+		test();
+
+		exit(0);
+	}
+	/* parent */
+
+	sleep(1000);
+	return 0;
+}
+{% endhighlight %}
+
+在测试时遇到一个很奇葩的问题，当通过系统调用 `open("/tmp/read.txt", O_RDONLY)` 打开文件时，如果文件属主为 root，需要保证文件 group 的权限为可读，而非 others 文件权限为可读；而非 root 属主的文件，需要 others 文件权限为可读。
 
 
 
@@ -183,6 +579,26 @@ chown -R mysql:mysql /tmp/user
 
 
 
+### 常见命令
+
+{% highlight text %}
+----- 查看ping的能力
+$ getcap /bin/ping
+/bin/ping = cap_net_raw+ep
+
+----- 删除文件具有的能力
+$ setcap -r /bin/ping
+
+----- 获取保存在文件扩展编码中的内容
+$ getfattr -d -m "^security\\." /bin/ping
+# file: bin/ping
+security.capability=0sAQAAAgAgAAAAAAAAAAAAAAAAAAA=
+
+----- 找到setuid-root或者setgid-root的文件 find / -perm /u=s
+$ find /usr/bin /usr/lib -perm /4000 -user root
+$ find /usr/bin /usr/lib -perm /2000 -group root
+{% endhighlight %}
+
 
 
 ## 参考
@@ -191,6 +607,26 @@ chown -R mysql:mysql /tmp/user
 
 <!--
 http://www.cnblogs.com/iamfy/archive/2012/09/20/2694977.html
+https://blog.ploetzli.ch/2014/understanding-linux-capabilities/
+
+
+
+strace 可以跟踪到一个进程产生的系统调用，包括了参数、返回值、执行时间；常用参数包括了：
+
+-p 跟踪指定的进程
+-o filename 默认strace将结果输出到stdout。通过-o可以将输出写入到filename文件中
+-ff 常与-o选项一起使用，不同进程(子进程)产生的系统调用输出到filename.PID文件
+-r 打印每一个系统调用的相对时间
+-t 在输出中的每一行前加上时间信息。
+-tt 时间确定到微秒级。还可以使用-ttt打印相对时间
+-s 指定每一行输出字符串的长度,默认是32。
+-c 统计每种系统调用所执行的时间，调用次数，出错次数。
+-e expr 输出过滤器，通过表达式，可以过滤出掉你不想要输出
+
+常用示例：
+----- 同时跟踪子进程的调用，每个进程以PID结尾
+$ strace -ff -o trace.out your-program
+
 -->
 
 {% highlight text %}

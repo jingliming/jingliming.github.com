@@ -72,8 +72,33 @@ DJBHash()
 https://www.byvoid.com/zhs/blog/string-hash-compare
 http://www.partow.net/programming/hashfunctions/index.html
 
-https://github.com/davidar/c-hashtable
+https://github.com/davidar/c-hashtable  ****
 https://github.com/larsendt/hashtable
+https://github.com/DavidLeeds/hashmap
+https://github.com/janneku/hashmap
+https://github.com/ankurs/Hash-Table
+
+C library for consistent hashing, and langauge bindings
+https://github.com/RJ/ketama
+https://github.com/chrismoos/hash-ring
+
+宏实现的HashTable
+https://github.com/troydhanson/uthash
+
+介绍如何写HashTable
+https://github.com/jamesroutley/write-a-hash-table
+
+Cuckoo Hash算法
+https://github.com/kroki/Cuckoo-hash
+
+Murmur算法
+https://github.com/PeterScott/murmur3
+
+非加密算法xxHash
+https://github.com/Cyan4973/xxHash
+
+漫谈非加密哈希算法
+https://segmentfault.com/a/1190000010990136
 -->
 
 ## 参考
