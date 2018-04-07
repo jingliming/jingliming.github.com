@@ -16,6 +16,48 @@ description: 简单记录一下一些与 Markdown 相关的内容，包括了一
 
 服务端，支持 HTTP 请求。
 
+### 文档服务器搭建
+
+增加 HTTP/FTP 服务器，分别使用 nginx 和 vsftpd 搭建。
+
+#### HTTP 服务
+
+在 `/etc/nginx/conf.d` 目录下包含了各种配置文件，如果要增加新配置，可以直接在该目录下新增配置文件 `fileserver.conf` 。
+
+{% highlight text %}
+server {
+	listen 80;                       # 监听端口
+	server_name 127.0.0.1;           # 如果没有DNS解析，可以设置IP地址
+	client_max_body_size 4G;         # 设置最大文件大小
+	charset utf-8;                   # 防止出现中文乱码
+	root /files;                     # 指定相对路径的根目录，如下的location会相对该路径
+	location /packages {             # 实际存放文件的目录为/files/packages/
+		auth_basic "Restricted"; # 输入密码时的提示语
+		auth_basic_user_file /etc/nginx/pass_file; # 认证时用户密码文件存放路径
+		autoindex on;            # 自动生成文件索引
+		autoindex_exact_size on; # 显示文件大小
+		autoindex_localtime on;  # 显示本地文件时间
+	}
+}
+{% endhighlight %}
+
+然后通过 `nginx -t` 检查语法是否正确，通过 `nginx -s reload` 重新加载配置；然后通过 [http://127.0.0.1/files/packages](http://127.0.0.1/files/packages) 访问。
+
+另外，简单的可以采用 python 提供模块，不过只能采用单线程。
+
+{% highlight text %}
+----- 启动一个简单的文件服务器
+$ python -m SimpleHTTPServer 9000
+
+$ curl http://127.0.0.1:9000
+{% endhighlight %}
+
+可以直接通过 [http://127.0.0.1:8000](http://127.0.0.1:9000) 地址访问，可以看到目录下的文件列表。
+
+
+#### FTP 服务
+
+直接启动 vsftpd 服务器即可。
 
 ## Agents
 
@@ -23,11 +65,7 @@ description: 简单记录一下一些与 Markdown 相关的内容，包括了一
 
 ### 基础 Gearman
 
-
-
-
 #### 0. 核心流程
-
 
 ##### Agent 启动流程
 
@@ -411,9 +449,49 @@ https://github.com/Distrotech/shadow-utils/blob/distrotech-shadow-utils/src/chag
 
 一些常用库
 https://github.com/fmela/libdict
+https://github.com/attractivechaos/klib
+https://github.com/nanomsg/nanomsg
 
 GoLang ZeroMQ
 http://blog.haohtml.com/archives/14496
+
+using zeromq with libev
+https://github.com/pijyoi/zmq_libev
+buffered socket library for libev
+https://github.com/mreiferson/libevbuffsock
+
+Introspected tunnels to localhost
+https://github.com/koolshare/ngrok-libev
+https://github.com/inconshreveable/ngrok
+
+Proxy
+https://github.com/isayme/socks5
+https://github.com/z3APA3A/3proxy
+
+
+Message Queue
+https://github.com/je-so/iqueue *****
+https://github.com/circonus-labs/fq
+https://github.com/liexusong/mx-queued
+https://github.com/chaoran/fast-wait-free-queue
+https://github.com/haipome/lock_free_queue
+https://github.com/supermartian/lockfree-queue
+https://github.com/slact/nchan
+https://github.com/darkautism/lfqueue
+https://github.com/tylertreat/gatling
+https://github.com/bangadennis/networking
+https://github.com/fcten/webit
+
+HTTP Server
+https://github.com/bachan/ugh
+https://github.com/dexgeh/webserver-libev-httpparser
+https://github.com/Lupus/libevfibers
+https://github.com/h2o/h2o
+https://github.com/monkey/monkey
+https://github.com/lpereira/lwan
+
+
+http://www.tildeslash.com/libzdb/#
 -->
 
 

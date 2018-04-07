@@ -1,13 +1,14 @@
 ---
-title: Linux 网络设置
+title: FTP 服务简介
 layout: post
 comments: true
 category: [linux, network]
 language: chinese
-keywords: linux,网络设置
-description: 主要记录下在 Linux 中，一些常见的网络配置，例如 IP 地址、路由、MAC 地址、主机名等设置方式。
+keywords: linux,ftp,vsftpd
+description: File Transfer Protocol, FTP 是 TCP/IP 协议组中的协议之一，其传输效率非常高，在网络上传输大的文件时，一般也采用该协议。
 ---
 
+File Transfer Protocol, FTP 是 TCP/IP 协议组中的协议之一，其传输效率非常高，在网络上传输大的文件时，一般也采用该协议。
 
 <!-- more -->
 
@@ -31,7 +32,7 @@ FTP 服务器登录通常有三种不同的身份，分别是: 1) 实体账号 r
 # systemctl start vsftpd
 
 ----- 使用客户端
-$ ftp user@hostname
+$ ftp hostname
 ftp> open 127.1         # 打开链接，需要用户登陆
 ftp> pwd                # 查看当前目录，一般默认是$HOME
 ftp> ls                 # 查看目录以及文件
@@ -148,6 +149,36 @@ FTP 服务器由命令通道了解客户端的需求后，会主动的由 20 这
 -->
 
 
+## 配置文件
+
+常见的配置文件如下：
+
+* /etc/vsftpd/vsftpd.conf，主要配置文件，可以通过 `man 5 vsftpd.conf` 查看详细配置。
+* /etc/pam.d/vsftpd，使用 PAM 模组时的相关配置文件。
+
+<!--
+/etc/vsftpd/ftpusers
+与上一个文件有关，是 /etc/pam.d/vsftpd 所指定的那个无法登入的使用者的配置文件。只需要在该文件中输入不能登录的用户名称即可，每行一个。
+/etc/vsftpd/user_list
+这个文件与 vsftpd.conf 内的『 userlist_enable, userlist_deny 』两项有关。 如果说 /etc/vsftpd/ftpusers 是 PAM 模组的禁止登入设置项，那么 /etc/vsftpd/user_list 是 vsftpd 自己的禁止登入设置项。这个文件与 /etc/vsftpd/ftpusers 几乎一模一样。这个文件的功能会 vsftpd.conf 内的 userlist_deny={YES/NO} 而不同。
+/etc/vsftpd/chroot_list
+这个文件默认不存在，需要手动建立。主要用来将用户限制在 Home 目录下，但是与 vsftpd.conf 內的『 chroot_list_enable, chroot_list_file 』有关。 如果你想要将某些实体用户限制在 Home 目录下，则可以启动这一项。
+-->
+
+### 配置文件
+
+也就是配置文件 `/etc/vsftpd/vsftpd.conf` 中的内容。
+
+{% highlight text %}
+listen=NO                             # 不以StandAlone方式启动
+write_enable=YES                      # 允许用户上传文件
+anonymous_enable=YES                  # 是否允许匿名(anonymous/ftp)登陆，默认密码为空
+anon_upload_enable=YES                # 允许匿名用户上传文件
+dirmessage_enable=YES                 # 切换目录时显示目录
+ftpd_banner=Welcome to FTP service.   # 显示登陆欢迎信息
+{% endhighlight %}
+
+所谓的 StandAlone 模式，就是该服务拥有自己的守护进程支持，可以看到该进程存在；否则是由超级守护进程负责代理，老版本采用的是 Xinetd 负责，新版本则采用 systemd 。
 
 
 

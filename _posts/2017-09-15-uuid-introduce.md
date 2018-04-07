@@ -138,5 +138,10 @@ int main()
 {% endhighlight %}
 
 
+
+<!--
+http://www.ossp.org/pkg/lib/uuid/
+-->
+
 {% highlight text %}
 {% endhighlight %}

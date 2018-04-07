@@ -528,9 +528,9 @@ server {
 简单来说，这个参数主要用来处理惊群问题，可以通过如下方式配置。
 
 {% highlight text %}
-events { 
-	accept_mutex off; 
-} 
+events {
+	accept_mutex off;
+}
 {% endhighlight %}
 
 当新连接到达时，如果激活了 `accept_mutex`，那么多个 worker 将以串行方式来处理，只有一个会被唤醒，其它的 worker 继续保持休眠状态；如果没有激活 `accept_mutex`，那么所有的 worker 都被唤醒，不过只有一个 worker 能获取新连接，其它的 worker 会重新进入休眠状态。
@@ -542,6 +542,53 @@ events {
 如果关闭了它，可能会引起一定程度的惊群问题，表现为上下文切换增多 (`sar -w`) 或者负载上升，但是如果网站访问量比较大，为了系统的吞吐量，建议关闭。
 
 关闭之后一般各个工作进程的负载会更均衡，可以通过 [github ngx-req-distr](https://github.com/openresty/openresty-systemtap-toolkit#ngx-req-distr) 测试。
+
+## 文件服务器
+
+可以通过 Nginx 搭建静态服务器，可以支持断点续传、多线程下载。
+
+### 增加配置
+
+在 `/etc/nginx/conf.d` 目录下包含了各种配置文件，如果要增加新配置，可以直接在该目录下新增配置文件 `fileserver.conf` 。
+
+{% highlight text %}
+server {
+	listen 80;                      # 监听端口
+	server_name hostname;           # 如果没有DNS解析，可以设置IP地址
+	client_max_body_size 4G;        # 设置最大文件大小
+	charset utf-8;                  # 防止出现中文乱码
+	root /files;                    # 指定相对路径的根目录，如下的location会相对该路径
+	location /packages {             # 实际存放文件的目录为/files/packages/
+		auth_basic "Restricted"; # 输入密码时的提示语
+		auth_basic_user_file /etc/nginx/pass_file; # 认证时用户密码文件存放路径
+		autoindex on;            # 自动生成文件索引
+		autoindex_exact_size on; # 显示文件大小
+		autoindex_localtime on;  # 显示本地文件时间
+	}
+}
+{% endhighlight %}
+
+然后通过 `nginx -t` 检查语法是否正确，通过 `nginx -s reload` 重新加载配置。
+
+可以通过如下方式添加用户。
+
+{% highlight text %}
+htpasswd -c -d /etc/nginx/pass_file foobar
+{% endhighlight %}
+
+### 断点续传
+
+一般第一次请求时会得到 200 状态码，而 206 则表示客户端通过发送范围请求头 Range 抓取到了资源的部分数据，通常用于断点续传、并发下载。
+
+在使用前，需要知道文件大小以及远程服务器是否支持 206 请求，可以使用 `curl -I URL` 查看头部信息。
+
+在相应的头部信息中，包含了两个关键的请求头：
+
+* `Accept-Ranges: bytes` 表明服务器支持Range请求，而且服务器所支持的单位是字节，支持断点续传、同时下载文件的多个部分；如果是none表示不支持。
+* `Content-Length: 36907` 表明了响应实体的大小。
+
+通过如上的方式，可以判断是否支持断点续传，在发送请求的时候，只需要添加类似 `Range: bytes=0-1024` 的头部即可。
+
 
 ## 常用模块
 
@@ -739,35 +786,6 @@ Reading: 3 Writing: 16 Waiting: 8
 
 注意，对于最后一行的 Waiting，当开启 keep-alive 的情况下，这个值等于 active - (reading + writing)，意思就是说已经处理完正在等候下一次请求指令的驻留连接。
 
-### 文件服务器
-
-在 `/etc/nginx/conf.d` 目录下包含了各种配置文件，如果要增加新配置，可以直接在该目录下新增配置文件 `fileserver.conf` 。
-
-{% highlight text %}
-server {
-	listen 80;                      # 监听端口
-	server_name hostname;           # 如果没有DNS解析，可以设置IP地址
-	client_max_body_size 4G;        # 设置最大文件大小
-	charset utf-8;                  # 防止出现中文乱码
-	root /files;                    # 指定相对路径的根目录，如下的location会相对该路径
-	location /packages {             # 实际存放文件的目录为/files/packages/
-		auth_basic "Restricted"; # 输入密码时的提示语
-		auth_basic_user_file /etc/nginx/pass_file; # 认证时用户密码文件存放路径
-		autoindex on;            # 自动生成文件索引
-		autoindex_exact_size on; # 显示文件大小
-		autoindex_localtime on;  # 显示本地文件时间
-	}
-}
-{% endhighlight %}
-
-然后通过 `nginx -t` 检查语法是否正确，通过 `nginx -s reload` 重新加载配置。
-
-可以通过如下方式添加用户。
-
-{% highlight text %}
-htpasswd -c -d /etc/nginx/pass_file foobar
-{% endhighlight %}
-
 ### 启动报错
 
 记录下遇到的一些常见问题。
@@ -839,7 +857,6 @@ listen 443 ssl spdy;
 NGINX引入线程池 性能提升9倍
 http://www.infoq.com/cn/articles/thread-pools-boost-performance-9x
 -->
-
 
 
 
