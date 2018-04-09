@@ -1,12 +1,14 @@
 ---
-title: Python 简介
+title: Python 常用工具
 layout: post
 comments: true
 language: chinese
 category: [python]
 keywords: python,virtualenv
-description:
+description: 简单介绍一下 Python 中常用的一些工具，及其使用方法。
 ---
+
+简单介绍一下 Python 中常用的一些工具，及其使用方法。
 
 <!-- more -->
 
@@ -128,9 +130,8 @@ Installing setuptools, pip, wheel...done.
 
 此时的终端提示符会添加 `(foobar)` 前缀，然后可以通过 `pip install jinja2` 类似的命令安装三方包，需要退出时执行 `deactivate` 命令。
 
-
 <!--
-Fabric
+## Fabric
 -->
 
 

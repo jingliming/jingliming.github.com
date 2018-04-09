@@ -78,13 +78,13 @@ main()
 上述的 HTTP 端口中真正处理请求的函数为 ServeHTTP() 函数。
 
 ServeHTTP()
-  |----> PUT方法
+  |====> PUT方法
   |-ioutil.ReadAll() 读取请求
   |-kvstore.Propose() 提交请求，会阻塞直到RAFT状态机提交成功
   | |-buf.String() 向Channel proposeC中发送请求
   |-http.ResponseWriter.WriteHeader() 返回数据
   |
-  |----> GET方法
+  |====> GET方法
   |-kvstore.Lookup() GET方法，查找并返回数据
 
 ###　提交数据
@@ -110,30 +110,30 @@ kvstore.proposeC 便是应用初始化时创建的与 raftNode 结构之间进�
 同样是在 raftNode.serveChannels() 中实现，其中相关代码如下：
 
 func (rc *raftNode) serveChannels() {
-    // event loop on raft state machine updates 
+    // event loop on raft state machine updates
     for {
         select {
             // 1. 通过Ready()获取到RAFT的核心指令，获取所有已经完成日志写入的请求
         case rd := <-rc.node.Ready():
-            // 2. 写WAL日志 
+            // 2. 写WAL日志
             rc.wal.Save(rd.HardState, rd.Entries)
             if !raft.IsEmptySnap(rd.Snapshot) {
                 rc.saveSnap(rd.Snapshot)
                 rc.raftStorage.ApplySnapshot(rd.Snapshot)
                 rc.publishSnapshot(rd.Snapshot)
             }
-            // 3. 这是干什么? 
+            // 3. 这是干什么?
             rc.raftStorage.Append(rd.Entries)
-            // 4. 发送给某个Follower 
+            // 4. 发送给某个Follower
             rc.transport.Send(rd.Messages)
-            // 5. 将已经commit的日志提交到应用状态机 
+            // 5. 将已经commit的日志提交到应用状态机
             ok := rc.publishEntries(rc.entriesToApply(rd.CommittedEntries))
             if !ok {
                 rc.stop()
                 return
             }
             rc.maybeTriggerSnapshot()
-			// 6. 完成状态机应用后，通知底层raft组件状态机应用完毕，RAFT组件可以准备下一次Ready消息了 
+			// 6. 完成状态机应用后，通知底层raft组件状态机应用完毕，RAFT组件可以准备下一次Ready消息了
             rc.node.Advance()
         }
     }
@@ -169,7 +169,7 @@ type node struct {
     done       chan struct{}
     stop       chan struct{}
     status     chan chan Status
-} 
+}
 
 包括了一系列的管道，RAFT 的实现其实就是通过这些管道来传递各种消息。
 
