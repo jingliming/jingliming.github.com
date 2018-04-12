@@ -132,6 +132,7 @@ Installing setuptools, pip, wheel...done.
 
 <!--
 ## Fabric
+http://www.fabfile.org/
 -->
 
 

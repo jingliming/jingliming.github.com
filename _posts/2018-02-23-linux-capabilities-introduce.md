@@ -411,11 +411,45 @@ int main(void)
 
 如下是一个测试程序，确保在切换用户时保留能力： 1) 通过 `prctl(PR_SET_KEEPCAPS, 1L);` 保留能力；2) 通过 `cap_set_proc()` 重新设置 Effective 和 Permitted 的能力。
 
+在切换之前，需要保证有 `CAP_SETUID`、`CAP_SETGID` 的权限即可。
+
 <!--
 https://stackoverflow.com/questions/12141420/losing-capabilities-after-setuid?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
 -->
 
 {% highlight c %}
+#include <stdio.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/capability.h>
+
+#define ASIZE(arr)  (sizeof(arr)/sizeof(*arr))
+
+int list_caps(void)
+{
+	struct __user_cap_header_struct cap_header_data;
+	cap_user_header_t cap_header = &cap_header_data;
+
+	struct __user_cap_data_struct cap_data_data;
+	cap_user_data_t cap_data = &cap_data_data;
+
+	cap_header->pid = getpid();
+	cap_header->version = _LINUX_CAPABILITY_VERSION_1;
+
+	if (capget(cap_header, cap_data) < 0) {
+		fprintf(stderr, "[ERROR] Failed to get process cap, %s\n",
+			strerror(errno));
+		return -1;
+	}
+	fprintf(stdout, "[INFO] Capabilities data: permitted=0x%x effective=0x%x inheritable=0x%x\n",
+		cap_data->permitted, cap_data->effective,cap_data->inheritable);
+
+	return 0;
+}
+
 void test(void)
 {
 	int fd, rc;

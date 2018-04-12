@@ -317,6 +317,7 @@ Just More Pythonic ~~~
 
 记录乱七八糟的东西。
 
+* [Python 常用工具](/post/python-most-useful-tools.html)，介绍一些 Python 中经常使用，比较经典的工具，如 virtualenv 。
 * [SaltStack 简介](/post/saltstack-introduce.html)，一个轻量级的运维工具，具备配置管理、远程执行、监控等功能。
 * [Ansible 简介](/post/python-ansible.html)，一个配置管理工具，无需安装服务端和客户端，只要有ssh即可，而且使用简单。
 * [Python 异步任务队列](/post/python-async-queue.html)，介绍一些常用的调度系统，如APScheduler、Redis Queue、Celery等。

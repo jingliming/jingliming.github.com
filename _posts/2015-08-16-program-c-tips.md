@@ -440,6 +440,7 @@ some_other_foobar(str, size, fmt, args);
 #endif
 {% endhighlight %}
 
+如果通过 gcc 编译时，没有使用 `-std=` 参数就使用后者的宏定义，否则是前者。
 
 ## 对齐操作
 

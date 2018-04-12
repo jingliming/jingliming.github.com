@@ -398,6 +398,47 @@ $ gvm use go1.4 --default       ← 设置当前使用版本
 
 在新的环境中，通过 restore 命令可以下载代码包。
 
+### Goreman
+
+Goreman 是一个 Foreman 的 Go 语言的克隆版本，一般在开发过程中的调试多个进程时使用。目前微服务、分布式架构很流行，应用依赖于其它应用或者集群化，这样本地调试时会很不方便。
+
+通过 Goreman 同时批量管理多个进程，可以方便开发。
+
+**注意** 一般用于开发环境，不要用于生产环境，如果要线上使用，建议用 monit、supervisor 等更成熟稳定的工具。
+
+#### 安装使用
+
+可以直接从 [github mattn/goreman](https://github.com/mattn/goreman/releases) 上下载已经编译好的二进制文件。
+
+在运行时，goreman 会独占当前 shell 窗口，可以通过 `Ctrl-C` 退出运行状态，如果要执行其它的命令，则需要重新开启一个 shell 执行。
+
+常用操作如下。
+
+{% highlight text %}
+----- 检查配置文件是否正确
+$ goreman check
+
+----- 启动服务，默认使用当前目录下的配置文件，也可以通过-f指定
+$ goreman start
+$ goreman -f myprocfile start
+
+----- 查看当前应用的运行状态，如果正在运行则会显示一个星号
+$ goreman run status
+
+----- 停止某个进程
+$ goreman run stop PROCESS_NAME
+
+----- 启动某个已停止进程
+$ goreman run start PROCESS_NAME
+
+----- 重启某个进程
+$ goreman run restart PROCESS_NAME
+
+----- 查看进程的状态
+$ goreman run status
+{% endhighlight %}
+
+
 ## 参考
 
 官方网站 golang.org 被墙，常见的工具可以从 [Gopm Registry](https://gopm.io/) 上下载，而文档资料等可以从 [Golang 中国](http://golangtc.com/) 上查看。

@@ -72,6 +72,21 @@ layout: default
     </script>
   </div>
 
+  <div id="gitmentContainer"></div>
+  <link rel="stylesheet" href="https://imsun.github.io/gitment/style/default.css">
+  <script src="https://imsun.github.io/gitment/dist/gitment.browser.js"></script>
+  <script>
+  var gitment = new Gitment({
+      owner: 'Jin-Yang',
+      repo: 'https://github.com/Jin-Yang/jin-yang.github.com.git',
+      oauth: {
+          client_id: '6d89d48ce689192bf95d',
+          client_secret: 'c9a720aafb8e3084e3feb46cadee80b03cdc792f',
+      },
+  });
+  gitment.render('gitmentContainer');
+  </script>
+
   <!-- 多说评论框 start -->
   <!--<div class="ds-thread" data-thread-key="请将此处替换成文章在你的站点中的ID" data-title="请替换成文章的标题" data-url="请替换成文章的网址"></div>-->
   <!--

@@ -437,6 +437,21 @@ http://john88wang.blog.51cto.com/2165294/1833636
 [Fast IP Routing with LC-Tries](http://www.drdobbs.com/cpp/fast-ip-routing-with-lc-tries/184410638)
 https://www.kernel.org/doc/Documentation/networking/fib_trie.txt
 https://github.com/torvalds/linux/blob/master/net/ipv4/fib_trie.c
+
+
+
+
+
+
+通过Python实现的一个评论系统
+https://posativ.org/isso/
+https://zhangnew.com/isso-open-source-comment-system.html
+通过Issue提供的评论框
+https://github.com/imsun/gitment
+一些乱七八糟的评论
+https://github.com/Blankj/awesome-comment
+一个简单的评论系统
+https://github.com/adtac/commento
 -->
 
 

@@ -204,6 +204,25 @@ listen_addresses ='*'
 host    all             all             0.0.0.0/0            trust
 {% endhighlight %}
 
+### 修改配置
+
+{% highlight text %}
+----- 直接查看内部虚拟表
+postgre=# SELECT name, unit FROM pg_settings;
+
+----- 通过show命令查看
+postgre=# SHOW ALL;
+postgre=# SHOW maintenance_work_mem;
+
+----- 修改数据库参数
+postgre=# ALTER SYSTEM SET maintenance_work_mem= 1048576;
+
+----- 恢复到默认设置值
+postgre=# ALTER SYSTEM SET maintenance_work_mem= default;
+{% endhighlight %}
+
+可以直接修改 `postgresql.conf` 中的配置，然后重启。
+
 ### 状态查看
 
 {% highlight text %}

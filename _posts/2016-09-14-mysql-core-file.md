@@ -178,8 +178,22 @@ Stack level 0, frame at 0xffd590a4:
 
 {% highlight text %}
 $ gdb -c core_demo.core.24816 core_demo
+$ gdb core_demo
+(gdb) core core_demo.core
 {% endhighlight %}
 
+<!--
+很多会在上线前把调试信息去除，那么上述查看栈信息会导致出现很多 `??` 。
+
+frame 1 切换到??相邻的栈，这里是倒数第二个栈帧，从0开始
+disassemble 查看反汇编，此时=>所在位置就是core时的代码
+
+如果是C++可能会对部分函数进行修饰，通过如下命令去除修饰
+shell echo free@plt|c++filt
+
+https://wizardforcel.gitbooks.io/100-gdb-tips/select-frame.html
+https://blog.csdn.net/u014403008/article/details/54174109
+-->
 
 ### 其它
 
@@ -489,6 +503,7 @@ https://www.percona.com/blog/2011/08/26/getting-mysql-core-file-on-linux/
 
 深入理解debuginfo
 http://blog.csdn.net/chinainvent/article/details/24129311?reload
+
 -->
 
 {% highlight text %}
