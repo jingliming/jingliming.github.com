@@ -676,6 +676,80 @@ React-Redux自动生成的容器组件的代码，就类似上面这样，从而
 
 这里是参考 [github jackielii/simplest-redux-example](https://github.com/jackielii/simplest-redux-example)
 
+
+{% highlight text %}
+import React, { Component } from 'react'
+import PropTypes from 'prop-types'
+import ReactDOM from 'react-dom'
+import { createStore } from 'redux'
+import { Provider, connect } from 'react-redux'
+
+// React component, 纯UI组件，有两个参数value和onIncreaseClick。
+// 前者需要从state计算得到，后者需要向外发出 Action。
+class Counter extends Component {
+  render() {
+    const { value, onIncreaseClick } = this.props
+    return (
+      <div>
+        <span>{value}</span>
+        <button onClick={onIncreaseClick}>Increase</button>
+      </div>
+    )
+  }
+}
+
+Counter.propTypes = {
+  value: PropTypes.number.isRequired,
+  onIncreaseClick: PropTypes.func.isRequired
+}
+
+// Action Creator
+const increaseAction = {
+	type: 'increase'
+}
+
+// Reducer
+function counter(state = { count: 0 }, action) {
+  const count = state.count
+  switch (action.type) {
+    case 'increase':
+      return { count: count + 1 }
+    default:
+      return state
+  }
+}
+
+// Store
+const store = createStore(counter)
+
+// Map Redux state to component props
+function mapStateToProps(state) {
+  return {
+    value: state.count
+  }
+}
+
+// Map Redux actions to component props
+function mapDispatchToProps(dispatch) {
+  return {
+    onIncreaseClick: () => dispatch(increaseAction)
+  }
+}
+
+// Connected Component
+const App = connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(Counter)
+
+ReactDOM.render(
+  <Provider store={store}>
+    <App />
+  </Provider>,
+  document.getElementById('root')
+)
+{% endhighlight %}
+
 ## 参考
 
 可以查看其 [官方文档](https://redux.js.org/)，还有配套的小视频 ([前 30 集](https://egghead.io/courses/getting-started-with-redux)、[后 30 集](https://egghead.io/courses/building-react-applications-with-idiomatic-redux))。

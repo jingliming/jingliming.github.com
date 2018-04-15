@@ -273,14 +273,6 @@ WTForms
 
 
 
-
-
-## Flask-Restful
-
-{% highlight text %}
-# pip install flask-restful
-{% endhighlight %}
-
 ## Flask-SQLAlchemy
 
 # pip install flask-sqlalchemy

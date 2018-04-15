@@ -421,6 +421,7 @@ Jekyll 打建后的是一个静态网站，可以通过 disqus 或者 "多说" �
 <script src="https://imsun.github.io/gitment/dist/gitment.browser.js"></script>
 <script>
 var gitment = new Gitment({
+    id: '{{ page.date | date: "%s" }}',
     owner: 'Your GitHub username',
     repo: 'The repo to store comments',
     oauth: {
@@ -456,8 +457,6 @@ gitment.render('gitmentContainer');
 
 点击Initialize Comments按钮后，就可以开始对该篇博文开始评论了， 同时也可以在对应的github仓库看到相应的issue
 -->
-
-
 
 
 ## 参考
