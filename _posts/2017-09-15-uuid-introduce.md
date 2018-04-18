@@ -85,9 +85,9 @@ C 中一般使用的是 libuuid 这个库，一个跨平台开源的 uuid 操作
 {% highlight c %}
 #include <uuid.h>
 
-void uuid_generate(uuid_t out);
-void uuid_generate_random(uuid_t out);
-void uuid_generate_time(uuid_t out);
+void uuid_generate(uuid_t out);           // 判断是否有随机源/dev/random决定是随机还是基于时间
+void uuid_generate_random(uuid_t out);    // 直接使用随机数据源
+void uuid_generate_time(uuid_t out);      // 基于时间
 int uuid_generate_time_safe(uuid_t out);
 
 int uuid_compare(uuid_t uu1, uuid_t uu2);
@@ -137,10 +137,14 @@ int main()
 }
 {% endhighlight %}
 
+## 参考
 
+这里的动态库实现实际上是 [Util-Linux](https://www.kernel.org/) 的一部分，可以从 HTTP 库中下载，一般路径为 `pub/linux/utils/util-linux/` 。
+
+另外的实现也可以参考 [OSSP UUID](http://www.ossp.org/pkg/lib/uuid/) 。
 
 <!--
-http://www.ossp.org/pkg/lib/uuid/
+https://sourceforge.net/projects/libuuid/files/
 -->
 
 {% highlight text %}
