@@ -118,13 +118,15 @@ Nginx 一款轻量级且高性能的 Web 服务器、反向代理服务器，通
 
 简单介绍下与 C 语言相关的内容。
 
-* [C 持续集成](/post/program-c-continuous-integration.html)，一些与 C 语言的持续集成相关的工具集。
+<!--* [C 持续集成](/post/program-c-continuous-integration.html)，一些与 C 语言的持续集成相关的工具集。-->
+
 * [libev 事件库](/post/linux-libev.html)，一个 C 编写的高性能事件循环库，类似库还有 libevent、libubox 等。
 * [libev 时间处理](/post/linux-libev-timers.html)，简单介绍下 libev 库中与时间相关的内容。
 * [C 语言的字符串](/post/program-c-string-stuff.html)，简单介绍下 C 语言中与字符串、内存操作相关的函数。
 * [C 语言的奇技淫巧](/post/program-c-tips.html)，整理下 C 语言中常用的技巧。
 * [C 编译链接](/post/program-c-complie-link.html)，与 C 语言相关的编译链接概念
 * [C 加载过程](/post/program-c-load-process.html)，通过动态库可以减小空间，提高效率，这里简单介绍加载过程。
+* [C 网络编程](/post/program-c-network.html)，简单介绍下，在 Linux C 中进行网络编程时常用到的一些技巧。
 * [Linux 线程编程](/post/program-c-linux-pthreads.html)，简单介绍下 Linux 中与线程相关的编程。
 * [Linux 线程同步](/post/program-c-linux-pthreads-synchronize.html)，线程编程时经常使用的同步方式，如锁、条件变量、信号量等。
 * [Linux 时间函数](/post/linux-timer-functions.html)，简单介绍下 Linux 中与时间相关的函数。

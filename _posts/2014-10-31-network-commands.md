@@ -678,6 +678,13 @@ $ nc -w 10 localhost 2389                // 该连接将在 10 秒后中断。
 
 注意: 不要在服务器端同时使用 -w 和 -l 参数，因为 -w 参数将在服务器端无效果。
 
+##### 发送Unix Domain Socket
+
+直接发送数据。
+
+{% highlight text %}
+$ echo "show stat" | nc -U /usr/var/your.sock
+{% endhighlight %}
 
 ## curl
 

@@ -295,13 +295,13 @@ deque(['y', 'a', 'b', 'c', 'x'])
 
 deque 除了实现 list 的 append() 和 pop() 外，还支持 appendleft() 和 popleft()，这样就可以非常高效地往头部添加或删除元素。
 
-<!--
 ## JSON 模块
 
 JSON (JavaScript Object Notation) 是一种轻量级的数据交换格式，采用完全独立于语言的文本格式，是 "名称/值" 的集合，详细可以参考 [官方文档](http://json.org/) 。Python2.6 开始加入了 JSON 标准模块，序列化与反序列化的过程分别是 encoding 和 decoding 。
 
 对于简单数据类型，如 string、unicode、int、float、list、tuple、dict，可以直接处理，详细的也可以参考 [Python 操作 json 的标准 api 库](http://docs.python.org/library/json.html) 。
 
+<!--
 urllib 和 urllib2 的区别
 http://www.hacksparrow.com/python-difference-between-urllib-and-urllib2.html
 -->

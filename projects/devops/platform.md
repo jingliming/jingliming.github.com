@@ -59,6 +59,19 @@ $ curl http://127.0.0.1:9000
 
 直接启动 vsftpd 服务器即可。
 
+### REST-API
+
+{% highlight text %}
+{
+	"id": "2719cb14-2da6-44a0-8349-1ea33b3ab2d9",
+	"hosts": [ "eccb24a7-fe55-4d84-9c40-6a9192419ae9", "b19ffa7e-712e-46d4-b328-2d2892c96076" ],
+	"method": "",
+}
+{% endhighlight %}
+
+
+
+
 ## Agents
 
 通过基础 Agent 管理 监控、日志、安区、网络等客户端。
@@ -81,7 +94,21 @@ $ curl http://127.0.0.1:9000
 3. 建立TLS链接。
 {% endhighlight %}
 
+##### 0.1 初始化报文
 
+{% highlight text %}
+-----> 请求报文
+{
+    "method": "init",                                      # 必选
+    "hostname": "edd6c192-52cb-4133-a17a-e7d8aec03de7",    # 必选，指定同步命令类型
+}
+
+<----- 响应报文
+{
+    "method": "redirect",                  # 必选
+    "server": "127.0.10.1,10.92.1.130",    # 必选，重定向的地址
+}
+{% endhighlight %}
 
 
 

@@ -18,11 +18,30 @@ description: 软中断信号 (简称为信号) 是用来通知进程发生了异
 
 <!-- more -->
 
-## 信号处理
+## 信号简介
 
 每个信号在 `signal.h` 头文件中通过宏进行定义，对于 CentOS 来说，实际是在 `/usr/include/asm-generic/signal.h` 中定义，对于编号以及信号名的映射关系可以通过 `kill -l` 命令查看。
 
-其中，[1, 31] 是普通信号 而 [34, 64] 是实时信号。
+其中，`[1, 31]` 是普通信号，`[34, 64]` 是实时信号，前者是从 UNIX 系统继承过来的信号，不支持排队可能会导致信号丢失, 比如发送多次相同的信号, 进程只能收到一次，其信号值小于 `SIGRTMIN` 。
+
+后来 Linux 改进了信号机制，增加了 32 种新的信号，这些信号都是可靠信号，支持排队，主要位于 `[SIGRTMIN, SIGRTMAX]` 区间，通常用于用户使用。
+
+对于实时信号，可以使用 `sigqueue` 发送信号。
+
+<!--
+#### 信号声明周期
+
+为了方便理解，从我们最熟悉的场景说起：
+
+1. 用户通过 Bash 执行一个前台程序；
+2. 按下 Ctrl-C，生成一个信号发送给这个对应的前台程序；
+
+3. 如果CPU当前正在执行这个进程的代码，则该进程的用户空间代码暂停执行，CPU从用户态切换到内核态处理硬件中断。
+4. 终端驱动程序将Ctrl-C解释成一个SIGINT信号，记在该进程的PCB中（也可以说发送了一个SIGINT信号给该进程）。
+5. 当某个时刻要从内核返回到该进程的用户空间代码继续执行之前，首先处理PCB中记录的信号，发现有一个SIGINT信号待处理，而这个信号的默认处理动作是终止进程，所以直接终止进程而不再返回它的用户空间代码执行。
+-->
+
+
 
 对于信号，通常有如下的几种处理方式：
 
@@ -45,30 +64,41 @@ sighandler_t signal(int signum, sighandler_t handler);
 
 其中，`signal()` 用于对该进程的某个特定信号 (signum) 注册一个相应的处理函数，也就是修改对该信号的默认处理动作。
 
-注意，`signal()` 会堵塞当前正在处理的信号，不过不能阻塞其它信号，比如正在处理 `SIG_INT`，再来一个 `SIG_INT` 则会堵塞，但如果是 `SIG_QUIT` 则会被其中断，在处理完 `SIG_QUIT` 信号之后，`SIG_INT` 才会接着刚才处理。
+注意，`signal()` 会堵塞当前正在处理的信号，不过不会阻塞其它信号，如正在处理 `SIG_INT`，再来一个 `SIG_INT` 则会堵塞，但如果是 `SIG_QUIT` 则会被其中断，在处理完 `SIG_QUIT` 信号之后，`SIG_INT` 才会接着刚才处理。
 
 {% highlight c %}
+#include <time.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <signal.h>
 
-void handler(int signum)
+void int_handler(int signum)
 {
-	printf("Got a signal %d\n", signum);
+	printf("%ld Got a int signal %d\n", time(NULL), signum);
+	sleep(5);
+	printf("%ld Fininsh int signal %d\n", time(NULL), signum);
+}
+
+void quit_handler(int signum)
+{
+	printf("%ld Got a quit signal %d\n", time(NULL), signum);
 }
 
 int main()
 {
-	signal(SIGINT, handler);
+	signal(SIGINT, int_handler);
+	signal(SIGQUIT, quit_handler);
 
 	while(1) {
-		sleep(1);
+		sleep(10);
 		printf(".");
 		fflush(stdout);
 	}
 	return 0;
 }
 {% endhighlight %}
+
+当通过 `Ctrl-C` 发送了 INT 信号后，接着发送 `Ctrl-\` 发送 QUIT 信号，实际上不会继续睡眠，而是接着执行。
 
 也可以通过如下方式忽略某一个信号。
 
@@ -90,11 +120,15 @@ signal(SIGHUP, SIG_IGN);
 
 一般信号的触发大致可以分为如下的几类：
 
-1. 用户在终端中触发信号，终端驱动程序会发送信号给前台程序。例如 `Ctrl-C(SIGINT)`、`Ctrl-\(SIGQUIT)`、`Ctrl-Z(SIGTSTP)` 。
-2. 硬件异常产生信号。通常由硬件检测到并通知内核，然后内核向当前进程发送适当的信号。例如，除 0 异常 (CPU运算单元触发，内核通过`SIGFPE`信号发送给当前进程)；内存非法地址访问 (MMU触发异常，内核通过`SIGSEGV`信号发送给当前进程)。
-3. 一个进程调用 `kill()` 函数可以发送信号给另一个进程，默认会发送 `SIGTERM` 信号，该信号的默认处理动作是终止进程。
+1. 在终端通过组合按键触发，终端驱动程序发送信号给前台进程。例如 `Ctrl-C(SIGINT)`、`Ctrl-\(SIGQUIT)`、`Ctrl-Z(SIGTSTP)` 。
+2. 硬件异常产生信号，由硬件检测到并通知内核并由内核向当前进程发送适当的信号。例如除 0 导致 CPU 产生异常，内核将该异常解释为 `SIGFPE` 信号发送给进程；访问非法内存地址导致 MMU 产生异常，内核将该异常解释为 `SIGSEGV` 信号发送给进程。
+3. 进程通过 `kill(2)` 发送信号，或者调用 `kill(1)` 命令发送，默认发送 `SIGTERM` 信号，该信号的默认处理动作是终止进程。
+4. 通过 `raise(3)` 给自己进程发送信号，其中 `raise(sig)` 等价于 `kill(getpid(), sig)` 。
+5. 通过 `killpg(2)` 给进程组发送信号，使用 `killpg(pgrp, sig)` 等价于 `kill(-pgrp, sig)` 。
+6. 利用 `sigqueue` 给进程发送信号，支持排队，可以附带信息。
+7. 当内核检测到某种软件条件发生时也可以通过信号通知进程。例如闹钟超时产生 `SIGALRM` 信号；向读端已关闭的管道写数据产生 `SIGPIPE` 信号；子进程退出发送 `SIGCHILD` 信号。
 
-当 CPU 正在执行某个进程时，通过终端驱动程序发送了一个 SIGINT 信号给该进程，该信号会记录在响应进程的 PCB 中，则该进程的用户空间代码暂停执行，CPU 从用户态切换到内核态处理硬件中断。
+当 CPU 正在执行某个进程时，通过终端驱动程序发送了一个 SIGINT 信号给该进程，该信号会记录在对应进程 PCB 中，则该进程的用户空间代码暂停执行，CPU 从用户态切换到内核态处理信号。
 
 从内核态回到用户态之前，会先处理 PCB 中记录的信号，发现有一个 `SIGINT` 信号待处理，而这个信号的默认处理动作是终止进程，所以直接终止进程而不再返回它的用户空间代码执行。
 
@@ -153,6 +187,8 @@ int sigfillset(sigset_t *set);                   /* 设置所有的信号，包�
 int sigaddset(sigset_t *set, int signo);         /* 在该信号集中添加有效信号 */
 int sigdelset(sigset_t *set, int signo);         /* 在该信号集中删除有效信号 */
 int sigismember(const sigset_t *set, int signo); /* 用于判断一个信号集的有效信号中是否包含某种信号 */
+
+int sigprocmask(int how, const sigset_t *restrict set, sigset_t *restrict oset);
 {% endhighlight %}
 
 如下是一个操作示例。
@@ -194,20 +230,113 @@ int main(void)
 
 调用 `sigprocmask()` 函数可以读取或更改进程的信号屏蔽字：
 
-{% highlight c %}
+{% highlight text %}
 #include <signal.h>
 int sigprocmask(int how, const sigset_t *set, sigset_t *oset);
+
+其中how:
+    SIG_BLOCK     信号屏蔽字是其当前信号屏蔽字和set指向信号集的并集，set包含了希望阻塞的信号
+    SIG_UNBLOCK   信号屏蔽字是其当前信号屏蔽字和set所指向信号集补集的交集，set包含了希望解除阻塞的信号
+    SIG_SETMASK   信号屏蔽字将被set指向的信号集的值代替
 {% endhighlight %}
 
 一个进程的信号屏蔽字规定了当前阻塞而不能递送给该进程的信号集，如果调用该函数解除了对当前若干个未决信号的阻塞，则在该函数返回前，至少将其中一个信号递达。
 
 ### 实时信号
 
-实时信号支持队列，可以保证信号不会丢失，其中 1-31 个信号为非实时信号，32-64 为实时信号，当一信号在阻塞状态下产生多次信号，当解除该信号的阻塞后，非实时信号仅传递一次信号，而实时信号会传递多次。
+实时信号支持队列，可以保证信号不会丢失，对于非实时信号，内核会为每个信号维护一个信号掩码，如果信号在阻塞期间传递过多次该信号，信号解除阻塞后仅传递一次。
 
-对于非实时信号，内核会为每个信号维护一个信号掩码，并阻塞信号针对该进程的传递。如果将阻塞的信号发送给某进程，对该信号的传递将延时，直至从进程掩码中移除该信号为止。当从进程掩码中移除该信号时该信号将传递给该进程。如果信号在阻塞期间传递过多次该信号，信号解除阻塞后仅传递一次。
+实时信号采用队列化处理，一个实时信号的多个实例发送给进程，信号将会传递多次。同时可以在发送信号时传递数据，不同实时信号的传递顺序是固定的，优先传递信号编号小的。
 
-对于实时信号，实时信号采用队列化处理，一个实时信号的多个实例发送给进程，信号将会传递多次。可以制定伴随数据，用于产生信号时的数据传递。不同实时信号的传递顺序是固定的，优先传递信号编号小的。
+#### sigqueue
+
+新的发送信号系统调用，针对实时信号提出的支持信号带有参数，与函数 `sigaction()` 配合使用。
+
+{% highlight c %}
+typedef union sigval {
+	int sival_int;
+	void *sival_ptr;
+} sigval_t;
+
+int sigqueue(pid_t pid, int sig, const union sigval value);
+{% endhighlight %}
+
+相比 `kill` 来说传递了更多的附加信息，但该函数只能向一个进程发送信号，而不能发送信号给一个进程组。
+
+如下是一个示例。
+
+{% highlight c %}
+// recv.c
+#include <stdio.h>
+#include <errno.h>
+#include <unistd.h>
+#include <string.h>
+#include <signal.h>
+
+void handler(int sig, siginfo_t *info, void *ctx)
+{
+	(void) ctx;
+	printf("Recv sig=%d data=%d data=%d\n", sig,
+		info->si_value.sival_int, info->si_int);
+}
+
+int main(void)
+{
+	struct sigaction act;
+
+
+	sigemptyset(&act.sa_mask);
+	act.sa_sigaction = handler;
+	act.sa_flags = SA_SIGINFO;
+
+	if (sigaction(SIGINT, &act, NULL) < 0) {
+		fprintf(stderr, "Sigaction error, %s", strerror(errno));
+		return -1;
+	}
+
+	pause();
+
+	return 0;
+}
+{% endhighlight %}
+
+对应的发送程序为。
+
+{% highlight c %}
+// send.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+
+int main(int argc, char *argv[])
+{
+	union sigval val;
+
+	if (argc != 2) {
+		fprintf(stderr, "Usage %s pid\n", argv[0]);
+		exit(EXIT_FAILURE);
+	}
+
+	val.sival_int = 100;
+	sigqueue(atoi(argv[1]), SIGINT, val);
+
+	return 0;
+}
+
+{% endhighlight %}
+
+在使用时，`sa_sigaction` 与 `sa_handler` 只能取其一，其中前者多用于实时信号，可以保存信息；同时设置 `sa_flags` 为 `SA_SIGINFO` 用于接收其它进程发送的数据，保存在 `siginfo_t` 结构体中。
+
+
+
+### 内核处理
+
+如果信号的处理动作是用户自定义函数，在信号递达时就调用这个函数，这称为信号捕捉。由于信号处理函数的代码是在用户空间的，处理过程比较复杂。
+
+![signal process]({{ site.url }}/images/linux/signal-kenel-process.png "signal process"){: .pull-center width="70%" }
+
+也就是说，处理信号最好的时机是程序从内核态切换到用户态时。
+
 
 
 ## Signal VS. Sigaction
@@ -248,7 +377,117 @@ int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
 当某个信号的处理函数被调用时，内核自动将当前信号加入进程的信号屏蔽字，当信号处理函数返回时自动恢复原来的信号屏蔽字，这样就保证了在处理某个信号时，如果这种信号再次产生，那么它会被阻塞到当前处理结束为止。
 
 
+
 ## 常用程序
+
+### 实时信号 VS. 非实时信号
+
+简单来说，就是通过测试程序，发现非实时信号不排队，而实时信号支持排队不会丢失。
+
+首先是 recv 程序，在主函数中将 `SIGINT` 和 `SIGRTMIN` 信号加入信号屏蔽字，只有当接收到 `SIGUSR1` 信号时才对前面两个信号 unblock。
+
+{% highlight c %}
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <signal.h>
+
+#define ERR_EXIT(m) do {            \
+		perror(m);          \
+		exit(EXIT_FAILURE); \
+	} while(0)
+
+void handler(int sig)
+{
+	if (sig == SIGINT || sig == SIGRTMIN) {
+		printf("recv a sig=%d\n", sig);
+	} else if (sig == SIGUSR1) {
+		sigset_t s;
+		sigemptyset(&s);
+		sigaddset(&s, SIGINT);
+		sigaddset(&s, SIGRTMIN);
+		sigprocmask(SIG_UNBLOCK, &s, NULL);
+	}
+}
+
+int main(void)
+{
+	struct sigaction act;
+	act.sa_handler = handler;
+	sigemptyset(&act.sa_mask);
+	act.sa_flags = 0;
+
+	sigset_t s;
+	sigemptyset(&s);
+	sigaddset(&s, SIGINT);
+	sigaddset(&s, SIGRTMIN);
+	sigprocmask(SIG_BLOCK, &s, NULL);
+
+	if (sigaction(SIGINT, &act, NULL) < 0)
+		ERR_EXIT("sigaction error");
+
+	if (sigaction(SIGRTMIN, &act, NULL) < 0)
+		ERR_EXIT("sigaction error");
+
+	if (sigaction(SIGUSR1, &act, NULL) < 0)
+		ERR_EXIT("sigaction error");
+
+	for (;;)
+		pause();
+	return 0;
+}
+{% endhighlight %}
+
+如果在信号处理函数中对某个信号进行解除阻塞时，则只是将 pending 位清 0，让此信号递达一次 (同个实时信号产生多次进行排队都会抵达)，但不会将 block 位清 0，即再次产生此信号时还是会被阻塞，处于未决状态。
+
+接着是 send 程序。
+
+{% highlight c %}
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+
+int main(void)
+{
+	pid_t pid;
+	union sigval val;
+	if (argc != 2) {
+		fprintf(stderr, "Usage %s pid\n", argv[0]);
+		exit(EXIT_FAILURE);
+	}
+
+	pid = atoi(argv[1]);
+	val.sival_int = 100;
+
+	sigqueue(pid, SIGINT, val);
+	sigqueue(pid, SIGINT, val);
+	sigqueue(pid, SIGINT, val);
+	sigqueue(pid, SIGRTMIN, val);
+	sigqueue(pid, SIGRTMIN, val);
+	sigqueue(pid, SIGRTMIN, val);
+
+	sleep(3);
+
+	kill(pid, SIGUSR1);
+
+	return 0;
+}
+{% endhighlight %}
+
+然后直接运行。
+
+{% highlight text %}
+$ ./recv
+recv a sig=34
+recv a sig=34
+recv a sig=34
+recv a sig=2
+$ send `pidof recv`
+{% endhighlight %}
+
+在 send 程序中连续各发送了 `SIGINT` 和 `SIGRTMIN` 信号 3 次，接着睡眠 3s 后使用 `kill()` 发送 `SIGUSR1` 信号给 recv 进程，可以看到实时信号支持排队，3 个信号都接收到了，而不可靠信号不支持排队，只保留一个信号。
 
 ### Pause
 
@@ -337,24 +576,17 @@ SIGSTOP cannot be caught or ignored.
 # kill -s CONT `pidof rsync`
 {% endhighlight %}
 
+### 获取发送信号进程
 
+打印那个进程发送的信号。
 
-<!--
-#define SIG_DFL ((void(*)(int))0)
-#define SIG_IGN ((void(*)(int))1)
-
-
-/* 打印那个进程发送的信号 */
-
-#define _POSIX_C_SOURCE 199309L
-
+{% highlight c %}
 #include <stdio.h>
 #include <signal.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/types.h>
-
 
 static int int_count = 0;
 static int max_int = 5;
@@ -419,9 +651,15 @@ int main(void)
 
 	return 0;
 }
+{% endhighlight %}
 
 
 
+
+
+<!--
+#define SIG_DFL ((void(*)(int))0)
+#define SIG_IGN ((void(*)(int))1)
 
 -->
 
@@ -493,6 +731,40 @@ http://blog.csdn.net/hs794502825/article/details/52577622
 
 http://blog.csdn.net/hzhsan/article/details/23650697
 http://youbingchenyoubing.leanote.com/post/%E8%87%AA%E5%B7%B1%E8%B6%9F%E8%BF%87epoll%E7%9A%84%E5%9D%91
+
+
+### 使用
+
+早期的 Linux 使用系统调用 `signal()` 来安装信号，接口如下。
+
+#include <signal.h>
+void (*signal(int signum, void (*handler))(int)))(int);
+
+该函数会返回一个上次的安装 handler 。
+
+信号被处理后，系统自动将 handler 重置为默认动作， 为了使信号在处理期间，仍能对后续的信号做出反应，需要在往往在 handler 的第一条语句再次调用 signal 。
+
+另外，可以通过 POSIX 信号安装方式 (sigaction)，通过这种方式安装信号后，该动作就一直保持，直到下次调用 sigaction 为止。
+
+### 处理过程
+
+信号最终执行的动作称为 Delivery ，从生成到最终送达称为 Pending ，进程可以选择阻塞信号，被阻塞的信号产生时将保持在 Pending 状态，直到进程解除对此信号的阻塞。如下是相关的函数：
+
+#include <signal.h>
+int sigprocmask(int how, const sigset_t *set, sigset_t *oldset))；
+int sigpending(sigset_t *set));
+int sigsuspend(const sigset_t *mask))；
+
+Linux 信号详解
+http://kenby.iteye.com/blog/1173862
+http://www.cnblogs.com/mickole/p/3191281.html
+http://ialloc.org/posts/2014/08/03/ngx-notes-sigio/
+
+
+Linux中关于Backlog的介绍
+https://www.jianshu.com/p/7fde92785056
+
+http://www.cnblogs.com/mickole/p/3191804.html
 -->
 
 {% highlight text %}

@@ -267,5 +267,86 @@ int main(void)
 }
 {% endhighlight %}
 
+
+## 获取地址
+
+`getpeername()` 用于获取与某个套接字关联的对端地址，`accept()` 在接收连接的时候也会获取对端的地址，`getsockname()` 用于获取本地地址。
+
+{% highlight c %}
+// Server
+#include <stdio.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+
+int main()
+{
+	int svrfd, clifd;
+	struct sockaddr_in addr;
+
+	svrfd = socket(AF_INET, SOCK_STREAM, 0);
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr =htonl(INADDR_ANY);
+	addr.sin_port = htons(8888);
+
+	bind(svrfd, (const struct sockaddr *)&addr, sizeof(struct sockaddr_in));
+	listen(svrfd, 5);
+
+	struct sockaddr_in addrcli, peeraddr;
+	socklen_t len = sizeof(struct sockaddr_in);
+	clifd = accept(svrfd, (struct sockaddr *)&addrcli, &len);
+
+	printf("Client #%d ip=%s port=%d\n", clifd,
+		inet_ntoa(addrcli.sin_addr), ntohs(addrcli.sin_port));
+
+	len = sizeof(struct sockaddr_in);
+        getpeername(clifd, (struct sockaddr *)&peeraddr, &len);
+        printf("Peer #%d ip=%s port=%d\n", clifd,
+		inet_ntoa(peeraddr.sin_addr), ntohs(peeraddr.sin_port));
+
+	getchar();
+	close(svrfd);
+	close(clifd);
+	return 0;
+}
+{% endhighlight %}
+
+{% highlight c %}
+// Client
+#include <stdio.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+
+int main()
+{
+	int rc;
+	int sockfd;
+
+	struct sockaddr_in addr;
+	addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(8888);
+
+	printf("Server ip=%s port=%d\n",
+		inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	rc = connect(sockfd, (const struct sockaddr *)&addr, sizeof(struct sockaddr_in));
+
+	struct sockaddr_in svraddr;
+	socklen_t len = sizeof(struct sockaddr_in);
+	getsockname(sockfd,(struct sockaddr *)&svraddr, &len);
+	printf("Local #%d ip=%s port=%d\n", sockfd,
+		inet_ntoa(svraddr.sin_addr), ntohs(svraddr.sin_port));
+
+	getchar();
+	close(sockfd);
+	return 0;
+}
+{% endhighlight %}
+
+直接编译运行，然后通过 `netstat -atunp | grep 8888` 查看。
+
+
+
 {% highlight text %}
 {% endhighlight %}
