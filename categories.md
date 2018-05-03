@@ -272,6 +272,13 @@ MySQL 号称是使用最广泛的开源数据库，而 PG 则被称为功能最�
 ----------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------
 
+* [JavaScript 环境](/post/javascript-environment-introduce.html)，介绍 JavaScript 常用工具，如 node、npm、WebPack 等。
+* [JS React 语法简介](/post/javascript-react-syntax-introduce.html)，介绍 JS 和 React 的一些常见语法规则，以及调试工具。
+* [React 简明教程](/post/react-practice-examples.html)，通过一些示例简单介绍 React 的使用方法。
+
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+
 ![Python Logo]({{ site.url }}/images/python/python-logo.png "Python Logo"){: .pull-center width="420"}
 
 通常当我们讨论 Python 时，指的是 Python 语言以及 CPython 实现。而实际上 Python 只是一种语言的规范，可以根据该规范使用不同的语言去实现相应的解析器，除了 CPython 之外，常见的还有 PyPy、Jython、IronPython、MicroPython 等。
@@ -382,6 +389,8 @@ OpenSSH 是 SSH (Secure SHell) 协议的免费开源实现，一种命令行的�
 ![Git Logo]({{ site.url }}/images/misc/git-logo.jpg "Git Logo"){: .pull-center width="130" }
 
 Git 是一免费、开源的分布式版本控制系统，可有效、高速的处理从很小到非常大的项目版本管理，该工具是 Linus Torvalds 为了帮助管理 Linux 内核开发而开发，其本意是为了替换 BitKeeper 。
+
+除了 GitHub 外，开源的工具还有 [GitLab](https://about.gitlab.com/)、[Gogs](https://gogs.io/)，以及 C 的相关库 [libgit2](https://github.com/libgit2/libgit2) 。
 
 这里简单介绍一下常见概念及其操作。
 

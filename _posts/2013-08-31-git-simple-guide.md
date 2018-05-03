@@ -902,13 +902,16 @@ Windows 下的客户端可以参考 [git for windows](https://git-for-windows.gi
 
 对于一种不错的 Git 分支管理模式，也即如上的介绍，可以参考 [A successful Git branching model](http://nvie.com/posts/a-successful-git-branching-model/) 或者 [本地文档](/reference/misc/A successful Git branching model.mht) 。
 
+其它整理的参考资料 [Git-Tips](https://github.com/git-tips/tips) 。
 
 <!--
+https://github.com/xirong/my-git
+https://github.com/geeeeeeeeek/git-recipes
+-->
 
+
+<!--
 git-filter-branch.sh
-
-
-https://github.com/git/git
 
 http://www.worldhello.net/gotgithub/index.html
 http://www.cnblogs.com/zhangjing230/archive/2012/05/09/2489745.html

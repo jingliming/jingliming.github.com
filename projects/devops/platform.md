@@ -62,11 +62,32 @@ $ curl http://127.0.0.1:9000
 ### REST-API
 
 {% highlight text %}
+-----> 发送请求
 {
 	"id": "2719cb14-2da6-44a0-8349-1ea33b3ab2d9",
 	"hosts": [ "eccb24a7-fe55-4d84-9c40-6a9192419ae9", "b19ffa7e-712e-46d4-b328-2d2892c96076" ],
-	"method": "",
+	"method": "sync.bash",
+	"cmd": "ls"
 }
+
+<----- 响应报文
+{
+	"id": "2719cb14-2da6-44a0-8349-1ea33b3ab2d9",
+	"response": [ {
+		"host": "eccb24a7-fe55-4d84-9c40-6a9192419ae9",
+		"resp": "failed",
+		"retcode": 203,
+		"message": "No such host"
+	}, {
+		"host": "b19ffa7e-712e-46d4-b328-2d2892c96076",
+		"resp": "success",
+		"retcode": 2,
+		"message": "Normal termination",
+		"data": "xxxxxx"
+	} ],
+}
+
+
 {% endhighlight %}
 
 

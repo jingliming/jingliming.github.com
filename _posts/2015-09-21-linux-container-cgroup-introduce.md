@@ -91,6 +91,175 @@ mount {
 
 就会看到相应的进程在这个文件中。
 
+### CPU
+
+在 CGroup 中，与 CPU 相关的子系统有 cpusets、cpuacct 和 cpu 。
+
+* CPUSET 用于设置CPU、内存的亲和性，可以指定运行CPU或者不运行在某个CPU上，一般只会在一些高性能场景使用。
+* CPUACCT 显示当前cgroup所用CPU的统计信息。
+
+这里简单介绍 cpu 子系统，包括怎么限制 cgroup 的 CPU 使用上限及与其它 cgroup 的相对值。
+
+#### cpu.cfs_period_us & cpu.cfs_quota_us
+
+其中 `cfs_period_us` 用来配置时间周期长度；`cfs_quota_us` 用来配置当前 cgroup 在设置的周期长度内所能使用的 CPU 时间数，两个文件配合起来设置 CPU 的使用上限。
+
+两个文件单位是微秒，`cfs_period_us` 的取值范围为 `[1ms, 1s]`，默认 100ms ；`cfs_quota_us` 的取值大于 1ms 即可，如果 `cfs_quota_us` 的值为 `-1`(默认值)，表示不受 cpu 时间的限制。
+
+下面是几个例子：
+
+{% highlight text %}
+----- 1.限制只能使用1个CPU，每100ms能使用100ms的CPU时间
+# echo 100000 > cpu.cfs_quota_us
+# echo 100000 > cpu.cfs_period_us
+
+------ 2.限制使用2个CPU核，每100ms能使用200ms的CPU时间，即使用两个内核
+# echo 200000 > cpu.cfs_quota_us
+# echo 100000 > cpu.cfs_period_us
+
+------ 3.限制使用1个CPU的50%，每100ms能使用50ms的CPU时间，即使用一个CPU核心的50%
+# echo 50000 > cpu.cfs_quota_us
+# echo 100000 > cpu.cfs_period_us
+{% endhighlight %}
+
+#### cpu.shares
+
+用于设置相对值，这里针对的是所有 CPU (多核)，默认是 1024，假如系统中有两个 A(1024) 和 B(512)，那么 A 将获得 `1024/(1204+512)=66.67%` 的 CPU 资源，而 B 将获得 33% 的 CPU 资源。
+
+对于 shares 有两个特点：
+
+* 如果A不忙，没有使用到66%的CPU时间，那么剩余的CPU时间将会被系统分配给B，即B的CPU使用率可以超过33%；
+* 添加了一个新的C，它的shares值是1024，那么A和C的限额变为`1024/(1204+512+1024)=40%`，B的资源变成了20%；
+
+也就是说，在空闲时 shares 基本上不起作用，只有在 CPU 忙的时候起作用。但是这里设置的值是需要与其它系统进行比较，而非设置了一个绝对值。
+
+<!--
+### cpu.stat
+
+包含了下面三项统计结果
+
+nr_periods： 表示过去了多少个cpu.cfs_period_us里面配置的时间周期
+nr_throttled： 在上面的这些周期中，有多少次是受到了限制（即cgroup中的进程在指定的时间周期中用光了它的配额）
+throttled_time: cgroup中的进程被限制使用CPU持续了多长时间(纳秒)
+-->
+
+#### 示例
+
+演示一下如何控制CPU的使用率。
+
+{% highlight text %}
+----- 创建并查看当前的分组
+# cgcreate -g cpu:/small
+# ls /sys/fs/cgroup/cpu/small
+
+----- 查看当前值，默认是1024
+# cat /sys/fs/cgroup/cpu/small/cpu.shares
+# cgset -r cpu.shares=512 small
+
+----- 执行需要运行的程序，或者将正在运行程序添加到分组
+# cgexec -g cpu:small ./foobar
+# cgclassify -g cpu:small <PID>
+
+----- 设置只能使用1个cpu的20%的时间
+# echo 50000 > cpu.cfs_period_us
+# echo 10000 > cpu.cfs_quota_us
+
+----- 将当前bash加入到该cgroup
+# echo $$
+5456
+# echo 5456 > cgroup.procs
+
+----- 启动一个bash内的死循环，正常情况下应该使用100%的cpu，消耗一个核
+# while :; do echo test > /dev/null; done
+{% endhighlight %}
+
+注意，如果是在启动进程之后添加的，实际上 CPU 资源限制的速度会比较慢，不是立即就会限制死的，而且不是严格准确。如果起了多个子进程，那么各个进程之间的资源是共享的。
+
+#### 其它
+
+可以通过如下命令查看进程属于哪个 cgroup 。
+
+{% highlight text %}
+# ps -O cgroup
+# cat /proc/PID/cgroup
+{% endhighlight %}
+
+### 内存
+
+相比来说，内存控制要简单的多，只需要注意物理内存和 SWAP 即可。
+
+{% highlight text %}
+----- 创建并查看当前的分组
+# cgcreate -g memory:/small
+# ls /sys/fs/cgroup/memory/small
+
+----- 查看当前值，默认是一个很大很大的值，设置为1M
+# cat /sys/fs/cgroup/memory/small/memory.limit_in_bytes
+# cgset -r memory.limit_in_bytes=10485760 small
+
+----- 如果开启了swap之后，会发现实际上内存只限制了RSS，设置时需要确保没有进程在使用
+# cgset -r memory.memsw.limit_in_bytes=104857600 small
+
+----- 启动测试程序
+# cgexec -g cpu:small -g memory:small ./foobar
+# cgexec -g cpu,memory:small ./foobar
+{% endhighlight %}
+
+<!--
+x="a"; while [ true ];do x=$x$x; done;
+-->
+
+#### OOM
+
+当进程试图占用的内存超过了 cgroups 的限制时，会触发 out of memory 导致进程被强制 kill 掉。
+
+{% highlight text %}
+----- 关闭默认的OOM
+# echo 1 > memory.oom_control
+# cgset -r memory.oom_control=1 small
+{% endhighlight %}
+
+注意，及时关闭了 OOM，对应的进程会处于 uninterruptible sleep 状态。
+
+<!--
+memory 子系统中还有一个很重要的设置是 memory.use_hierarchy 这是个布尔开关，默认为 0。此时不同层次间的资源限制和使用值都是独立的。当设为 1 时，子控制组进程的内存占用也会计入父控制组，并上溯到所有 memory.use_hierarchy = 1 的祖先控制组。这样一来，所有子孙控制组的进程的资源占用都无法超过父控制组设置的资源限制。同时，在整个树中的进程的内存占用达到这个限制时，内存回收也会影响到所有子孙控制组的进程。这个值只有在还没有子控制组时才能设置。之后在其中新建的子控制组默认的 memory.use_hierarchy 也会继承父控制组的设置。
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int main ()
+{
+        pid_t fpid;
+        int count=0;
+        void *mem;
+
+        fpid = fork();
+        if (fpid < 0) {
+                fprintf(stderr, "[ERROR] failed to fork!, %s\n", strerror(errno));
+                return -1;
+        } else if (fpid == 0) { /* child */
+                //while(1) count++;
+                while(1) {
+                        usleep(1000);
+                        mem = calloc(1, 10000);
+                        if (mem == NULL) {
+                                fprintf(stderr, "[ERROR] failed to malloc\n");
+                                usleep(100000);
+                        }
+                }
+        } else { /* parent */
+                fprintf(stderr, "[INFO] Parent %d started, child %d\n", getpid(), fpid);
+                //while(1) count++;
+                wait(NULL);
+        }
+        return 0;
+}
+-->
+
 ## systemd
 
 CentOS 7 中默认的资源隔离是通过 systemd 进行资源控制的，systemd 内部使用 cgroups 对其下的单元进行资源管理，包括 CPU、BlcokIO 以及 MEM，通过 cgroup 可以 。
@@ -155,7 +324,23 @@ $ systemctl show toptest
 # systemctl set-property httpd.service CPUShares=600 MemoryLimit=500M
 {% endhighlight %}
 
-另外，在 systemd 213 版本之后才开始支持 `CPUQuota` 参数，此时可以直接修改 `cpu.cfs_{quota,period}_us` 参数，也就是在 `/sys/fs/cgroup/cpu/` 目录下。
+另外，在 213 版本之后才开始支持 `CPUQuota` 参数，可直接修改 `cpu.cfs_{quota,period}_us` 参数，也就是在 `/sys/fs/cgroup/cpu/` 目录下。
+
+## libcgroup
+
+基于 [libcgroup](http://libcg.sourceforge.net/) 实现一套容器的管理，详细的文档可以参考 [libcg Documentation](http://libcg.sourceforge.net/html/index.html) 中的相关介绍。
+
+可以参考 [Github - cgfy](https://github.com/geokat/cgfy) 中的实现，该程序是通过 `libcgroup` 实现，功能类似于 cgexec 。
+
+另外，也可以参考 [Github - clique](https://github.com/vodik/clique)，是直接利用 DBus 与 Systemd 进行通讯。
+
+<!--
+int cgroup_init(void);
+  初始化函数，会自动获取当前的cgroup挂载点，注意，如果unmount、remount等操作，不会自动刷新；
+
+cgroup_walk_tree_begin()
+  遍历某个subsys，可以通过 cgroup_walk_tree_set_flags() 设置遍历的方式。
+-->
 
 ## 参考
 
@@ -165,15 +350,16 @@ $ systemctl show toptest
 Systemd 进程管理相关
 http://fangpeishi.com/systemd_chapter2.html
 
-
 https://yq.aliyun.com/articles/54458
 http://www.cnblogs.com/yanghuahui/p/3751826.html
 https://yq.aliyun.com/articles/54483
 systemd-cgls
 
 
-
+Python使用
 https://github.com/francisbouvier/cgroups
+
+cgred
 -->
 
 {% highlight text %}
