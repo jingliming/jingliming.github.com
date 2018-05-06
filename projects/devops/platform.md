@@ -59,6 +59,47 @@ $ curl http://127.0.0.1:9000
 
 直接启动 vsftpd 服务器即可。
 
+### 后台服务搭建
+
+这里基于 Flask 和 MySQL 搭建后台服务器。
+
+#### MySQL
+
+{% highlight text %}
+----- 安装社区版本MySQL，新增配置
+# rpm -Uvh http://dev.mysql.com/get/mysql-community-release-el7-5.noarch.rpm
+# yum install mysql-community-server
+# cat << EOF > /etc/my.cnf
+[client]
+password        = new_password
+port            = 5506
+socket          = /tmp/mysql-5506.sock
+[mysqld]
+user            = mysql
+port            = 5506
+socket          = /tmp/mysql-5506.sock
+basedir         = /usr
+datadir         = /tmp/data-5506
+pid-file        = /tmp/data-5506/mysqld.pid
+EOF
+
+----- 初始化数据，可通过空白密码登陆
+# mkdir /tmp/data-5506
+# /usr/sbin/mysqld --initialize-insecure --basedir=/usr --user=mysql \
+    --datadir=/tmp/data-5506
+# systemctl start mysqld
+
+----- 登陆并修改密码，第一次登陆时密码空白即可，分别对应了5.6以及5.7版本
+$ mysql -h 127.1 -p
+mysql> UPDATE mysql.user SET password=PASSWORD('new_password') WHERE user='root';
+mysql> ALTER USER 'root'@'localhost' IDENTIFIED BY 'new_password';
+mysql> FLUSH PRIVILEGES;
+{% endhighlight %}
+
+
+
+
+
 ### REST-API
 
 {% highlight text %}

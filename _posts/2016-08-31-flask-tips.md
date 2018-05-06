@@ -555,6 +555,130 @@ def jsonify(*args, **kwargs):
 
 {% endhighlight %}
 
+## 打印日志
+
+从 Flask 0.3 版本开始，系统就已经预置了一个 logger：
+
+{% highlight python %}
+app.logger.debug('A value for debugging')
+app.logger.warning('A warning occurred (%d apples)', 42)
+app.logger.error('An error occurred')
+{% endhighlight %}
+
+其中 app 是 Flask 的实例，而 `app.logger` 也就是一个标准 `logging Logger`，在使用 `app.logger` 时可选择的输出级别与 python logging 中的定义一致。
+
+一般包括了 `ERROR`、`WARN`、`INFO`、`DEBUG` 和 `TRACE` 。
+
+{% highlight python %}
+if isinstance(message, TextMessage):
+    ...
+else:
+    app.logger.warn('unknow message type')
+
+
+a = [1, 2, 3]
+try:
+    print a[3]
+except Exception, e:
+    app.logger.exception(e)  # 打印详细的堆栈
+{% endhighlight %}
+
+<!--
+https://blog.csdn.net/iszhenyu/article/details/56846551
+-->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+When you want to configure logging for your project, you should do it as soon as possible when the program starts. If app.logger is accessed before logging is configured, it will add a default handler. If possible, configure logging before creating the application object.
+
+This example uses dictConfig() to create a logging configuration similar to Flask’s default, except for all logs:
+
+from logging.config import dictConfig
+
+dictConfig({
+    'version': 1,
+    'formatters': {'default': {
+        'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+    }},
+    'handlers': {'wsgi': {
+        'class': 'logging.StreamHandler',
+        'stream': 'ext://flask.logging.wsgi_errors_stream',
+        'formatter': 'default'
+    }},
+    'root': {
+        'level': 'INFO',
+        'handlers': ['wsgi']
+    }
+})
+
+app = Flask(__name__)
+
+Default Configuration
+
+如果没有配置，Flask 会自动添加一个 StreamHandler 到 app.logger 中，并将输出写入到 WSGI 服务器指定的 `environ['wsgi.errors']` 中，一般是 `sys.stderr` 。
+
+可以通过如下方式删除默认处理。
+
+{% highlight python %}
+from flask.logging import default_handler
+
+app.logger.removeHandler(default_handler)
+{% endhighlight %}
+
+<!--
+Email Errors to Admins
+
+When running the application on a remote server for production, you probably won’t be looking at the log messages very often. The WSGI server will probably send log messages to a file, and you’ll only check that file if a user tells you something went wrong.
+
+To be proactive about discovering and fixing bugs, you can configure a logging.handlers.SMTPHandler to send an email when errors and higher are logged.
+
+import logging
+from logging.handlers import SMTPHandler
+
+mail_handler = SMTPHandler(
+    mailhost='127.0.0.1',
+    fromaddr='server-error@example.com',
+    toaddrs=['admin@example.com'],
+    subject='Application Error'
+)
+mail_handler.setLevel(logging.ERROR)
+mail_handler.setFormatter(logging.Formatter(
+    '[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
+))
+
+if not app.debug:
+    app.logger.addHandler(mail_handler)
+-->
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -295,14 +295,13 @@ Just More Pythonic ~~~
 
 记录 C 语言实现的 Python 的简介。
 
+* [Python 基本语法](/post/python-basic-syntax-introduce.html)，一些常见容易混淆的概念。
 * [Python 模块简介](/post/python-modules.html)，简单介绍一下 Python 中的模块，以及一些常用的模块。
 * [Python 的垃圾回收](/post/python-garbage-collection.html)，详细介绍 Python 特有的垃圾回收机制。
 * [Python 动态执行](/post/python-eval.html)，允许通过 exec 和 eval 执行以字符串形式表示的代码片段，这里简单介绍。
+* [Python ORM 简介](/post/python-orm-introduce.html)，简单介绍一些常用 ORM 工具，及其使用方法。
+* [Python 常用工具](/post/python-most-useful-tools.html)，一些常用的工具，例如 pyenv、virtualenv 等。
 * [Python 杂项](/post/python-tips.html)，记录了 Python 中常见技巧，一些乱七八糟的东西。
-
-<!--
-* [Python 异常处理](/post/python-exception.html)，介绍如何处理 Python 的异常。
--->
 
 #### Flask
 
