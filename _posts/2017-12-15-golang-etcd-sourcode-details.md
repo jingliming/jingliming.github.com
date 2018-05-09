@@ -5,11 +5,15 @@ comments: true
 language: chinese
 category: [program,golang,linux]
 keywords: golang,go,etcd
-description: Etcd 是一个分布式可靠的键值存储系统，提供了与 ZooKeeper 相似的功能，通过 GoLang 开发而非 Java ，采用 RAFT 算法而非 PAXOS 算法。相比来所，etcd 的安装使用更加简单有效。
+description: 现在已知的 Golang 版本的 RAFT 的开源实现主要有两个：一个是 CoreOS 的 etcd 中的实现，使用的项目有比如 tidb、cockroachdb 等；另外一个是 hashcorp 的 RAFT 实现，使用的项目有比如 consul、InfluxDB 等。相比而言，前者只实现了一个整体框架，很多的功能需要用户实现，难度增加但是更加灵活；而后者则是完整的实现，WAL、SnapShot、存储、序列化等。
 ---
 
+现在已知的 Golang 版本的 RAFT 的开源实现主要有两个：一个是 CoreOS 的 etcd 中的实现，使用的项目有比如 tidb、cockroachdb 等；另外一个是 hashcorp 的 RAFT 实现，使用的项目有比如 consul、InfluxDB 等。
+
+相比而言，前者只实现了一个整体框架，很多的功能需要用户实现，难度增加但是更加灵活；而后者则是完整的实现，WAL、SnapShot、存储、序列化等。
 
 <!-- more -->
+
 
 
 <!--
@@ -20,17 +24,6 @@ https://zhuanlan.zhihu.com/distributed-storage
 ######################################
 RAFT C语言的实现
 https://github.com/willemt/raft
-https://raft.github.io/
-RAFT论文的中文翻译
-https://github.com/maemual/raft-zh_cn
-http://www.opscoder.info/ectd-raft-library.html
-http://vlambda.com/wz_xberuk7dlD.html
-http://chenneal.github.io/2017/03/16/phxpaxos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B9%8B%E4%B8%80%EF%BC%9A%E8%B5%B0%E9%A9%AC%E8%A7%82%E8%8A%B1/
-https://www.jianshu.com/p/ae462a2d49a8
-https://www.jianshu.com/p/ae1031906ef4
-http://blog.neverchanje.com/2017/01/30/etcd_raft_core/
-http://www.cnblogs.com/foxmailed/p/7173137.html
-https://www.jianshu.com/p/5aed73b288f7
 
 Leader election
 Log replicationLog compaction
@@ -38,18 +31,117 @@ Membership changesLeader transfer
 Linearizable/Lease read
 
 
-据说一个性能比lmdb好很多的存储引擎
-https://github.com/leo-yuriev/libmdbx
 基本流程是？
 优化点包含了哪些？
 核心处理流程：A) AppendLog；B) 选主；C) Snapshot；D) 成员变更等。
 存储的接口通过 type Storage interface 指定，其中示例中直接使用了库中的 MemoryStorage 实现，每次从 WAL 和 Snapshot 中读取并恢复到内存中。
+-->
 
 ## ETCD
 
 RAFT 协议的实现主要包括了四部分：协议逻辑、存储、消息序列化和网络传输，而 ETCD 对应的 RAFT 库只实现了最核心算法。
 
 源码可以直接下载 [Github coreos/etcd](https://github.com/coreos/etcd) 其中有一个简单的示例 [contrib/raftexample](https://github.com/coreos/etcd/tree/master/contrib/raftexample) 。
+
+### 数据结构
+
+简单介绍下一些常见的数据结构。
+
+#### type node struct
+
+在 `raft/node.go` 中定义了 `type node struct` 对应的结构，一个 RAFT 结构通过 Node 表示各结点信息，该结构体内定义了各个管道，用于同步信息，下面会逐一遇到。
+
+{% highlight go %}
+type node struct {
+    propc      chan pb.Message
+    recvc      chan pb.Message
+    confc      chan pb.ConfChange
+    confstatec chan pb.ConfState
+    readyc     chan Ready
+    advancec   chan struct{}
+    tickc      chan struct{}
+    done       chan struct{}
+    stop       chan struct{}
+    status     chan chan Status
+}
+{% endhighlight %}
+
+其实现，就是通过这些管道在 RAFT 实现与外部应用之间来传递各种消息。
+
+#### type raft struct
+
+在 `raft/raft.go` 中定义了 `type raft struct` 结构，其中有两个关键函数指针 `tick` 和 `step`，在不同的状态时会调用不同的函数，例如 Follower 中使用 `tickElection()` 和 `stepFollower()` 。
+
+{% highlight text %}
+type raft struct {
+	id uint64
+
+	Term uint64
+	Vote uint64
+
+	readStates []ReadState
+
+	// the log
+	raftLog *raftLog
+
+	maxInflight int
+	maxMsgSize  uint64
+	prs         map[uint64]*Progress
+
+	state StateType
+
+	votes map[uint64]bool
+
+	msgs []pb.Message
+
+	// the leader id
+	lead uint64
+	// leadTransferee is id of the leader transfer target when its value is not zero.
+	// Follow the procedure defined in raft thesis 3.10.
+	leadTransferee uint64
+	// New configuration is ignored if there exists unapplied configuration.
+	pendingConf bool
+
+	readOnly *readOnly
+
+	// number of ticks since it reached last electionTimeout when it is leader
+	// or candidate.
+	// number of ticks since it reached last electionTimeout or received a
+	// valid message from current leader when it is a follower.
+	electionElapsed int
+
+	// number of ticks since it reached last heartbeatTimeout.
+	// only leader keeps heartbeatElapsed.
+	heartbeatElapsed int
+
+	checkQuorum bool
+	preVote     bool
+
+	heartbeatTimeout int
+	electionTimeout  int
+	// randomizedElectionTimeout is a random number between
+	// [electiontimeout, 2 * electiontimeout - 1]. It gets reset
+	// when raft changes its state to follower or candidate.
+	randomizedElectionTimeout int
+
+	tick func()          // 两个重要的函数指针
+	step stepFunc
+
+	logger Logger
+}
+{% endhighlight %}
+
+Node 代表了 etcd 中一个节点，是 RAFT 协议核心部分实现的代码，而在 EtcdServer 的应用层与之对应的是 raftNode ，两者一对一，raftNode 中有匿名嵌入了 node 。
+
+### 整体框架
+
+这里的采用的是异步状态机，基于 GoLang 的 Channel 机制，RAFT 状态机作为一个 Background Thread/Routine 运行，会通过 Channel 接收上层传来的消息，状态机处理完成之后，再通过 Ready() 接口返回给上层。
+
+
+<!--
+RAFT 交互流程相关的内容都放在 raftNode 中，而节点状态、IO调用、事件触发起点等入口都放在了 node 中，两者都在启动后起了一个 for-select 结构的协程循环处理各自负责的事件。
+1) 递增currentTerm，投票给自己；2) 重置ElectionTimer；3) 向所有的服务器发送 RequestVote RPC请求
+
 
 ## 示例程序
 
@@ -138,14 +230,9 @@ func (rc *raftNode) serveChannels() {
         }
     }
 }
+-->
 
-
-######################################
-## ETCD 源码实现
-######################################
-
-http://vlambda.com/wz_xberuk7dlD.html
-
+<!--
 ## 代码走读
 
 在 `raft/node.go->run()` 函数中，是一个节点 (Node) 的主要处理过程，开始处于 Follower 状态，然后随着 `case <-n.tickc` 进行，开始进入选举。
@@ -155,32 +242,6 @@ ETCD 服务器是通过 EtcdServer 结构抽象，对应了 etcdserver/server.go
 在server启动的过程中，会调用raftNode(etcdserver/raft.go)的start方法：
 
 ### 数据结构
-
-在 `raft/node.go` 中定义了 `type node struct` 对应的结构。
-
-type node struct {
-    propc      chan pb.Message
-    recvc      chan pb.Message
-    confc      chan pb.ConfChange
-    confstatec chan pb.ConfState
-    readyc     chan Ready
-    advancec   chan struct{}
-    tickc      chan struct{}
-    done       chan struct{}
-    stop       chan struct{}
-    status     chan chan Status
-}
-
-包括了一系列的管道，RAFT 的实现其实就是通过这些管道来传递各种消息。
-
-
-在 `raft/raft.go` 中定义了 `type raft struct` 结构，其中有两个比较关键的函数指针 tick/step，在不同的状态时会调用不同的函数，例如 Follower(tickElection/stepFollower)\
-
-
-Node 代表了 etcd 中一个节点，和 raftNode 是一对一的关系，raftNode 中有匿名嵌入了 node 。
-
-RAFT 交互流程相关的内容都放在 raftNode 中，而节点状态、IO调用、事件触发起点等入口都放在了 node 中，两者都在启动后起了一个 for-select 结构的协程循环处理各自负责的事件。
-1) 递增currentTerm，投票给自己；2) 重置ElectionTimer；3) 向所有的服务器发送 RequestVote RPC请求
 
 
 在 campaign() 中的实现选举逻辑时，实际上实现了两个阶段 PreElection 和 Election 。？？？？
@@ -290,12 +351,74 @@ case myVoteRespType:
 func (r *raft) becomeLeader() {
     r.step = stepLeader
 }
-
-### 参考
-
-关于介绍 RAFT 如何从理论应用到实践的论文 [Raft consensus algorithm](https://github.com/ongardie/dissertation) 。
 -->
 
+## Progress
+
+RAFT 实现的内部，本身还维护了一个子状态机。
+
+{% highlight text %}
+                            +--------------------------------------------------------+
+                            |                  send snapshot                         |
+                            |                                                        |
+                  +---------+----------+                                  +----------v---------+
+              +--->       probe        |                                  |      snapshot      |
+              |   |  max inflight = 1  <----------------------------------+  max inflight = 0  |
+              |   +---------+----------+                                  +--------------------+
+              |             |            1. snapshot success
+              |             |               (next=snapshot.index + 1)
+              |             |            2. snapshot failure
+              |             |               (no change)
+              |             |            3. receives msgAppResp(rej=false&&index>lastsnap.index)
+              |             |               (match=m.index,next=match+1)
+receives msgAppResp(rej=true)
+(next=match+1)|             |
+              |             |
+              |             |
+              |             |   receives msgAppResp(rej=false&&index>match)
+              |             |   (match=m.index,next=match+1)
+              |             |
+              |             |
+              |             |
+              |   +---------v----------+
+              |   |     replicate      |
+              +---+  max inflight = n  |
+                  +--------------------+
+{% endhighlight %}
+
+详细可以查看 [raft/design.md](https://github.com/coreos/etcd/blob/master/raft/design.md) 中的介绍，对于 Progress 实际上就是 Leader 维护的各个 Follower 的状态信息，总共分为三种状态：probe, replicate, snapshot 。
+
+应该是 AppendEntries 接口的一种实现方式，为每个节点维护两个 Index 信息：A) matchIndex 已知服务器的最新 Index，如果还未确定则是 0；<!-- 作用是啥??????；--> B) nextIndex 用来标示需要从那个索引开始复制。那么 Leader 实际上就是将 nextIndex 到最新的日志复制到 Follower 节点。
+
+<!--
+如果多数派已经收到了请求，并进行了相关的处理，在响应之前主崩溃，那么新的日志可能在集群写入成功吗???????
+-->
+
+
+
+## 参考
+
+两种不同的实现方式 [Github CoreOS-etcd](https://github.com/coreos/etcd)、[Github Hashicorp-raft](https://github.com/hashicorp/raft) 。
+
+<!--
+据说一个性能比lmdb好很多的存储引擎
+https://github.com/leo-yuriev/libmdbx
+
+
+
+
+RAFT论文的中文翻译
+http://www.opscoder.info/ectd-raft-library.html
+http://vlambda.com/wz_xberuk7dlD.html
+http://chenneal.github.io/2017/03/16/phxpaxos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B9%8B%E4%B8%80%EF%BC%9A%E8%B5%B0%E9%A9%AC%E8%A7%82%E8%8A%B1/
+https://www.jianshu.com/p/ae462a2d49a8
+https://www.jianshu.com/p/ae1031906ef4
+http://blog.neverchanje.com/2017/01/30/etcd_raft_core/
+http://www.cnblogs.com/foxmailed/p/7173137.html
+https://www.jianshu.com/p/5aed73b288f7
+
+https://zhuanlan.zhihu.com/p/27767675
+-->
 
 
 {% highlight text %}

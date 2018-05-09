@@ -1,28 +1,37 @@
 ---
-title: FAFT 简介
+title: RAFT 协议简介
 layout: post
 comments: true
 language: chinese
 category: [misc]
-keywords: raft
-description:
+keywords: raft,paxos
+description: Paxos 一直是分布式协议的标准，但是 Paxos 难于理解，更难以实现，例如 Google 的分布式锁系统 Chubby 在实现 Paxos 协议时就遇到很多坑。来自 Stanford 的新的分布式协议研究称为 RAFT，它是一个为真实世界应用建立的协议，主要注重协议的落地性和可理解性。
 ---
+
+Paxos 一直是分布式协议的标准，但是 Paxos 难于理解，更难以实现，例如 Google 的分布式锁系统 Chubby 在实现 Paxos 协议时就遇到很多坑。
+
+来自 Stanford 的新的分布式协议研究称为 RAFT，它是一个为真实世界应用建立的协议，主要注重协议的落地性和可理解性。
 
 <!-- more -->
 
-<!--
+## 简介
 
 RAFT 算法在许多方面和现有的一致性算法都很相似，其独有的特性如下：
 
-强领导者，日志只从领导者发送给其它从服务器，简化了对日志复制的管理。
-领导选举，在所有一致性算法的心跳机制上增加了一个随机计时器来选举领导者，从而可以更加简单快捷地解决冲突。
+* 强领导者，日志只从领导者发送给其它从服务器，简化了对日志复制的管理。
+* 领导选举，在所有一致性算法的心跳机制上增加了一个随机计时器来选举领导者，从而可以更加简单快捷地解决冲突。
+* 日志一致，简单来说就是通过 Term 和 Index 保证所有的日志及其顺序全局唯一，同时不允许存在空洞 (Paxos允许)。
+* 成员变更，使用一种共同一致的方法来处理集群成员变换的问题，在变更过程中集群依然可以继续工作。
 
-成员变更，Raft 使用一种共同一致的方法来处理集群成员变换的问题，在这种方法下，处于调整过程中的两种不同的配置集群中大多数机器会有重叠，这就使得集群在成员变换的时候依然可以继续工作。
+### 复制状态机
 
-日志一致，简单来说就是通过 Term 和 Index 保证所有的日志及其顺序全局唯一，同时不允许存在空洞(Paxos允许)。
+一致性算法实际上是基于这一模型的，需要保证复制日志相同，简单来说就是初始状态相同，以相同的顺序处理指令，那么各个节点会产生相同的状态以及状态序列。目前使用比较多的是基于日志的复制方式，这一复制过程也被称为原子广播。
 
-## 常见概念
+实际系统中使用的一致性算法通常含有以下特性：
 
+* 安全性 safty，也就是在非拜占庭错误情况下，包括网络延迟、分区、丢包、冗余和乱序等错误都可以保证正确。
+* 可用性 livness，集群中只要多数机器、客户端可以相互通讯，那么集群就是可用的，如果机器异常崩溃，大部分场景可以从持久化中恢复。
+* 非时序依赖，通常不会因为物理时钟、消息延迟导致可用性问题。
 
 ### 拜占庭问题
 
@@ -34,7 +43,7 @@ RAFT 算法在许多方面和现有的一致性算法都很相似，其独有的
 
 拜占庭将军问题更像是一个错误模型，简单地说，Byzantine Generals Problem 是针对所谓的 Byzantine Failure 来说的，而 Byzantine Failure 是指分布式系统中的某一恶意节点允许做任意事情去干扰系统的正常运行 (包括选择性不传递消息、选择性伪造消息等)，如何保证在这一场景下确保整个系统不会异常。
 
-就是在缺少可信的中央节点和可信任的通道的情况下，分布在网络中的各个节点如何达成共识的问题。
+简单来说，就是在缺少可信的中央节点和可信任的通道的情况下，分布在网络中的各个节点如何达成共识的问题。
 
 #### Practical Byzantine Fault Tolerance, PBFT
 
@@ -46,8 +55,9 @@ RAFT 算法在许多方面和现有的一致性算法都很相似，其独有的
 
 在区块链的实现中通过 POW 来解决这一问题。
 
-拜占庭故障是最严重最难处理的，当前的系统都是通过如何规避而非解决这一问题。
+<!-- 拜占庭故障是最严重最难处理的，当前的系统都是通过如何规避而非解决这一问题。-->
 
+<!--
 http://marknelson.us/2007/07/23/byzantine/
 https://www.zhihu.com/question/23167269
 一篇经典的英文介绍
@@ -60,27 +70,8 @@ https://learnblockchain.cn/2018/02/05/bitcoin-byzantine/
 https://www.leiphone.com/news/201709/YAd57zwnq8C1IGc2.html
 论文
 Practical Byzantine Fault Tolerance, PBFT
-https://www.jianshu.com/p/5aed73b288f7
-http://www.cnblogs.com/foxmailed/p/7137431.html
-http://blog.neverchanje.com/2017/01/30/etcd_raft_core/
-https://www.jianshu.com/p/ae1031906ef4
-https://www.jianshu.com/p/ae462a2d49a8
-http://chenneal.github.io/2017/03/16/phxpaxos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B9%8B%E4%B8%80%EF%BC%9A%E8%B5%B0%E9%A9%AC%E8%A7%82%E8%8A%B1/
-http://vlambda.com/wz_xberuk7dlD.html
-https://github.com/maemual/raft-zh_cn/blob/master/raft-zh_cn.md
-http://www.opscoder.info/ectd-raft-library.html
-https://zhuanlan.zhihu.com/p/31050303
-http://dockone.io/article/2955
+-->
 
-### 复制状态机
-
-一致性算法实际上是基于这一模型的，需要保证复制日志相同，简单来说就是初始状态相同，以相同的顺序处理指令，那么各个节点会产生相同的状态以及状态序列。目前使用比较多的是基于日志的复制方式，这一复制过程也被称为原子广播。
-
-实际系统中使用的一致性算法通常含有以下特性：
-
-* 安全性 safty，也就是在非拜占庭错误情况下，包括网络延迟、分区、丢包、冗余和乱序等错误都可以保证正确。
-* 可用性 livness，集群中只要多数机器、客户端可以相互通讯，那么集群就是可用的，如果机器异常崩溃，大部分场景可以从持久化中恢复。
-* 非时序依赖，通常不会因为物理时钟、消息延迟导致可用性问题。
 
 ## RAFT 算法
 
@@ -100,6 +91,7 @@ Term 相当于不依赖墙上时钟的逻辑时间，同样可以用来做一些
 
 如果 Candidate 和 Leader 发现自己的 term 过期，那么会自动切换到 Follower 状态。
 
+<!--
 ### 状态以及接口
 
 #### 持久化状态
@@ -189,10 +181,6 @@ RAFT 采用了强一致的日志模型，不允许日志间有空洞出现，从
 如果因为丢包、网络慢、宕机、主机负载高等原因导致日志添加失败，那么 Leader 会一直尝试发送请求，直到所有日志复制成功。
 
 这样，RAFT 可以保证已经 commited 的请求会最终持久化，并可以最终被集群中的其它机器执行。
-
-
-
-
 
 
 #### 异常处理
@@ -334,14 +322,6 @@ raft.stepLeader()
 
 raft.handleSnapshot() 在接收到SnapShot消息之后执行，包括Follower和Candidate raft/raft.go
 
-## Progress
-
-详细可以查看 `raft/design.md` 中的介绍，对于 Progress 实际上就是 Leader 维护的各个 Follower 的状态信息，总共分为三种状态：probe, replicate, snapshot 。
-
-应该是 AppendEntries 接口的一种实现方式，会为每个节点维护了两个 Index 信息：A) matchIndex 已知服务器的最新 Index，如果还未确定则是 0， 作用是啥??????；B) nextIndex 用来标示需要从那个索引开始复制。那么 Leader 实际上就是将 nextIndex 到最新的日志复制到 Follower 节点。
-
-如果多数派已经收到了请求，并进行了相关的处理，在响应之前主崩溃，那么新的日志可能在集群写入成功吗？
-
 ## 成员变更
 
 增加成员或者变换成员角色都属于这一类，在变更时要求同一个任期内不能同时出现两个 Leader，不过从论文的 Figure-10 中可以看到，如果老的配置中 Server1 是主，直接修改配置，在新增两个主机之后可能会在某个时间出现两台主的情况。
@@ -437,14 +417,28 @@ $ etcdctl get /message
 ETCDCTL_API=3 etcdctl --write-out=table endpoint status
 
 
+https://www.jianshu.com/p/5aed73b288f7
+http://www.cnblogs.com/foxmailed/p/7137431.html
+http://blog.neverchanje.com/2017/01/30/etcd_raft_core/
+https://www.jianshu.com/p/ae1031906ef4
+https://www.jianshu.com/p/ae462a2d49a8
+http://chenneal.github.io/2017/03/16/phxpaxos%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E4%B9%8B%E4%B8%80%EF%BC%9A%E8%B5%B0%E9%A9%AC%E8%A7%82%E8%8A%B1/
+http://vlambda.com/wz_xberuk7dlD.html
+https://github.com/maemual/raft-zh_cn/blob/master/raft-zh_cn.md
+http://www.opscoder.info/ectd-raft-library.html
+
+etcd-raft的线性一致读方法一：ReadIndex
+https://zhuanlan.zhihu.com/p/31050303
 
 
+http://dockone.io/article/2955
 -->
 
 
-
-
 ## 参考
+
+官方地址 [raft.github.io](https://raft.github.io/)，论文可以参考 [Github RAFT 中文翻译](https://github.com/maemual/raft-zh_cn)；从理论应用到实践的论文 [Raft consensus algorithm](https://github.com/ongardie/dissertation)，也就是作者的博士毕业论文。
+
 
 一些常见一致性算法可以参考 [Github Awesome Consensus](https://github.com/dgryski/awesome-consensus) 。
 
