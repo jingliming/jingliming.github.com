@@ -455,6 +455,25 @@ $ gcc hello.c -fPIC -shared -Wl,-soname,libhello.so.1 -o libhello.so.1.0.0
 
 将动态库文件拷贝到运行目录，并执行 `ldconfig -n .`，不过此时需要重新编译才可以。
 
+
+### 问题排查
+
+可以通过如下方法查看。
+
+{% highlight text %}
+LD_TRACE_LOADED_OBJECTS=1 LD_BIND_NOW=1 LD_TRACE_PRELINKING=t /lib/ld-linux.so.2 python.so | grep ^undefined
+{% endhighlight %}
+
+<!--
+Unhandled python exception in importing module: ImportError: /usr/lib64/python2.7/lib-dynload/_functoolsmodule.so: undefined symbol: PyExc_TypeError
+LD_TRACE_LOADED_OBJECTS=1 LD_BIND_NOW=1 LD_TRACE_PRELINKING=t ./daemon/cloudagent_monitor -f
+https://blog.csdn.net/jq0123/article/details/1340839
+https://stackoverflow.com/questions/11643666/python-importerror-undefined-symbol-for-custom-c-module?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+-->
+
+
+
+
 ## 动态解析
 
 如上所述，控制权先是提交到解释器，由解释器加载动态库，然后控制权才会到用户程序。动态库加载的大致过程就是将每一个依赖的动态库都加载到内存，并形成一个链表，后面的符号解析过程主要就是在这个链表中搜索符号的定义。

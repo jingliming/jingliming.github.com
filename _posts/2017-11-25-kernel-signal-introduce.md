@@ -337,6 +337,20 @@ int main(int argc, char *argv[])
 
 也就是说，处理信号最好的时机是程序从内核态切换到用户态时。
 
+## 多线程
+
+在多线程环境下，产生的信号是传递给整个进程的，会随机选择一个线程发送。
+
+多进程的信号一般是异步处理，在信号处理函数中会有很多的约束，例如 errno 是线程安全但是非信号安全、不能调用 `malloc()`、`free()` 等函数、使用全局变量时增加 `volatile` 以防不恰当优化等。
+
+### 信号同步处理
+
+在 POSIX.1 规范定义了 `sigwait()`、 `sigwaitinfo()` 和 `pthread_sigmask()` 等接口，可以实现在专用的线程中以同步方式处理信号。
+
+<!--
+https://www.ibm.com/developerworks/cn/linux/l-cn-signalsec/
+https://blog.csdn.net/viewsky11/article/details/72780324
+-->
 
 
 ## Signal VS. Sigaction
@@ -765,6 +779,8 @@ Linux中关于Backlog的介绍
 https://www.jianshu.com/p/7fde92785056
 
 http://www.cnblogs.com/mickole/p/3191804.html
+
+
 -->
 
 {% highlight text %}

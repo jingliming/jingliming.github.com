@@ -30,6 +30,33 @@ description: 简单介绍下 Linux 中与 IO 相关的内容。
 块是文件系统的抽象，而非磁盘的属性，一般是 Sector Size 的倍数；扇区大小则是磁盘的物理属性，它是磁盘设备寻址的最小单元。另外，内核中要求 Block_Size = Sector_Size * (2的n次方)，且 Block_Size <= 内存的 Page_Size (页大小)。
 
 
+### 磁盘使用空间
+
+实际上是通过 `statvfs()` 方法查询磁盘数据，可以通过如下命令查看。
+
+{% highlight text %}
+$ python -c 'import os; os.statvfs("/")'
+{% endhighlight %}
+
+其空间占用大致如下。
+
+{% highlight text %}
+   +--------------------------+----------------+-------------------------------------------------------+
+   |                          |                |                                                       |
+   +--------------------------+----------------+-------------------------------------------------------+
+   |<-- f_bavail(non-root) -->|<-- reserved -->|<------------- f_bused=f_blocks-f_bfree -------------->|
+   |<------------- f_bfree(root) ------------->|                                                       |
+   |<----------------------------------------- f_blocks ---------------------------------------------->|
+{% endhighlight %}
+
+<!--
+f_bsize=4096, f_frsize=4096, f_blocks=10158400, f_bfree=9031443, f_bavail=8509664, f_files=2588672, f_ffree=2528760, f_favail=2528760, f_flag=4096, f_namemax=255
+f_bused / (f_bavail + f_bused) = (f_blocks - f_bfree) / (f_bavail + f_blocks - f_bfree) = (10158400 - 9031443) / (8509664 + 10158400 - 9031443) = 1126957 / 9636621 = 0.117
+1 - (f_bavail / f_blocks) = (f_blocks - f_bavail) / f_blocks = (10158400 - 8509664) / 10158400 = 1648736 / 10158400 = 0.162
+-->
+
+前者是非 root 用户已经使用的占非 root 用户可用空间百分数；后者是保留给 root 用户以及已经使用磁盘占整个磁盘空间百分数。对于 extN 类的文件系统一般会保留 1%~5% 的磁盘空间给 root 使用，当 reserved 占比较大时会导致两者的计算差较大。
+
 ### 磁盘类型
 
 主要是要获取当前系统使用的什么类型的磁盘 (SCSI、IDE、SSD等)，甚至是制造商、机器型号、序列号等信息。
@@ -725,7 +752,6 @@ http://www.udpwork.com/item/12931.html
 The precise meaning of I/O wait time in Linux
 http://veithen.github.io/2013/11/18/iowait-linux.html
 -->
-
 
 
  

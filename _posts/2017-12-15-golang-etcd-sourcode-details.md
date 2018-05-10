@@ -14,6 +14,11 @@ description: 现在已知的 Golang 版本的 RAFT 的开源实现主要有两�
 
 <!-- more -->
 
+## 简介
+
+整体来说，该库实现了 RAFT 协议核心内容，如 append log、选主逻辑、snapshot、成员变更等；但该库没有实现消息传输和接收，只会把待发送消息保存在内存中，通过用户自定义的网络传输层取出消息并发送出去，并且在网络接收端，需要调一个库函数，用于将收到的消息传入库。
+
+同时，该库定义了一个 Storage 接口，需要库的使用者自行实现。
 
 
 <!--
@@ -46,6 +51,89 @@ RAFT 协议的实现主要包括了四部分：协议逻辑、存储、消息序
 ### 数据结构
 
 简单介绍下一些常见的数据结构。
+
+#### type Storage interface
+
+定义了存储的接口。
+
+{% highlight go %}
+type Storage interface {
+    // InitialState returns the saved HardState and ConfState information.
+    InitialState() (pb.HardState, pb.ConfState, error)
+    // Entries returns a slice of log entries in the range [lo,hi).
+    // MaxSize limits the total size of the log entries returned, but
+    // Entries returns at least one entry if any.
+    Entries(lo, hi, maxSize uint64) ([]pb.Entry, error)
+    // Term returns the term of entry i, which must be in the range
+    // [FirstIndex()-1, LastIndex()]. The term of the entry before
+    // FirstIndex is retained for matching purposes even though the
+    // rest of that entry may not be available.
+    Term(i uint64) (uint64, error)
+    // LastIndex returns the index of the last entry in the log.
+    LastIndex() (uint64, error)
+    // FirstIndex returns the index of the first log entry that is
+    // possibly available via Entries (older entries have been incorporated
+    // into the latest Snapshot; if storage only contains the dummy entry the
+    // first log entry is not available).
+    FirstIndex() (uint64, error)
+    // Snapshot returns the most recent snapshot.
+    // If snapshot is temporarily unavailable, it should return ErrSnapshotTemporarilyUnavailable,
+    // so raft state machine could know that Storage needs some time to prepare
+    // snapshot and call Snapshot later.
+    Snapshot() (pb.Snapshot, error)
+}
+{% endhighlight %}
+
+其中官方提供的 [Github Raft Example](https://github.com/coreos/etcd/tree/master/contrib/raftexample) 中使用的是库自带 MemoryStorage 。
+
+#### type Ready struct
+
+对于这种 IO 网络密集型的应用，提高吞吐最好的手段就是批量操作，ETCD 与之相关的核心抽象就是 Ready 结构体。
+
+{% highlight go %}
+// Ready encapsulates the entries and messages that are ready to read,
+// be saved to stable storage, committed or sent to other peers.
+// All fields in Ready are read-only.
+type Ready struct {
+    // The current volatile state of a Node.
+    // SoftState will be nil if there is no update.
+    // It is not required to consume or store SoftState.
+    *SoftState
+
+    // The current state of a Node to be saved to stable storage BEFORE
+    // Messages are sent.
+    // HardState will be equal to empty state if there is no update.
+    pb.HardState
+
+    // ReadStates can be used for node to serve linearizable read requests locally
+    // when its applied index is greater than the index in ReadState.
+    // Note that the readState will be returned when raft receives msgReadIndex.
+    // The returned is only valid for the request that requested to read.
+    ReadStates []ReadState
+
+    // Entries specifies entries to be saved to stable storage BEFORE
+    // Messages are sent.
+    Entries []pb.Entry
+
+    // Snapshot specifies the snapshot to be saved to stable storage.
+    Snapshot pb.Snapshot
+
+    // CommittedEntries specifies entries to be committed to a
+    // store/state-machine. These have previously been committed to stable
+    // store.
+    CommittedEntries []pb.Entry
+
+    // Messages specifies outbound messages to be sent AFTER Entries are
+    // committed to stable storage.
+    // If it contains a MsgSnap message, the application MUST report back to raft
+    // when the snapshot has been received or has failed by calling ReportSnapshot.
+    Messages []pb.Message
+
+    // MustSync indicates whether the HardState and Entries must be synchronously
+    // written to disk or if an asynchronous write is permissible.
+    MustSync bool
+}
+{% endhighlight %}
 
 #### type node struct
 
@@ -137,8 +225,37 @@ Node 代表了 etcd 中一个节点，是 RAFT 协议核心部分实现的代码
 
 这里的采用的是异步状态机，基于 GoLang 的 Channel 机制，RAFT 状态机作为一个 Background Thread/Routine 运行，会通过 Channel 接收上层传来的消息，状态机处理完成之后，再通过 Ready() 接口返回给上层。
 
+其中 `type Ready struct` 结构体封装了一批更新操作，包括了：
+
+* `pb.HardState` 需要在发送消息前持久化的消息，包含当前节点见过的最大的 term，在这个 term 给谁投过票，已经当前节点知道的 commit index；
+* `Messages`  需要广播给所有 peers 的消息；
+* `CommittedEntries` 已经提交但是还没有apply到状态机的日志；
+* `Snapshot` 需要持久化的快照。
+
+库的使用者从 `type node struct` 结构体提供的 ready channel 中不断 pop 出一个个 Ready 进行处理，库使用者通过如下方法拿到 Ready channel 。
+
+{% highlight go %}
+func (n *node) Ready() <-chan Ready { return n.readyc }
+{% endhighlight %}
+
+应用需要对 Ready 的处理包括:
+
+1. 将 HardState、Entries、Snapshot 持久化到 storage；
+1. 将 Messages 非阻塞的广播给其他 peers；
+1. 将 CommittedEntries (已经提交但是还没有应用的日志) 应用到状态机；
+1. 如果发现 CommittedEntries 中有成员变更类型的 entry，则调用 node 的 `ApplyConfChange()` 方法让 node 知道；
+1. 调用 `Node.Advance()` 告诉 raft node 这批状态更新处理完，状态已经演进了，可以给我下一批 Ready 让我处理了。
+
+注意，上述的第 4 部分和 RAFT 论文中的内容有所区别，论文中只要节点收到了成员变更日志就应用，而这里实际需要等到日志提交之后才会应用。
+
+### 启动流程
+
+启动入口在 `etcdmain/main.go` 文件中。
+
 
 <!--
+应用通过raft.StartNode()来启动raft中的一个副本，函数内部通过启动一个goroutine运行
+
 RAFT 交互流程相关的内容都放在 raftNode 中，而节点状态、IO调用、事件触发起点等入口都放在了 node 中，两者都在启动后起了一个 for-select 结构的协程循环处理各自负责的事件。
 1) 递增currentTerm，投票给自己；2) 重置ElectionTimer；3) 向所有的服务器发送 RequestVote RPC请求
 
@@ -239,6 +356,7 @@ func (rc *raftNode) serveChannels() {
 
 
 ETCD 服务器是通过 EtcdServer 结构抽象，对应了 etcdserver/server.go 中的代码，包含属性 r raftNode，代表 RAFT 集群中的一个节点。
+
 在server启动的过程中，会调用raftNode(etcdserver/raft.go)的start方法：
 
 ### 数据结构

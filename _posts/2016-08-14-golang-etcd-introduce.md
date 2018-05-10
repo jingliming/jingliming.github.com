@@ -24,7 +24,25 @@ A distributed, reliable key-value store for the most critical data of a distribu
 
 可以直接从 [github release](https://github.com/coreos/etcd/releases) 下载非源码包，也就是已经编译好的二进制包，一般包括了 etcd + etcdctl 。
 
-#### 单机单进程测试
+### 源码安装
+
+下载 ectd 源码构建。
+
+{% highlight text %}
+----- 需要go编译器支持，设置好GOPATH环境变量
+$ go version
+$ echo $GOPATH
+
+----- 新建目录并下载代码，并编译
+$ mkdir -p $GOPATH/src/github.com/coreos
+$ cd $GOPATH/src/github.com/coreos
+$ git clone https://github.com/coreos/etcd.git
+$ cd etcd && git checkout v3.1.0
+$ ./build
+$ ./bin/etcd
+{% endhighlight %}
+
+### 单机单进程测试
 
 启动单进程服务，并进行测试。
 

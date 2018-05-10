@@ -371,6 +371,25 @@ http://blog.csdn.net/dc_726/article/details/42784237
 https://redis.io/topics/cluster-tutorial
 Redis Cluster设计总览
 http://blog.csdn.net/dc_726/article/details/48552531
+
+
+----- 获取安装目录
+CONFIG GET dir
+----- 执行后台备份
+BGSAVE
+
+----- 默认是没有设置密码的，可以通过如下命令获取、设置、授权
+CONFIG get requirepass
+CONFIG set requirepass "foobar"
+AUTH "foobar"
+
+----- 实时监控正在执行的命令
+# redis-cli monitor
+# telnet localhost 6379 + MONITOR
+
+----- 获取最大链接数
+config get maxclients
+
 -->
 
 {% highlight text %}

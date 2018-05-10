@@ -3345,6 +3345,337 @@ GCC部分文件取消告警
 http://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
 http://gcc.gnu.org/onlinedocs/gcc/Diagnostic-Pragmas.html
 http://gcc.gnu.org/onlinedocs/gcc-4.0.4/gcc/Warning-Options.html
+
+
+
+
+
+
+
+
+
+SHELL反弹
+https://segmentfault.com/a/1190000010975294
+各种环境下反弹shell的方法
+http://www.zerokeeper.com/experience/a-variety-of-environmental-rebound-shell-method.html
+
+libev信号处理
+http://blog.csdn.net/gqtcgq/article/details/49688027
+信号相关参考
+http://www.cnblogs.com/mickole/p/3191281.html
+
+## Joinable VS. Detached
+
+默认创建的线程是 Joinable 的，也就是可以通过 `pthread_join()` 函数在任何其它线程中等待它的终止。
+
+各个线程是独立运行的，也就意味着在调用 join 之前，目标线程可能已经终止了，那么如果一个线程是 Joinable ，POSIX 标准要求必须保持、维护一些信息，至少是线程 ID 以及返回值。
+
+实际上，对于大多数系统，如 Linux、Sloaris 等，在实现时通过 Thread Control Block, TCB 保存一些相关的信息，包括线程 ID、属性、入口函数、参数、返回值；调度策略、优先级；信号掩码、信号栈等等；而且通常是一次性分配堆栈和 TCB，例如单次 mmap() 调用，并把 TCB 放在栈的开始位置处。
+
+也就是说，不能立即释放对应的资源，这样就会造成浪费。
+
+### Detached
+
+当设置为 Detached 时，表明对于开启的线程，如果一旦执行结束，则会立即清理资源。
+
+可以在创建线程时设置该属性，或者调用 pthread_detach() 函数；当设置了该属性后，如果再次调用 pthread_join() 则会返回 EINVAL 错误。
+#include <unistd.h>
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+
+void *thread(void *dummy)
+{
+        (void) dummy;
+        sleep(1);
+        return NULL;
+}
+
+void detach_state(pthread_t tid, const char *tname)
+{
+        int rc;
+
+        rc = pthread_join(tid, NULL);
+        if (rc == EINVAL)
+                printf("%s is detached\n", tname);
+        else if (rc == 0)
+                printf("%s was joinable\n", tname);
+        else
+                printf("ERROR: %s rc=%d, %s\n", tname, rc, strerror(rc));
+}
+
+int main(void)
+{
+        /* TODO: Check the return value */
+
+        /* normal thread creation */
+        pthread_t tid1;
+        pthread_create(&tid1, NULL, thread, NULL);
+        detach_state(tid1, "thread1"); /* joinable */
+
+        /* detach thread from main thread */
+        pthread_t tid2;
+        pthread_create(&tid2, NULL, thread, NULL);
+        pthread_detach(tid2);
+        detach_state(tid2, "thread2"); /* detached */
+
+        /* create detached thread */
+        pthread_attr_t attr;
+        pthread_t tid3;
+        pthread_attr_init(&attr);
+        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+        pthread_create(&tid3, &attr, thread, NULL);
+        detach_state(tid3, "thread3");
+
+        return EXIT_SUCCESS;
+}
+
+
+对于该特性，需要注意如下的规则：
+1. 不要重复 join 一个线程，已经 join 线程的栈空间已经被回收，再次调用无法获取对应的信息；
+2. 不要 join 一个是 detach 的线程，分离的线程栈空间是由系统内部来做回收的；
+
+sigprocmask() 函数能够根据
+
+根据参数 how 实现对信号集的操作，主要包括如下三种：
+* SIG_BLOCK 在进程当前阻塞信号集中添加set指向信号集中的信号，相当于 mask=mask|set；
+* SIG_UNBLOCK 如果进程阻塞信号集中包含set指向信号集中的信号，则解除对该信号的阻塞，相当于 mask=mask|~set；
+* SIG_SETMASK 更新进程阻塞信号集为set指向的信号集，相当于mask=set。
+
+EPOLLIN 对应的文件描述符可读，包括对端 Socket 正常关闭(返回字节为 0)；
+EPOLLOUT 对应的文件描述符可写；
+EPOLLPRI 所谓的带外数据，也就是在通过 send() 发送时指定 MSG_OOB 参数；
+EPOLLERR 发生本地错误；
+EPOLLHUP 表示客户端套接字已经断开连接；
+EPOLLET	使用边沿触发，默认是水平触发；
+EPOLLONESHOT 只监听一次事件，事件触发后会自动关闭，如果需要再次监听则需要重新设置。
+
+1、listen fd，有新连接请求，触发EPOLLIN。 
+2、对端发送普通数据，触发EPOLLIN。 
+3、带外数据，只触发EPOLLPRI。 
+
+1. 当对端正常关闭时，会触发 EPOLLIN 和 EPOLLRDHUP 事件，而非 EPOLLERR 和 EPOLLHUP，此时读缓冲区大小为 0 。
+
+注意，如果是对端发生错误，不会主动触发 EPOLLERR 错误，只有在下次调用读写时才会触发。
+
+#### 文件描述符异常
+
+一般来说，不需要手动从 epoll() 中删除，系统会自动删除掉，不过按照 man epoll(7) 的 Q6 介绍，需要保证文件描述符没有被 dup() 复制过。
+
+#### 同时注册两次
+
+如果将相同的 fd 添加到 epoll_set 两次，接口会返回 EEXIST 报错，不过可以通过 dup 接口复制一份并添加，例如多线程中的使用。
+
+#### 关于 file descriptors and file descriptions
+https://idea.popcount.org/2017-03-20-epoll-is-fundamentally-broken-22/
+https://blog.codingnow.com/2017/05/epoll_close_without_del.html
+
+## 非阻塞链接
+
+对于面向连接的 socket 类型，如 SOCK_STREAM，在通过 connect() 函数建立链接时，对于 TCP 需要三次握手过程。
+
+#include <sys/types.h>
+#include <sys/socket.h>
+int connect(int sockfd, struct sockaddr *serv_addr, int addrlen);
+
+正常返回 0 ，失败返回 -1 并设置 errno 标示失败的原因，常见的原因是主机不可达或者超时错误。
+
+对于 TCP 套接字，在通过 connect() 函数建立链接时需要经过三次握手，Linux 内核默认的超时时间是 75s ，如果是阻塞模式，那么 connect() 会等到链接建立成功或者超时失败，这也就导致如果服务异常，每个客户端都要等待 75s 才可能退出。
+
+使用非阻塞 connect 时需要注意的问题是：
+
+1. 很可能 调用 connect 时会立即建立连接（比如，客户端和服务端在同一台机子上），必须处理这种情况。
+2. POSIX 定义了两个与非阻塞相关的内容：
+	2.1 成功建立连接时，socket 描述字变为可写，报错可以通过 getsockopt() 获取。
+	2.2 连接建立失败时，socket 描述字既可读又可写同时报错，可以优先检查报错退出。
+http://www.cnitblog.com/zouzheng/archive/2016/07/21/71711.html
+
+http://kimi.it/515.html EPOLL Write方式
+https://www.zhihu.com/question/22840801
+#include <sys/epoll.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/select.h>
+#include <fcntl.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#include <errno.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+int select_version(int sockfd)
+{
+	fd_set rset, wset;
+
+	FD_ZERO(&rset);
+	FD_ZERO(&wset);
+	FD_SET(sockfd, &rset);
+	FD_SET(sockfd, &wset);
+
+	struct timeval tval;
+	tval.tv_sec = 0;
+	tval.tv_usec = 300 * 1000;
+
+	int rdynum;
+	rdynum = select(sockfd + 1, &rset, &wset, NULL, &tval);
+	if (rdynum < 0) {
+		fprintf(stderr, "Select error, %s\n", strerror(errno));
+		return -1;
+	} else if (rdynum == 0) {
+		fprintf(stderr, "Select timeout\n");
+		return -1;
+	}
+
+	if (FD_ISSET(sockfd, &rset)) {
+		fprintf(stderr, "read \n");
+	}
+
+	if (FD_ISSET(sockfd, &wset)) {
+		fprintf(stderr, "write \n");
+	}
+
+	return 0;
+}
+
+int epoll_version(int sockfd)
+{
+	int ep, i, evtnum;
+
+	ep = epoll_create(1024); /* ignore 1024 since Linux 2.6.8 */
+	if (ep < 0) {
+		fprintf(stderr, "Create epoll error, %s\n", strerror(errno));
+		return -1;
+	}
+
+	struct epoll_event event;
+	event.events = EPOLLIN | EPOLLOUT | EPOLLET;
+	event.data.fd = sockfd;
+	epoll_ctl(ep, EPOLL_CTL_ADD, sockfd, &event);
+
+
+	int err = 0;
+	int errlen = sizeof(err);
+
+	struct epoll_event events[64];
+	evtnum = epoll_wait(ep, events, sizeof(events), 60 * 1000);
+	for (i = 0; i < evtnum; i++) {
+		int fd = events[i].data.fd;
+		if (events[i].events & EPOLLERR) {
+			fprintf(stderr, "error\n");
+
+			if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &errlen) == -1) {
+				fprintf(stderr, "getsockopt(SO_ERROR): %s", strerror(errno));
+				close(fd);
+				//return -1;
+			}
+
+			if (err) {
+				fprintf(stderr, "%s\n", strerror(err));
+				close(fd);
+				//return -1;
+			}
+		}
+
+		if (events[i].events & EPOLLIN) {
+			fprintf(stderr, "in\n");
+		}
+
+		if (events[i].events & EPOLLOUT) {
+			fprintf(stderr, "out\n");
+		}
+	}
+
+	return 0;
+}
+
+
+int main(int argc, char** argv)
+{
+	struct sockaddr_in svraddr;
+	int sockfd, rc;
+
+
+	memset(&svraddr, 0, sizeof(svraddr));
+	svraddr.sin_family = AF_INET;
+	svraddr.sin_port = htons(8009);
+	inet_aton("127.0.0.1", &svraddr.sin_addr.s_addr);
+
+	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		perror("Create socket fail");
+		return -1;
+	}
+
+	if (fcntl(sockfd, F_SETFL, fcntl(sockfd, F_GETFL, 0) | O_NONBLOCK) < 0) {
+		perror("Set socket O_NONBLOCK fail");
+		return -1;
+	}
+
+	rc = connect(sockfd, (struct sockaddr *)&svraddr, sizeof(struct sockaddr_in));
+	if (rc < 0 && errno != EINPROGRESS) {
+		perror("Connect remote server fail");
+		return -1;
+	}
+
+	//select_version(&c_fd);
+	epoll_version(sockfd);
+
+	close(sockfd);
+
+	return 0;
+}
+http://www.cnblogs.com/yuxingfirst/archive/2013/03/08/2950281.html
+
+### 边缘触发 VS. 水平触发
+
+简单来说，两者区别如下：
+
+1. Level Triggered 水平触发：有事件触发时会通过 epoll_wait() 去处理，如果一次处理不完会持续通知，直到处理完成，当系统中有大量不需要的描述符时会大大降低处理效率。
+2. Edge Triggered 边缘触发：如果本次没有处理完成，那么即使下次调用 epoll_wait() 也不会再次通知，知道出现下次的读写事件时才会再次触发。
+
+其中 select() poll() 的模型都是水平触发模式，信号驱动 IO 是边缘触发模式，epoll() 模型即支持水平触发，也支持边缘触发，默认是水平触发。
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#include <glob.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+int main(void)
+{
+        glob_t globbuf;
+        struct stat statbuf;
+        int rc;
+        size_t pathc;
+        char **pathv;
+
+        rc = glob("/var/run/haproxy[0-9]*.sock", GLOB_ERR | GLOB_NOSORT, NULL, &globbuf);
+        if (rc != 0)
+                return -1;
+
+        pathv = globbuf.gl_pathv;
+        pathc = globbuf.gl_pathc;
+        printf("Got #%d matches\n", pathc);
+
+        for (; pathc-- > 0; pathv++) {
+                rc = lstat(*pathv, &statbuf);
+                if (rc < 0 || !S_ISSOCK(statbuf.st_mode))
+                        continue;
+                printf("Match path: %s\n", *pathv);
+        }
+
+        globfree(&globbuf);
+        return 0;
+}
+
+mobius
+
+
+
 -->
 
 {% highlight text %}

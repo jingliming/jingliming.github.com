@@ -660,5 +660,9 @@ void* thread0(void* arg)
 -->
 
 
+实际上 Mutex 锁的性能很好，可以参考 [Mutex锁的性能](http://chenyufei.info/blog/2012-12-26/pthread-mutex-is-fast-on-linux/) 。
+
+
+
 {% highlight text %}
 {% endhighlight %}
