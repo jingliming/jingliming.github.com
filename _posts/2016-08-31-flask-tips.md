@@ -422,7 +422,7 @@ app = Flask(__name__)
 @app.route('/json', methods=['POST'])
 def foobar1():
     print request.get_data()
-    print request.get_json()
+    print request.get_json() # 需要头添加 Content-Type: application/json
     return json.dumps({'info': 'hello world'})
 
 if __name__ == '__main__':

@@ -35,7 +35,7 @@ SQLAlchemy 有多种方式，通过 `declarative_base()` 会生成一个 class �
 # -*- coding: utf8 -*-
 
 import sqlalchemy as orm
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, text, TIMESTAMP
 from sqlalchemy.ext.declarative import declarative_base
 
 # 创建实例，并连接test库，同时回显信息
@@ -47,7 +47,7 @@ BaseModel = declarative_base()  # 生成orm基类
 class User(BaseModel):
     __tablename__ = 'user'  # 表名
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(32))
     password = Column(String(64))
 
@@ -144,9 +144,50 @@ user1.name = "update1"
 session.commit()
 {% endhighlight %}
 
+### TimeStamp
 
+在使用 `db.create_all()` 进行初始化创建表的时候，如果为 Column 指定了 default 的值，并不会影响创建的表中的对应列的默认值，这些 default 的值仅仅是在使用 SQLAlchemy 系统插入值的时候会提供默认值。
 
+如果你希望影响 MySQL 中 Column 的默认值，必须使用 server_default 来指定，例如要设置一个 Colmun 默认值为0 ，则需要设定 `server_default=text('0')` 。
 
+使用下面的代码创建一个默认值不为空的 TIMESTAMP Column ：
+
+{% highlight python %}
+gmt_modify = db.Column(db.TIMESTAMP(True), nullable=False)
+gmt_create = db.Column(db.TIMESTAMP(True), nullable=False)
+{% endhighlight %}
+
+如果对一个 TIMESTAMP Column 使用了 `nullable=False` 属性，那么对于 MySQL 5.6 会自动将第一列加入 `DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`，而对于之后的列则设置为 `NOT NULL DEFAULT '0000-00-00 00:00:00'` 。
+
+然而，对于上述的 gmt_modify 会在每次更新该 Recored 的时都会自动更新，所以，如果需要给时间戳类型加入默认值，但不在每次更新的时候自动更新时间戳，可以这样做：
+
+{% highlight python %}
+#----- 每次更新条目的时候，本字段会自动更新时间戳
+gmt_modify = db.Column(db.TIMESTAMP(True), nullable=False)
+#----- 创建时间，每次更新条时，本字段不会自动更新时间戳
+gmt_create = db.Column(db.TIMESTAMP(True), nullable=False, server_default=text('NOW()'))
+gmt_create = db.Column(db.TIMESTAMP(True), nullable=False, server_default=text('CURRENT_TIMESTAMP'))
+{% endhighlight %}
+
+#### 使用 default
+
+也可以把默认值设置为空，然后通过 SQLAlchemy Column 提供的 default 在 python 层面自动加入默认值：
+
+{% highlight python %}
+gmt_modify = db.Column(db.TIMESTAMP(True), nullable=True, default=func.utcnow())
+{% endhighlight %}
+
+这种情况下，MySQL 中没有设定 updatetime 的默认值，但是在给 Column 赋值的时候，python 会使用 utcnow 自动为其加入默认值。
+
+也就是说，这是在 SQLAlchemy 层面实现的，并不是在 MySQL 中实现的。
+
+<!-- 另外，很多文章提到了 使用 server_default=text('0') 作为默认值。在 MySQL5.7上，这个默认值是不可用的： -->
+
+## 参考
+
+<!--
+https://blog.csdn.net/tastelife/article/details/25218895
+-->
 
 
 {% highlight python %}

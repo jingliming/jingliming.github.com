@@ -5,48 +5,14 @@ comments: true
 language: chinese
 category: [program,golang,linux]
 keywords: golang,go,etcd
-description: 现在已知的 Golang 版本的 RAFT 的开源实现主要有两个：一个是 CoreOS 的 etcd 中的实现，使用的项目有比如 tidb、cockroachdb 等；另外一个是 hashcorp 的 RAFT 实现，使用的项目有比如 consul、InfluxDB 等。相比而言，前者只实现了一个整体框架，很多的功能需要用户实现，难度增加但是更加灵活；而后者则是完整的实现，WAL、SnapShot、存储、序列化等。
+description:
 ---
 
-现在已知的 Golang 版本的 RAFT 的开源实现主要有两个：一个是 CoreOS 的 etcd 中的实现，使用的项目有比如 tidb、cockroachdb 等；另外一个是 hashcorp 的 RAFT 实现，使用的项目有比如 consul、InfluxDB 等。
-
-相比而言，前者只实现了一个整体框架，很多的功能需要用户实现，难度增加但是更加灵活；而后者则是完整的实现，WAL、SnapShot、存储、序列化等。
+在上篇中介绍了 ETCD 代码中 RAFT 相关的示例代码，接着介绍与 ETCD 相关的代码。
 
 <!-- more -->
 
-## 简介
-
-整体来说，该库实现了 RAFT 协议核心内容，如 append log、选主逻辑、snapshot、成员变更等；但该库没有实现消息传输和接收，只会把待发送消息保存在内存中，通过用户自定义的网络传输层取出消息并发送出去，并且在网络接收端，需要调一个库函数，用于将收到的消息传入库。
-
-同时，该库定义了一个 Storage 接口，需要库的使用者自行实现。
-
-
-<!--
-https://zhuanlan.zhihu.com/distributed-storage
-
-######################################
-## RAFT
-######################################
-RAFT C语言的实现
-https://github.com/willemt/raft
-
-Leader election
-Log replicationLog compaction
-Membership changesLeader transfer
-Linearizable/Lease read
-
-
-基本流程是？
-优化点包含了哪些？
-核心处理流程：A) AppendLog；B) 选主；C) Snapshot；D) 成员变更等。
-存储的接口通过 type Storage interface 指定，其中示例中直接使用了库中的 MemoryStorage 实现，每次从 WAL 和 Snapshot 中读取并恢复到内存中。
--->
-
 ## ETCD
-
-RAFT 协议的实现主要包括了四部分：协议逻辑、存储、消息序列化和网络传输，而 ETCD 对应的 RAFT 库只实现了最核心算法。
-
-源码可以直接下载 [Github coreos/etcd](https://github.com/coreos/etcd) 其中有一个简单的示例 [contrib/raftexample](https://github.com/coreos/etcd/tree/master/contrib/raftexample) 。
 
 ### 数据结构
 
@@ -156,11 +122,14 @@ type node struct {
 
 其实现，就是通过这些管道在 RAFT 实现与外部应用之间来传递各种消息。
 
+
+
+
 #### type raft struct
 
 在 `raft/raft.go` 中定义了 `type raft struct` 结构，其中有两个关键函数指针 `tick` 和 `step`，在不同的状态时会调用不同的函数，例如 Follower 中使用 `tickElection()` 和 `stepFollower()` 。
 
-{% highlight text %}
+{% highlight go %}
 type raft struct {
 	id uint64
 
@@ -250,51 +219,289 @@ func (n *node) Ready() <-chan Ready { return n.readyc }
 
 ### 启动流程
 
-启动入口在 `etcdmain/main.go` 文件中。
-
+ETCD 服务器是通过 EtcdServer 结构抽象，对应了 `etcdserver/server.go` 中的代码，包含属性 `r raftNode`，代表 RAFT 集群中的一个节点，启动入口在 `etcdmain/main.go` 文件中。
 
 <!--
-应用通过raft.StartNode()来启动raft中的一个副本，函数内部通过启动一个goroutine运行
+在服务器启动过程中，会调用raftNode(etcdserver/raft.go)的start方法：
+-->
 
-RAFT 交互流程相关的内容都放在 raftNode 中，而节点状态、IO调用、事件触发起点等入口都放在了 node 中，两者都在启动后起了一个 for-select 结构的协程循环处理各自负责的事件。
-1) 递增currentTerm，投票给自己；2) 重置ElectionTimer；3) 向所有的服务器发送 RequestVote RPC请求
+{% highlight text %}
+main()                             etcdmain/main.go
+ |-checkSupportArch()
+ |-startEtcdOrProxyV2()
+   |-newConfig()
+   |-setupLogging()
+   |-startEtcd()
+   | |-embed.StartEtcd()           embed/etcd.go
+   |   |-startPeerListeners()
+   |   |-startClientListeners()
+   |   |-etcdserver.ServerConfig() 生成新的配置
+   |   |-etcdserver.NewServer()    正式启动RAFT服务etcdserver/server.go
+   |-notifySystemd()
+   |-select()                      等待stopped
+   |-osutil.Exit()
+{% endhighlight %}
+
+这里基本上是大致的启动流程，主要是解析参数，设置日志，启动监听端口等，接下来就是其核心部分 `etcdserver.NewServer()` 。
+
+### 启动RAFT
+
+应用通过 `raft.StartNode()` 来启动 raft 中的一个副本，函数内部会通过启动一个 goroutine 运行。
+
+{% highlight text %}
+NewServer()                           通过配置创建一个新的EtcdServer对象etcdserver/server.go
+ |-store.New()
+ |-wal.Exist()
+ |                                    <====会根据不同的启动场景执行相关任务
+ |-startNode()                        新建一个节点，前提是没有WAL日志，且是新配置结点 etcdserver/raft.go
+ | |-raft.NewMemoryStorage()
+ | |-raft.StartNode()                 启动一个节点raft/node.go，开始node的处理过程<<<start>>>
+ |   |-newRaft()                      创建RAFT对象raft/raft.go
+ |   |-raft.becomeFollower()          这里会对关键对象初始化以及赋值，包括step=stepFollower r.tick=r.tickElection函数
+ |   | |-raft.reset()                 开始启动时设置term为1
+ |   |   |-raft.resetRandomizedElectionTimeout() 更新选举的随机超时时间
+ |   |-newNode()                      新建节点
+ |   |-node.run()                     raft/node.go 节点运行，会启动一个协程运行 <<<long running>>>
+ |     |-newReady()                   新建type Ready对象
+ |     |-raft.tick()                  等待n.tickc管道，这里实际就是在上面赋值的tickElection()函数
+ |
+ |-time.NewTicker()                   在通过&EtcdServer{}创建时新建tick时钟 etcdserver/server.go
+{% endhighlight %}
+
+启动的后台程序如下。
+
+{% highlight go %}
+func (n *node) run(r *raft) {
+	var propc chan pb.Message
+	var readyc chan Ready
+	var advancec chan struct{}
+	var prevLastUnstablei, prevLastUnstablet uint64
+	var havePrevLastUnstablei bool
+	var prevSnapi uint64
+	var rd Ready
+
+	lead := None
+	prevSoftSt := r.softState()
+	prevHardSt := emptyState
+
+	for {
+		if advancec != nil {
+			readyc = nil
+		} else {
+			rd = newReady(r, prevSoftSt, prevHardSt)
+			if rd.containsUpdates() {
+				readyc = n.readyc
+			} else {
+				readyc = nil
+			}
+		}
+
+		if lead != r.lead {
+			if r.hasLeader() {
+				if lead == None {
+					r.logger.Infof("raft.node: %x elected leader %x at term %d",
+						r.id, r.lead, r.Term)
+				} else {
+					r.logger.Infof("raft.node: %x changed leader from %x to %x at term %d",
+						r.id, lead, r.lead, r.Term)
+				}
+				propc = n.propc
+			} else {
+				r.logger.Infof("raft.node: %x lost leader %x at term %d", r.id, lead, r.Term)
+				propc = nil
+			}
+			lead = r.lead
+		}
+
+		select {
+		// TODO: maybe buffer the config propose if there exists one (the way
+		// described in raft dissertation)
+		// Currently it is dropped in Step silently.
+		case m := <-propc:
+			m.From = r.id
+			r.Step(m)
+		case m := <-n.recvc:
+			// filter out response message from unknown From.
+			if _, ok := r.prs[m.From]; ok || !IsResponseMsg(m.Type) {
+				r.Step(m) // raft never returns an error
+			}
+		case cc := <-n.confc:
+			if cc.NodeID == None {
+				r.resetPendingConf()
+				select {
+				case n.confstatec <- pb.ConfState{Nodes: r.nodes()}:
+				case <-n.done:
+				}
+				break
+			}
+			switch cc.Type {
+			case pb.ConfChangeAddNode:
+				r.addNode(cc.NodeID)
+			case pb.ConfChangeRemoveNode:
+				// block incoming proposal when local node is
+				// removed
+				if cc.NodeID == r.id {
+					propc = nil
+				}
+				r.removeNode(cc.NodeID)
+			case pb.ConfChangeUpdateNode:
+				r.resetPendingConf()
+			default:
+				panic("unexpected conf type")
+			}
+			select {
+			case n.confstatec <- pb.ConfState{Nodes: r.nodes()}:
+			case <-n.done:
+			}
+		case <-n.tickc:
+			r.tick()
+		case readyc <- rd:
+			if rd.SoftState != nil {
+				prevSoftSt = rd.SoftState
+			}
+			if len(rd.Entries) > 0 {
+				prevLastUnstablei = rd.Entries[len(rd.Entries)-1].Index
+				prevLastUnstablet = rd.Entries[len(rd.Entries)-1].Term
+				havePrevLastUnstablei = true
+			}
+			if !IsEmptyHardState(rd.HardState) {
+				prevHardSt = rd.HardState
+			}
+			if !IsEmptySnap(rd.Snapshot) {
+				prevSnapi = rd.Snapshot.Metadata.Index
+			}
+
+			r.msgs = nil
+			r.readStates = nil
+			advancec = n.advancec
+		case <-advancec:
+			if prevHardSt.Commit != 0 {
+				r.raftLog.appliedTo(prevHardSt.Commit)
+			}
+			if havePrevLastUnstablei {
+				r.raftLog.stableTo(prevLastUnstablei, prevLastUnstablet)
+				havePrevLastUnstablei = false
+			}
+			r.raftLog.stableSnapTo(prevSnapi)
+			advancec = nil
+		case c := <-n.status:
+			c <- getStatus(r)
+		case <-n.stop:
+			close(n.done)
+			return
+		}
+	}
+}
+{% endhighlight %}
 
 
-## 示例程序
 
-在 `contrib/raftexample` 中有个简单的 kvstore 示例程序。
 
-main()
-  |-newRaftNode() 返回的结构体会作为底层的RAFT协议与上层应用的中间结合体
-  | |-raftNode() 新建raftNode对象，重点proposeC
-  | |-raftNode.startRaft()  启动，示例中的代码
-  |   |-os.Mkdir() 如果snapshot目录不存在则创建
-  |   |-raftNode.replayWAL() 重放WAL日志
-  |   |-raftNode.serveRaft() 主要是启动网络监听
-  |   |-raftNode.serveChannels() 监听配置添加等命令
-  |     |-raft.Node.Propose() 阻塞等待该用户请求被RAFT状态机接受
-  |     |-raft.Node.ProposeConfChange()
-  |
-  |-newKVStore() 创建内存KV存储结构
-  | |-kvstore() 初始化KVStore存储对象
-  | |-kvstore.readCommits() 存储使用的核心，读取已经提交的数据
-  |   |-gob.NewDecoder() 反序列化
-  |   |-kvStore[] 保存到内存中
-  |
-  |-serveHttpKVAPI() 启动对外提供服务的HTTP端口
-    |-srv.ListenAndServe() 真正启动客户端的监听服务
 
-上述的 HTTP 端口中真正处理请求的函数为 ServeHTTP() 函数。
 
-ServeHTTP()
-  |====> PUT方法
-  |-ioutil.ReadAll() 读取请求
-  |-kvstore.Propose() 提交请求，会阻塞直到RAFT状态机提交成功
-  | |-buf.String() 向Channel proposeC中发送请求
-  |-http.ResponseWriter.WriteHeader() 返回数据
-  |
-  |====> GET方法
-  |-kvstore.Lookup() GET方法，查找并返回数据
+
+### 消息发送
+
+一般在 `raft/raft.go` 文件中，会通过 `r.send()` 发送，也就是 `raft.send()` 发送消息时，例如，如下是处于 Follower 状态时的处理函数 `stepFollower()` 。
+
+{% highlight go %}
+func stepFollower(r *raft, m pb.Message) {
+	switch m.Type {
+	case pb.MsgProp:
+		if r.lead == None {
+			r.logger.Infof("%x no leader at term %d; dropping proposal", r.id, r.Term)
+			return
+		} else if r.disableProposalForwarding {
+			r.logger.Infof("%x not forwarding to leader %x at term %d; dropping proposal",
+				r.id, r.lead, r.Term)
+			return
+		}
+		m.To = r.lead
+		r.send(m)
+	// ... ...
+	}
+}
+{% endhighlight %}
+
+在同一个文件中，最终会调用 `append(r.msgs, m)`，那么这个消息是在什么时候消费的呢？
+
+在 `type node struct` 结构体中，存在一个 readyc 的管道。
+
+{% highlight go %}
+type node struct {
+	readyc chan Ready
+}
+{% endhighlight %}
+
+在 `raft/node.go` 中存在一个 `node.run()` 函数，会读取所有的消息，然后同时通过管道发送。<!-- ？？？如果没有消息更新，这里会阻塞吗？？？？-->
+
+{% highlight go %}
+func newReady(r *raft, prevSoftSt *SoftState, prevHardSt pb.HardState) Ready {
+	rd := Ready{
+	    Entries:          r.raftLog.unstableEntries(),
+		CommittedEntries: r.raftLog.nextEnts(),
+		Messages:         r.msgs,
+	}
+	... ...
+}
+{% endhighlight %}
+
+也就是说，在 `node.go` 里 `node.run()` 中构建了 Ready 对象，对象里就包涵被赋值的 msgs，并最终写到 `node.readyc` 这个管道里，如下是对应这个 case 的实现：
+
+{% highlight go %}
+case readyc <- rd:
+	r.msgs = nil
+	r.readStates = nil
+	advancec = n.advancec
+{% endhighlight %}
+
+这里的 msgs 已经读取过并写入到了管道中，直接设置为空，并会赋值 advancec，在 `etcdserver/raft.go` 的 `raftNode.start()` 中，会起一个单独的协程读取数据；其中读取的函数实现在 raft/node.go 中：
+
+{% highlight go %}
+func (n *node) Ready() <-chan Ready { return n.readyc }
+{% endhighlight %}
+
+应用层 (也就是etcd) 读取到的 Ready 里面包含了 Vote 消息，会调用网络层发送消息出去，并且调用 Advance() 。
+
+<!--
+### 消息接收处理
+
+其它 node 接收到网络层消息后，会调用 raft.Step() 函数。
+
+raft.Step()  raft/raft.go
+ |-raft.becomeFollower() 如果本地的term小于消息的term，就把自己置为follower
+ |-raft.send() 当接收到的消息term一致时，就返回voteRespMsg为其投票
+
+voteRespMsg 的返回信息被之前的发送方接收到了之后，就会计算收到的选票数目是否大于所有 node 的一半，如果大于则自己成为 leader，否则将自己置为 follower；
+
+stepCandidate() raft/raft.go
+ |-[case myVoteRespType] 如果收到了投票返回的消息
+   |-raft.poll() 检查是否满足多数派原则
+
+
+case myVoteRespType:
+    gr := r.poll(m.From, m.Type, !m.Reject)
+    switch r.quorum() {
+    case gr:
+        if r.state == StatePreCandidate {
+            r.campaign(campaignElection)
+        } else {
+            r.becomeLeader()
+            r.bcastAppend()
+        }
+    case len(r.votes) - gr:
+        r.becomeFollower(r.Term, None)
+    }
+在成为leader之后，和上面的两个角色一样的，最重要的是step被置为了stepLeader，具体stepLeader中涉及到的一些操作，更多的是下一个问题会用到，这里就不多说了。
+
+func (r *raft) becomeLeader() {
+    r.step = stepLeader
+}
+
+
+
+
+
 
 ###　提交数据
 
@@ -349,20 +556,15 @@ func (rc *raftNode) serveChannels() {
 }
 -->
 
-<!--
-## 代码走读
-
 在 `raft/node.go->run()` 函数中，是一个节点 (Node) 的主要处理过程，开始处于 Follower 状态，然后随着 `case <-n.tickc` 进行，开始进入选举。
 
-
-ETCD 服务器是通过 EtcdServer 结构抽象，对应了 etcdserver/server.go 中的代码，包含属性 r raftNode，代表 RAFT 集群中的一个节点。
-
-在server启动的过程中，会调用raftNode(etcdserver/raft.go)的start方法：
-
+<!--
+## 代码走读
 ### 数据结构
 
 
 在 campaign() 中的实现选举逻辑时，实际上实现了两个阶段 PreElection 和 Election 。？？？？
+
 ## 1. Leader选举
 
 EtcdServer.Start()
@@ -379,20 +581,6 @@ raftNode.start()
 当 node 初始化完成之后，通过 `node.run()` 开始运行，这里会启动单独的协程读取如上的管道。
 
 
-NewServer() 通过配置创建一个新的EtcdServer对象etcdserver/server.go
- |-startNode() 新建一个节点，前提是没有WAL日志raft.go
- | |-StartNode() 启动一个节点raft/node.go，开始node的处理过程<<<start>>>
- |   |-newRaft() 创建RAFT对象raft/raft.go
- |   |-raft.becomeFollower() 这里会对关键对象初始化以及赋值，包括step=stepFollower r.tick=r.tickElection函数
- |   | |-raft.reset() 开始启动时设置term为1
- |   |   |-raft.resetRandomizedElectionTimeout() 更新选举的随机超时时间
- |   |   |-
- |   |-newNode() 新建节点
- |   |-node.run() 节点运行raft/node.go <<<messages>>>
- |     |-newReady() 新建type Ready对象
- |     |-raft.tick()  等待n.tickc管道，这里实际就是在上面赋值的tickElection()函数
- |
- |-time.NewTicker() 在通过&EtcdServer{}创建时新建tick时钟
 
 raft.tickElection() 时钟处理函数，默认时间间隔为500ms raft/raft.go
  |-raft.Step() 如果超时，则开始发起选举，构造消息发送给自己，消息类型为MsgHup
@@ -402,73 +590,6 @@ raft.tickElection() 时钟处理函数，默认时间间隔为500ms raft/raft.go
 	 | |-raft.reset() 重置，同时term会增加1
      |-raft.send() 向每个节点发送voteMsg消息
 
-### 消息发送
-
-通过 `raft.send()` 发送消息时，最终会调用 `append(r.msgs, m)`，那么这个消息是在什么时候消费的呢？
-
-在 `type node struct` 结构体中，存在一个 readyc 的管道。
-
-type node struct {
-	readyc chan Ready
-}
-
-在 raft/node.go 中存在一个 node.run() 函数，会读取所有的消息，然后同时通过管道发送。？？？如果没有消息更新，这里会阻塞吗？？？？
-
-func newReady(r *raft, prevSoftSt *SoftState, prevHardSt pb.HardState) Ready {
-	rd := Ready{
-	    Entries:          r.raftLog.unstableEntries(),
-		CommittedEntries: r.raftLog.nextEnts(),
-		Messages:         r.msgs,
-	}
-	... ...
-}
-
-也就是说，在 node.go 里 node.run() 中构建了 Ready 对象，对象里就包涵被赋值的 msgs，并最终写到 node.readyc 这个管道里，如下是对应这个 case 的实现：
-
-case readyc <- rd:
-	r.msgs = nil
-    r.readStates = nil
-    advancec = n.advancec
-
-这里的 msgs 已经读取过并写入到了管道中，直接设置为空，并会赋值 advancec，在 etcdserver/raft.go 的 `raftNode.start()` 中，会起一个单独的协程读取数据；其中读取的函数实现在 raft/node.go 中：
-
-func (n *node) Ready() <-chan Ready { return n.readyc }
-
-应用层 (也就是etcd) 读取到的 Ready 里面包含了 Vote 消息，会调用网络层发送消息出去，并且调用 Advance() 。
-
-### 消息接收处理
-
-其它 node 接收到网络层消息后，会调用 raft.Step() 函数。
-
-raft.Step()  raft/raft.go
- |-raft.becomeFollower() 如果本地的term小于消息的term，就把自己置为follower
- |-raft.send() 当接收到的消息term一致时，就返回voteRespMsg为其投票
-
-voteRespMsg 的返回信息被之前的发送方接收到了之后，就会计算收到的选票数目是否大于所有 node 的一半，如果大于则自己成为 leader，否则将自己置为 follower；
-
-stepCandidate() raft/raft.go
- |-[case myVoteRespType] 如果收到了投票返回的消息
-   |-raft.poll() 检查是否满足多数派原则
-
-
-case myVoteRespType:
-    gr := r.poll(m.From, m.Type, !m.Reject)
-    switch r.quorum() {
-    case gr:
-        if r.state == StatePreCandidate {
-            r.campaign(campaignElection)
-        } else {
-            r.becomeLeader()
-            r.bcastAppend()
-        }
-    case len(r.votes) - gr:
-        r.becomeFollower(r.Term, None)
-    }
-在成为leader之后，和上面的两个角色一样的，最重要的是step被置为了stepLeader，具体stepLeader中涉及到的一些操作，更多的是下一个问题会用到，这里就不多说了。
-
-func (r *raft) becomeLeader() {
-    r.step = stepLeader
-}
 -->
 
 ## Progress
@@ -521,8 +642,6 @@ receives msgAppResp(rej=true)
 <!--
 据说一个性能比lmdb好很多的存储引擎
 https://github.com/leo-yuriev/libmdbx
-
-
 
 
 RAFT论文的中文翻译
