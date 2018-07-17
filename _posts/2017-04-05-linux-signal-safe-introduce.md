@@ -333,6 +333,8 @@ Nginx、MySQL 都分别实现了一堆的格式化函数，如 `ngx_vslprintf()`
 
 总结一下，这种有全局锁的函数都不是信号安全的，比如 localtime()、gmttime()、free()、malloc() 等，但是无法使用 pthread_atfork() 来清理，因此在多线程中使用 fork 需要谨慎。
 
+关于信号安全的函数可以通过 `man 7 signal` 查看。
+
 
 {% highlight text %}
 {% endhighlight %}

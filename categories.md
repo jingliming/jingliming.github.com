@@ -460,4 +460,13 @@ http://www.davidpashley.com/articles/postgresql-user-administration/
 ZeroMQ
 https://github.com/anjuke/zguide-cn
 
+
+
+索罗斯，三大原则
+
+* 客户第一
+* 对发明创造的渴望
+* 长远的眼光和想法
+
+Semantic Versioning 语义化版本规范
 -->

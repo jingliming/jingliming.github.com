@@ -212,6 +212,7 @@ int main(void)
 	rc = sqlite3_step(res);
 	if (rc == SQLITE_ROW)
 		printf("%s: ", sqlite3_column_text(res, 0));
+	sqlite3_finalize(res);
 
 	sql = "UPDATE daemon SET version = 'V2.0.1', gmt_modify = CURRENT_TIMESTAMP WHERE name = 'MonitorAgent';";
 	rc = sqlite3_exec(db, sql, NULL, NULL, &errmsg);
@@ -230,7 +231,6 @@ int main(void)
 		sqlite3_close(db);
 		return 1;
 	}
-
 	sqlite3_close(db);
 
 	return 0;

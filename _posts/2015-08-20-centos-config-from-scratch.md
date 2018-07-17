@@ -401,6 +401,19 @@ inkscape 用于绘制矢量图，另一个比较简单的是 [xfig](http://www.x
 
 可以安装常用的插件，如 Regular Expressions Tester (一个正则表达式的测试工具)、Vimperator (将对火狐的部分操作改为VIM模式)、Mozilla Archive Format (用来保存查看mhtml格式的文件)。
 
+##### 安装最新版本
+
+有部分的开发工具需要最新版本的 firefox ，可以从 [Firefox Download](https://www.mozilla.org/en-US/firefox/new/) 下载最新版本，然后通过如下步骤安装。
+
+{% highlight text %}
+----- 1. 删除老版本
+# yum remove firefox
+# unlink /usr/bin/firefox
+
+----- 2. 下载并将压缩包解压到/usr/local目录下
+# ln -s /usr/local/firefox/firefox /usr/bin/firefox
+{% endhighlight %}
+
 #### Chrome
 
 可以参考 [Google Chrome 51 Released – Install on RHEL/CentOS 7/6 and Fedora 23-15](http://www.tecmint.com/install-google-chrome-on-redhat-centos-fedora-linux/)

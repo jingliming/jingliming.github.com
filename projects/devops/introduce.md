@@ -452,6 +452,22 @@ https://github.com/imsun/gitment
 https://github.com/Blankj/awesome-comment
 一个简单的评论系统
 https://github.com/adtac/commento
+
+
+
+## 任务管理
+
+### 需求
+
+其中 TAG 一般不会超过 1000，而主机数可以是 100W+ 。
+
+1. 服务端任务保存；分为两个纬度，主机以及Tag，均保存在hosts表中
+1. 服务端任务下发流程；可以针对单个主机下发，或者对于 TAG 下发
+1. Agent 和 Server 的任务一致性校验；
+1. 主机的自动伸缩、扩容支持。当安装并挂载到产品数之后
+
+单纯对于一台主机来说
+
 -->
 
 

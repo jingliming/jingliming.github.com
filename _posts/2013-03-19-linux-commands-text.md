@@ -171,6 +171,20 @@ $ sed -i '$d' filename
 $ sed -i '/foobar/d' filename
 {% endhighlight %}
 
+<!--
+sed '0,/^520/{//d;b};0,/131$/d'
+sed '/^520/{:a;N;/131$/!ba;d}'
+-->
+
+可以通过如下命令删除两个标记行之间的内容，相关帮助可以通过 `info sed` 查看。
+
+{% highlight text %}
+----- 查看输出，没有问题直接替换
+$ sed '0,/^#YOUR-MARK-BEGIN$/{//d;b};0,/^#YOUR-MARK-END$/d'    # 只删除第一个匹配
+$ sed '/^#YOUR-MARK-BEGIN$/, /^#YOUR-MARK-END$/d'              # 删除所有匹配
+$ sed -i -e '0,/^#YOUR-MARK-BEGIN$/{//d;b};0,/^#YOUR-MARK-END$/d'
+{% endhighlight %}
+
 ### 多行替换
 
 sed 经常用来替换文件的内容，通常是处理单行的，但通过它的一些内建功能，也能实现多行替换。假设有如下的文本：

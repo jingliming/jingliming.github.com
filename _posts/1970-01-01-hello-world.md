@@ -3676,6 +3676,20 @@ mobius
 
 
 
+
+
+
+
+
+aspire
+
+
+
+介绍TCP流
+http://kaiyuan.me/2015/09/04/TCP%E7%9A%84%E6%94%B6%E5%8F%91%E5%8C%85%E6%9C%BA%E5%88%B6%E8%A7%A3%E6%9E%90/
+
+
+
 -->
 
 {% highlight text %}

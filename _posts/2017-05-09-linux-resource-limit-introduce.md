@@ -72,7 +72,10 @@ Jaromil 在 2002 年通过 Bash 设计了最为精简的一个 fork 炸弹的实
 
 默认的文件句柄限制是 1024，可以通过 `ulimit -n` 查看；系统总的限制保存在 `/proc/sys/fs/file-max` 文件中，可以通过 `/etc/sysctl.conf` 配置文件修改，当前整个系统的文件句柄使用数可以查看 `/proc/sys/fs/file-nr` 。
 
+
 ### ulimit
+
+该命令是 bash 内键命令，可以通过 `type ulimit` 查看，它具有一套参数集，用来为由它生成的 shell 进程及其子进程的资源使用设置限制，针对的是 Per-Process 而非 Per-User 。
 
 ulimit 用于 shell 启动进程所占用的资源，可以用来设置系统的限制，通过 `ulimit -a` 可以查看当前的资源限制，如果通过命令行设置，则只对当前的终端生效。
 
@@ -93,6 +96,38 @@ domain type item value
    value 相关指标对应的值，其中 unlimited 表示不限制。
 {% endhighlight %}
 
+#### Hard VS. Soft
+
+其中的硬限制是实际的限制，而软限制，是 Warnning 限制，只会做出 Warning；在通过 ulimit 设置时分软硬设置，加 `-H` 就是硬，加 `-S` 就是软，默认是 `-S` 。
+
+如果打开文件过多，会导致 `Too many open files` 报错，
+
+### ulimit limits.conf pam_limits
+
+在 Linux 中，每个进程都可以调用 `getrlimit()` 来查看自己的 limits，也可以调用 `setrlimit()` 来改变自身的 soft limits，如果要修改 hard limit，则需要确保进程有 `CAP_SYS_RESOURCE` 权限。
+
+另外，进程 fork() 出来的子进程，会继承父进程的 limits 设定。
+
+`ulimit` 是 shell 的内置命令，同样是调用上述的接口获取改变自身的 limits ，当在 shell 中执行应用程序时，相应的进程就会继承当前 shell 的 limits 设置。
+
+而 shell 的初始 limits 是在启动时通过 `pam_limits` 设定的，这是一个 PAM 模块，用户登录会根据 `limits.conf` 定义的值进行配置。
+
+可以开启 `pam_limits` 的 debug 来查看大致过程：
+
+{% highlight text %}
+$ cat /etc/security/limits.conf
+$ grep pam_limits /etc/pam.d/password-auth-ac
+session     required      pam_limits.so debug
+$ tail /var/log/secure
+{% endhighlight %}
+
+也即是说：
+
+1. 用户进行登录时触发 `pam_limits` 模块；
+2. `pam_limits` 会读取 `limits.conf` 中的配置，并设定用户所登陆 shell 的 limits；
+3. 用户登陆 shell 之后，可以通过 ulimit 命令查看或者修改当前 shell 的 limits;
+4. 当用户在 shell 中执行程序时，该程序进程会继承 shell 的 limits 值，从而使子进程相关的配置生效。
+
 #### 关于PAM
 
 在通过第二种方式配置永久生效时，可以查看 `/etc/pam.d/login` 文件，确保有 `session required /lib/security/pam_limits.so` 配置项。
@@ -109,6 +144,18 @@ admin - maxlogins 2
 {% endhighlight %}
 
 如果要查看应用程序知否支持 PAM ，最简答的是通过 ldd 查看动态库。
+
+### 查看进程的限制
+
+进程自己可以通过 `getrlimit()` `prlimit()` 来获得当前 limits 配置，调用 `getrusage()` 获取自身的资源使用量，也可以通过 `/proc/PID/limits` 获取某个进程的 limits 设置。
+
+要查看某个进程的资源使用量，通常可以通过 `/proc/PID/{stat,status}` 查看。具体某个值的含义，可以参考 proc 的手册。
+
+<!---
+https://feichashao.com/ulimit_demo/
+https://easyengine.io/tutorials/linux/increase-open-files-limit/
+-->
+
 
 ## 最大进程数
 

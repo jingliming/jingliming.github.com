@@ -19,7 +19,7 @@ description: 简单记录一下一些常见的资源。
 ## 其它
 
 * [Let's Build a Simple Database](https://cstack.github.io/db_tutorial/) ，详细介绍如何构建一个小型数据库，基本类似于 SQLite 。
-
+* [www.msdmanuals.cn](https://www.msdmanuals.cn/)，默沙东诊疗手册，对于外行或者专业来说都是不错的医疗相关介绍。
 
 
 
@@ -220,6 +220,22 @@ https://github.com/jonashaag/bjoern
 https://github.com/Celtoys/Remotery
 https://github.com/Bumblebee-Project/Bumblebee
 https://github.com/intel-iot-devkit/mraa
+
+
+
+https://github.com/krallin/tini
+https://github.com/allinurl/goaccess
+https://github.com/tj/mon
+https://github.com/z3APA3A/3proxy
+https://github.com/vstakhov/rspamd
+https://github.com/sustrik/libdill
+https://github.com/nanopb/nanopb
+https://github.com/h2o/picohttpparser
+https://github.com/examplecode/mproxy
+https://github.com/halayli/lthread
+https://github.com/opsengine/cpulimit
+https://github.com/viabtc/asnw
+https://mp.weixin.qq.com/s/gV7DqSgSkz_X56p2X_x_cQ
 -->
 
 

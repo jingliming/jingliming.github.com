@@ -915,7 +915,142 @@ ev_stat_init (&makefile, filestat_cb, "Makefile", 0.);
 ev_stat_start (loop, &makefile);
 {% endhighlight %}
 
-## 代码优化
+## 信号处理
+
+Linux 中的信号时异步发生的，一般是从内核态切换到用户态时进行检查，从而从用户代码角度看，就是异步处理。
+
+采用的是将异步信号同步化处理，同步化方案有，`signalfd`、`eventfd`、`pipe`、`sigwaitinfo` 等，这里采用的是前三种，将对异步信号的处理，转化成对文件描述符的处理，也就是将 `ev_signal` 转化为处理 `ev_io` ；而最后一种，需要单独起一个信号处理线程。
+
+### 源码解析
+
+使用示例如下。
+
+{% highlight c %}
+#include <stdio.h>
+#include <libev/ev.h>
+
+static void sigint_cb (EV_P_ ev_signal *w, int revents)
+{
+        puts("catch SIGINT");
+        ev_break (EV_A_ EVBREAK_ALL);
+}
+
+int main (void)
+{
+        EV_P EV_DEFAULT;
+        static ev_signal signal_watcher;
+
+        ev_signal_init (&signal_watcher, sigint_cb, SIGINT);
+        ev_signal_start(EV_A_ &signal_watcher);
+
+        ev_loop(EV_A_ 0);
+
+        return 0;
+}
+{% endhighlight %}
+
+#### 数据结构
+
+对应的结构体展开后的成员对象如下：
+
+{% highlight c %}
+typedef struct ev_signal {  
+	int active;
+	int pending;
+	int priority;
+	void *data;
+	void (*cb)(EV_P_ struct ev_signal *w, int revents);
+	struct ev_watcher_list *next;
+	int signum;
+} ev_signal;  
+{% endhighlight %}
+
+包括 cb 在内之前的都是比较标准的成员，其中 signum 记录了信号量，成员结构体通过 list 链接。另外，在 ev.c 内部，通过 `ANSIG` 结构体维护了一个数组结构，用来组织 `ev_signal` 结构体。
+
+{% highlight c %}
+typedef struct {
+    sig_atomic_t volatile pending;   // 信号处于未决状态，也就是触发但尚未处理
+#if EV_MULTIPLICITY
+    struct ev_loop *loop;
+#endif
+    ev_watcher_list *head;           // 该信号所注册的信号处理回调函数
+} ANSIG;
+static ANSIG signals [EV_NSIG - 1];
+{% endhighlight %}
+
+`signals` 是 ANSIG 类型的数组，它的下标就是相应的信号值 - 1，也就是说，每个信号都有对应的 ANSIG 结构。
+
+### 信号同步处理
+
+在 Linux 平台上，libev 信号同步机制采用的顺序为：signalfd、eventfd、pipe 。
+
+#### signalfd
+
+signalfd 是最简单方便的信号同步机制，可以很容易的将异步的信号的监听转化成对文件描述符的监听。
+
+下面首先看一下使用 signalfd 时的信号处理流程，其函数声明为。
+
+{% highlight text %}
+#include <sys/signalfd.h>
+int signalfd(int fd, const sigset_t*mask, intflags);
+
+参数:
+    fd: -1 生成新文件描述符；或者指定存在有效的 fd ，而 mask 会替换掉之前相关联的信号集。
+    mask: 这个文件描述符接受的信号集，可以通过sigsetops()宏初始化。
+{% endhighlight %}
+
+函数使用示例如下：
+
+{% highlight c %}
+#include <stdio.h>
+#include <signal.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sys/signalfd.h>
+
+#define handle_error(msg) do {           \
+        perror(msg); exit(EXIT_FAILURE); \
+} while (0)
+
+int main(void)
+{
+        int sfd;
+        ssize_t rc;
+        struct signalfd_siginfo fdsi;
+
+        sigset_t mask;
+        sigemptyset(&mask);
+        sigaddset(&mask, SIGINT);
+        sigaddset(&mask, SIGQUIT);
+
+        if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1)
+                handle_error("sigprocmask");
+
+        if ((sfd = signalfd(-1, &mask, 0)) == -1)
+                handle_error("signalfd");
+
+        while(1) {
+                rc = read(sfd, &fdsi, sizeof(struct signalfd_siginfo));
+                if (rc != sizeof(struct signalfd_siginfo))
+                        handle_error("read");
+
+                if (fdsi.ssi_signo == SIGINT) {
+                        printf("Got SIGINT\n");
+                } else if (fdsi.ssi_signo == SIGQUIT) {
+                        printf("Got SIGQUIT\n");
+                        exit(EXIT_SUCCESS);
+                } else {
+                        printf("Read unexpected signal\n");
+                }
+        }
+
+        return 0;
+}
+{% endhighlight %}
+
+## 杂项
+
+### 代码优化
 
 libev 可以通过很多宏进行调优，默认会通过 EV_FEATURES 宏定义一些特性，定义如下。
 
@@ -937,10 +1072,7 @@ libev 可以通过很多宏进行调优，默认会通过 EV_FEATURES 宏定义�
 #define EV_FEATURE_OS       ((EV_FEATURES) & 64) /* 0100 0000 */
 {% endhighlight %}
 
-
-
-
-## 内存分配
+### 内存分配
 
 可以看到很多数组会通过 `array_needsize()` 函数分配内存，简单来说，为了防止频繁申请内存，每次都会尝试申请 `MALLOC_ROUND` 宏指定大小的内存，一般是 4K 。
 
@@ -954,6 +1086,17 @@ array_needsize(ANHE, timers, timermax, ev_active (w) + 1, EMPTY2);
 
 在分配内存时，默认会采用 `realloc()` 函数，如果想要自己定义，可以通过 `ev_set_allocator()` 函数进行设置。
 
+### 处理回调
+
+触发的事件会通过 `ev_feed_event()` 函数将相关的事件保存到一个二维 pendings 数组中，也就是说该数组记录了所有已经触发的事件，其中第一个维度是优先级，而第二个维度是已经触发的事件。
+
+{% highlight text %}
+pendings[PRI][NUMS];
+pendingmax[PRI]; 最大数组
+pendingcnt[PRI]; 当前事件数
+{% endhighlight %}
+
+
 
 ## 参考
 
@@ -961,9 +1104,13 @@ array_needsize(ANHE, timers, timermax, ev_active (w) + 1, EMPTY2);
 
 对于 python ，提供了相关的扩展 [Python libev interface - pyev](http://packages.python.org/pyev/) 。
 
+魅族内核团队的相关文章，一篇介绍内核如何实现信号处理，[Linux Signal](http://kernel.meizu.com/linux-signal.html) 。
+
 <!--
 libev and libevent对比
 https://blog.gevent.org/2011/04/28/libev-and-libevent/
+
+https://blog.csdn.net/gqtcgq/article/details/49716601
 -->
 
 

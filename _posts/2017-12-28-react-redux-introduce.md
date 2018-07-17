@@ -24,6 +24,13 @@ React 只是提供了一个 DOM 的抽象层，并不是 Web 应用的完整解�
 
 Redux 的设计思想很简单：A) Web 应用是一个状态机，视图与状态是一一对应；B) 所有的状态，保存在一个对象里面。
 
+可以简单将 Redux 理解为是 JavaScript 的状态容器：
+
+1. 应用中所有的状态都是以一个对象树的形式存储在一个单一的 store 中；
+2. 当你想要改变应用的中的状态时，你就要 dispatch 一个 action，这也是唯一的改变 state 的方法；
+3. 通过编写 reducer 来维护状态，返回新的 state，不直接修改原来数据；
+
+
 ### 工作流
 
 首先简单介绍下 Redux 的工作流程。
@@ -57,6 +64,17 @@ function listerner() {
 	component.setState(newState);
 }
 {% endhighlight %}
+
+
+### 组件生命周期
+
+![lifetime]({{ site.url }}/images/javascripts/react/react-component-lifetime.png "lifetime"){: .pull-center width="80%" }
+
+从上图所示，React 组件的生命周期可以分为初始化阶段、存在阶段和销毁阶段。
+
+<!--
+https://blog.csdn.net/u013982921/article/details/53158941
+-->
 
 
 ## 基本概念
@@ -385,92 +403,77 @@ const Title = value => <h1>{value}</h1>;
 
 React-Redux 规定，所有的 UI 组件都由用户提供，容器组件则是由 React-Redux 自动生成。也就是说，用户负责视觉层，状态管理则是全部交给它。
 
+### 示例
 
-### connect()
+在使用 Counter 示例前，需要安装 browserify 以及 http-server 。
 
-React-Redux 提供 `connect()` 方法，用于从 UI 组件生成容器组件，就是将这两种组件连起来。
+{% highlight text %}
+# npm install browserify -g
+# npm install http-server -g
+{% endhighlight %}
+
+可以参考 [GitHub Redux Example](https://github.com/jackielii/simplest-redux-example) 。
+
+### Connect
+
+React-Redux 提供的 `connect()` 方法用于从 UI 组件生成容器组件。
 
 {% highlight text %}
 import { connect } from 'react-redux'
-const VisibleTodoList = connect()(TodoList);
+const App = connect()(Counter);
 {% endhighlight %}
 
-上面代码中，`TodoList` 是 UI 组件，`VisibleTodoList` 就是由 React-Redux 通过 `connect()` 方法自动生成的容器组件。
+Counter 是 UI 组件，而 App 就是由 React-Redux 通过 `connect()` 自动生成的容器组件。
 
-上述没有只是一个示例，没有指定业务逻辑，为了定义业务逻辑，需要给出下面两方面的信息。
+不过因为没有定义业务逻辑，上面这个容器组件毫无意义，只是 UI 组件的一个单纯的包装层。为了定义业务逻辑，需要给出下面两方面的信息。
 
-* 输入逻辑：外部的数据 (即state对象) 如何转换为 UI 组件的参数
+* 输入逻辑：外部的数据 （即state对象）如何转换为 UI 组件的参数
 * 输出逻辑：用户发出的动作如何变为 Action 对象，从 UI 组件传出去。
 
-因此，`connect()` 方法的完整 API 如下。
+因此，`connect()` 方法的调用为如下：
 
 {% highlight text %}
 import { connect } from 'react-redux'
 
-const VisibleTodoList = connect(
+const App = connect(
 	mapStateToProps,
 	mapDispatchToProps
-)(TodoList)
+)(Counter)
 {% endhighlight %}
 
-上面代码中，`connect()` 接受两个参数：`mapStateToProps` 和 `mapDispatchToProps`。
-
-它们定义了 UI 组件的业务逻辑，前者负责输入逻辑，即将 state 映射到 UI 组件的参数(props)，后者负责输出逻辑，即将用户对 UI 组件的操作映射成 Action。
+上述的两个入参，前者负责输入逻辑，即将 state 映射到 UI 组件的参数 (props)；后者负责输出逻辑，即将用户对 UI 组件的操作映射成 Action 。
 
 ### mapStateToProps()
 
-`mapStateToProps()` 是一个函数，用于建立一个从(外部的) state 对象到(UI 组件的) props 对象的映射关系。作为函数，`mapStateToProps()` 执行后应该返回一个对象，里面的每一个键值对就是一个映射，例如：
+建立一个从外部的 state 对象到 UI 组件 props 对象的映射关系，该函数会返回一个对象，里面的每个键值对就是一个映射。
 
 {% highlight text %}
-const mapStateToProps = (state) => {
+function mapStateToProps(state) {
 	return {
-		todos: getVisibleTodos(state.todos, state.visibilityFilter)
+		value: state.count
 	}
 }
 {% endhighlight %}
 
-上面代码中，`mapStateToProps()` 接受 state 作为参数，返回一个对象。这个对象有一个 todos 属性，代表 UI 组件的同名参数，后面的 `getVisibleTodos` 也是一个函数，可以从 state 算出 todos 的值。
-
-{% highlight text %}
-const getVisibleTodos = (todos, filter) => {
-	switch (filter) {
-	case 'SHOW_ALL':
-		return todos
-	case 'SHOW_COMPLETED':
-		return todos.filter(t => t.completed)
-	case 'SHOW_ACTIVE':
-		return todos.filter(t => !t.completed)
-	default:
-		throw new Error('Unknown filter: ' + filter)
-	}
-}
-{% endhighlight %}
+如上函数，接受 state 作为参数，返回一个对象；如上的对象有一个 value 属性，代表 UI 组件的同名参数，可以是一个值，也可以是一个函数 (从 state 计算出 value 的值) 。
 
 `mapStateToProps()` 会订阅 Store，每当 state 更新的时候，就会自动执行，重新计算 UI 组件的参数，从而触发 UI 组件的重新渲染。
 
-<!--
-mapStateToProps的第一个参数总是state对象，还可以使用第二个参数，代表容器组件的props对象。
-
-
-    // 容器组件的代码
-    //    <FilterLink filter="SHOW_ALL">
-    //      All
-    //    </FilterLink>
-
-    const mapStateToProps = (state, ownProps) => {
-      return {
-        active: ownProps.filter === state.visibilityFilter
-      }
-    }
-
-使用ownProps作为参数后，如果容器组件的参数发生变化，也会引发 UI 组件重新渲染。
--->
-
-connect 方法可以省略 `mapStateToProps` 参数，那样的话，UI 组件就不会订阅 Store，就是说 Store 的更新不会引起 UI 组件的更新。
+`connect()` 可以省略 `mapStateToProps` 参数，那样的话，UI 组件就不会订阅 Store，就是说 Store 的更新不会引起 UI 组件的更新。
 
 ### mapDispatchToProps()
 
 用来建立 UI 组件的参数到 `store.dispatch()` 方法的映射，定义了哪些用户的操作应该当作 Action，传给 Store，可以是一个函数，也可以是一个对象。
+
+{% highlight text %}
+function mapDispatchToProps(dispatch) {
+	return {
+		onIncreaseClick: () => dispatch(increaseAction)
+	}
+}
+{% endhighlight %}
+
+如上，`mapDispatchToProps` 是一个函数，其入参可以有两个参数 dispatch 和 ownProps (容器组件的 props 对象) 两个参数。
 
 <!--
 如果mapDispatchToProps是一个函数，会得到dispatch和ownProps（容器组件的props对象）两个参数。
@@ -493,7 +496,6 @@ connect 方法可以省略 `mapStateToProps` 参数，那样的话，UI 组件�
 
 如果mapDispatchToProps是一个对象，它的每个键名也是对应 UI 组件的同名参数，键值应该是一个函数，会被当作 Action creator ，返回的 Action 会由 Redux 自动发出。举例来说，上面的mapDispatchToProps写成对象就是下面这样。
 
-
     const mapDispatchToProps = {
       onClick: (filter) => {
         type: 'SET_VISIBILITY_FILTER',
@@ -504,7 +506,7 @@ connect 方法可以省略 `mapStateToProps` 参数，那样的话，UI 组件�
 
 ### Provider 组件
 
-connect 方法生成容器组件以后，需要让容器组件拿到 state 对象，才能生成 UI 组件的参数。
+`connect()` 生成容器组件后，需要让容器组件拿到 state 对象，才能生成 UI 组件的参数。
 
 React-Redux 提供 Provider 组件，可以让容器组件拿到 state 。
 
@@ -526,147 +528,6 @@ render(
 
 上面代码中，Provider 在根组件外面包了一层，这样一来，App 的所有子组件就默认都可以拿到 state 了。
 
-<!--
-它的原理是React组件的context属性，请看源码。
-
-    class Provider extends Component {
-      getChildContext() {
-        return {
-          store: this.props.store
-        };
-      }
-      render() {
-        return this.props.children;
-      }
-    }
-
-    Provider.childContextTypes = {
-      store: React.PropTypes.object
-    }
-
-上面代码中，store放在了上下文对象context上面。然后，子组件就可以从context拿到store，代码大致如下。
-
-    class VisibleTodoList extends Component {
-      componentDidMount() {
-        const { store } = this.context;
-        this.unsubscribe = store.subscribe(() =>
-          this.forceUpdate()
-        );
-      }
-
-      render() {
-        const props = this.props;
-        const { store } = this.context;
-        const state = store.getState();
-        // ...
-      }
-    }
-
-    VisibleTodoList.contextTypes = {
-      store: React.PropTypes.object
-    }
-
-React-Redux自动生成的容器组件的代码，就类似上面这样，从而拿到store。
--->
-
-<!--
-七、实例：计数器
-
-我们来看一个实例。下面是一个计数器组件，它是一个纯的 UI 组件。
-
-
-    class Counter extends Component {
-      render() {
-        const { value, onIncreaseClick } = this.props
-        return (
-          <div>
-            <span>{value}</span>
-            <button onClick={onIncreaseClick}>Increase</button>
-          </div>
-        )
-      }
-    }
-
-上面代码中，这个 UI 组件有两个参数：value和onIncreaseClick。前者需要从state计算得到，后者需要向外发出 Action。
-
-接着，定义value到state的映射，以及onIncreaseClick到dispatch的映射。
-
-
-    function mapStateToProps(state) {
-      return {
-        value: state.count
-      }
-    }
-
-    function mapDispatchToProps(dispatch) {
-      return {
-        onIncreaseClick: () => dispatch(increaseAction)
-      }
-    }
-
-    // Action Creator
-    const increaseAction = { type: 'increase' }
-
-然后，使用connect方法生成容器组件。
-
-
-    const App = connect(
-      mapStateToProps,
-      mapDispatchToProps
-    )(Counter)
-
-然后，定义这个组件的 Reducer。
-
-
-    // Reducer
-    function counter(state = { count: 0 }, action) {
-      const count = state.count
-      switch (action.type) {
-        case 'increase':
-          return { count: count + 1 }
-        default:
-          return state
-      }
-    }
-
-最后，生成store对象，并使用Provider在根组件外面包一层。
-
-
-    import { loadState, saveState } from './localStorage';
-
-    const persistedState = loadState();
-    const store = createStore(
-      todoApp,
-      persistedState
-    );
-
-    store.subscribe(throttle(() => {
-      saveState({
-        todos: store.getState().todos,
-      })
-    }, 1000))
-
-    ReactDOM.render(
-      <Provider store={store}>
-        <App />
-      </Provider>,
-      document.getElementById('root')
-    );
-
-完整的代码看这里。
-八、React-Router 路由库
-
-使用React-Router的项目，与其他项目没有不同之处，也是使用Provider在Router外面包一层，毕竟Provider的唯一功能就是传入store对象。
-
-
-    const Root = ({ store }) => (
-      <Provider store={store}>
-        <Router>
-          <Route path="/" component={App} />
-        </Router>
-      </Provider>
-    );
--->
 
 ## 示例
 
@@ -754,9 +615,14 @@ ReactDOM.render(
 
 可以查看其 [官方文档](https://redux.js.org/)，还有配套的小视频 ([前 30 集](https://egghead.io/courses/getting-started-with-redux)、[后 30 集](https://egghead.io/courses/building-react-applications-with-idiomatic-redux))。
 
+关于前端的模式可以参考 [现代 Web 开发基础与工程实践](https://github.com/wxyyxc1992/Web-Series) 以及 [React 模式](http://sangka-z.com/react-in-patterns-cn/) 。
+
 <!--
 Redux 入门教程（三）：React-Redux 的用法
 http://www.ruanyifeng.com/blog/2016/09/redux_tutorial_part_three_react-redux.html
+
+React设计模式:深入理解React&Redux原理套路
+https://segmentfault.com/a/1190000006112093
 -->
 
 {% highlight text %}

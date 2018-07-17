@@ -334,7 +334,7 @@ gearctl [options]
 常驻进程相关的数据同样保存在 `gearman.db` 文件中。
 
 {% highlight sql %}
-DROP TABLE IF EXISTS `aemon`;
+DROP TABLE IF EXISTS `daemon`;
 
 CREATE TABLE IF NOT EXISTS `daemon` (
     `name` CHAR(64) PRIMARY KEY NOT NULL,
@@ -395,6 +395,34 @@ CREATE TABLE IF NOT EXISTS `daemon` (
 {% endhighlight %}
 
 其中 stop 中可以使用 `<process|kill>:argument` 这种方式，前者会执行一个命令，后者则会发送信号给对应的进程。
+
+
+#### 4. 服务端表结构设计
+
+{% highlight sql %}
+DROP TABLE IF EXISTS `hosts`;
+CREATE TABLE IF NOT EXISTS `hosts` (
+	`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	`hostname` CHAR(256) NOT NULL COMMENT "可以是主机名、AgentSN等",
+	`region` CHAR(64) NOT NULL DEFAULT "unkown" COMMENT "所属region信息",
+	`status` ENUM('unknown', 'online', 'offline') DEFAULT 'unknown' COMMENT "主机状态",
+
+	`gmt_modify` NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`gmt_create` NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COMMENT "保存主机基本信息";
+
+DROP TABLE IF EXISTS `plugins`;
+CREATE TABLE IF NOT EXISTS `plugins` (
+	`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	`name` CHAR(128) NOT NULL COMMENT "插件名称",
+	`version` CHAR(64) NOT NULL COMMENT "插件版本号信息",
+
+	`gmt_modify` NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`gmt_create` NOT NULL DEFAULT CURRENT_TIMESTAMP,
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COMMENT "插件信息";
+{% endhighlight %}
+
+
 
 
 ### 监控 Nodus
@@ -581,6 +609,56 @@ https://github.com/lpereira/lwan
 
 
 http://www.tildeslash.com/libzdb/#
+
+
+
+
+
+DROP TABLE IF EXISTS `hosts`;
+CREATE TABLE IF NOT EXISTS `hosts` (
+	`id` BIGINT NOT NULL AUTO_INCREMENT,
+	`name` VARCHAR(128) DEFAULT NULL COMMENT 'TAG、服务或主机标示(如AgentSN、IP、HOSTNAME)',
+
+
+	`gmt_create` datetime DEFAULT CURRENT_TIMESTAMP,
+	`gmt_modify` datetime ON UPDATE CURRENT_TIMESTAMP,
+	UNIQUE KEY uk_name (name),
+	PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+DROP TABLE IF EXISTS `jobs`;
+CREATE TABLE IF NOT EXISTS `jobs` (
+	`id` BIGINT NOT NULL AUTO_INCREMENT,
+
+
+	`gmt_create` datetime DEFAULT CURRENT_TIMESTAMP,
+	`gmt_modify` datetime ON UPDATE CURRENT_TIMESTAMP,
+	UNIQUE KEY uk_name (name),
+	PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+DROP TABLE IF EXISTS `host_job`;
+CREATE TABLE IF NOT EXISTS `host_job` (
+	`hostid` BIGINT NOT NULL,
+	`jobid` BIGINT NOT NULL,
+	UNIQUE KYE (`jobid`, `hostid`),
+	PRIMARY KEY (`hostid`, `jobid`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+假设产品树采用的是三层结构，
+产品，对外售卖的服务(如ECS、RDS等)、内部使用平台(数据库管理平台、运维系统等)
+服务，一般也就是一个团队独立开发维护的。
+组件/微服务，可以独立安装部署的最小单元，例如Console、DB、Server等。
+
+那么保存的任务就会涉及了继承的层级关系，一般来说层级越低的优先级也越高 ECS < OpenStack < Console < Host ，而这里的优先级处理则是直接通过服务端进行处理。
+
+
+
+获取主机对应的任务
+
+
 -->
 
 
