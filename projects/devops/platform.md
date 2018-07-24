@@ -659,6 +659,24 @@ CREATE TABLE IF NOT EXISTS `host_job` (
 获取主机对应的任务
 
 
+
+内存不足测试
+https://oomake.com/question/12305
+https://code-examples.net/zh-CN/q/1a9c8
+kill信号的排查
+https://hongjiang.info/shell-script-background-process-ignore-sigint/
+
+
+1. 超过最大buffer则丢弃后续的数据，目前设置为 64K。
+2. 内存不足、read返回失败(认为内部错误，会打印错误信息) 时会强制 KILL 子进程。
+   此时进程会返回状态9(直接在回调函数中kill进程进行测试)
+3. fork进程后没有通过exevp()执行，而是直接退出。
+   此时通过valgrind会看到有reachable的报错，主要是子进程继承的资源未被释放，如果子进程退出时释放所有资源，那么就不会报错。
+   不过可以忽略，操作系统会在进程退出时对这部分的内存进行回收。
+4. 执行超时3次以后则会强制退出。测试脚本需要忽略 SIGINT(2) 信号，也就是 trap '' 2
+5. libev在新创建的进程里面，实际不需要手动关闭正常运行流程，但是以防后面添加了其它的处理逻辑，还是关闭掉。
+
+
 -->
 
 

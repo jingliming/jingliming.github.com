@@ -852,22 +852,74 @@ int main (void)
 }
 {% endhighlight %}
 
+### Fork Watcher
 
+在 libev 中提供了一个 fork 事件的监控，libev 会在循环中自动检测是否调用了 `fork()` 函数，如果是那么会重新设置事件驱动回调函数。
 
+除了自动判断，也可以在 `fork()` 子进程之后调用 `ev_loop_fork()` 函数。
 
+{% highlight c %}
+#include "ev.h"
+#include <stdio.h>
 
+static void fork_callback(EV_P_ ev_fork *w, int revents)
+{
+        (void) w;
+        (void) revents;
 
+        printf("[%d] fork callback\n", getpid());
+}
 
+static void timeout_callback(EV_P_ ev_timer *w,int revents)
+{
+        (void) w;
+        (void) revents;
 
+        printf("[%d] time out\n", getpid());
+        //ev_break(EV_A_ EVBREAK_ALL);
+}
 
+int main(void)
+{
+        EV_P EV_DEFAULT;
+        ev_fork wfork;
+        ev_timer wtimer;
 
+        ev_fork_init(&wfork, fork_callback);
+        ev_fork_start(EV_A_ &wfork);
 
+        ev_timer_init(&wtimer, timeout_callback, 1., 1.);
+        ev_timer_start(EV_A_ &wtimer);
 
+        pid_t pid;
 
+        pid = fork();
+        if (pid < 0) {
+                return -1;
+        } else if (pid == 0) {
+                printf("[%d] Child\n", getpid());
+                //ev_loop_fork(EV_A_);
+                ev_run(EV_A_ 0);
+                ev_loop_destroy(EV_A_);
+                return 0;
+        }
+
+        printf("[%d] Parent\n", getpid());
+
+        ev_run(EV_A_ 0);
+        ev_loop_destroy(EV_A_);
+
+        return 0;
+}
+{% endhighlight %}
+
+在如上的示例中，会在子进程中重新执行，所以最好的方式是，如果不需要最好直接关闭。
+
+另外，在创建 epoll 对象时，入参使用了 `EPOLL_CLOEXEC` 参数，也就意味着在 fork 进程时会自动关闭文件描述符。
 
 ### Child Watcher
 
-fork 一个新进程，给它安装一个child处理器等待进程结束。
+fork 一个新进程，给它安装一个 child 处理器等待进程结束，实际上会等待接受 `SIGCHLD` 信号，然后调用相应的事件。
 
 {% highlight text %}
 ev_child cw;

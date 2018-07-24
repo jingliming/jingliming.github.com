@@ -796,7 +796,7 @@ ADD_EXECUTABLE(testfoo ${SRCS})
 TARGET_LINK_LIBRARIES(testfoo libs)
 ADD_TEST(
     NAME testfoo
-    COMMAND testfoo
+    COMMAND testfoo your arguments
 )
 {% endhighlight %}
 
@@ -810,24 +810,16 @@ SET_TESTS_PROPERTIES(test PROPERTIES PASS_REGULAR_EXPRESSION "ok")
 {% endhighlight %}
 
 
+<!---
+# 测试 1 + 3 , 是否输出打印'is 4'
+add_test(test_1_plus_3 my_test.elf 1 3)
+set_tests_properties (test_1_plus_3
+PROPERTIES PASS_REGULAR_EXPRESSION "is 4")  #
+-->
 
+对于 valgrind，如果输出是 reachable 类型，那么实际上是依赖于 OS 的内存回收，此时及时已经配置了 `--error-exitcode=1` 也不会返回 0 ，尤其是对于全局变量。
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+为此，对于 CMake 而言，就需要配置 `FAIL_REGULAR_EXPRESSION "reachable"`，同时对于其它的内存泄露也会报错。
 
 #### 文件渲染
 

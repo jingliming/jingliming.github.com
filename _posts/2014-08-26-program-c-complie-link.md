@@ -623,6 +623,9 @@ An alias for –syms
 
 可以通过多个静态库生成动态库，而实际上静态库是一堆 `.o` 库的压缩集合，而生成动态库需要保证 `.o` 编译后是与地址无关的，也就是添加 `-fPIC` 参数。
 
+#### 2. 关于 PreLoad
+
+正常来说 `ld-linux(8)` 会查找一个程序需要加载的库，然后解析执行，通过 `LD_PRELOAD` 或者 `/etc/ld.so.preload` 可以提前加载一些动态库。
 
 {% highlight text %}
 {% endhighlight %}
