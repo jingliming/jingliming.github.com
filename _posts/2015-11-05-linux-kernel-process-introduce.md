@@ -6,10 +6,7 @@ language: chinese
 category: [linux]
 keywords: linux,进程,daemon
 description: 简单介绍一下 Linux 中的常见的一些与进程相关的操作，例如执行命令、守护进程等。
----
-
-简单介绍一下 Linux 中的常见的一些与进程相关的操作，例如执行命令、守护进程等。
-
+--- 简单介绍一下 Linux 中的常见的一些与进程相关的操作，例如执行命令、守护进程等。 
 <!-- more -->
 
 ## 进程执行
@@ -174,6 +171,8 @@ int main(void)
 
 进程从创建它的父进程那里继承了文件权限掩模，它可能修改守护进程所创建的文件的存取位，为防止这一点，将文件创建掩模清除 `umask(0)`。
 
+注意，设置掩码时，使用的是八进制，例如 `umask(022)`。
+
 #### 7. 处理 SIGCHLD 信号
 
 处理 `SIGCHLD` 信号并不是必须的，但对于某些进程，特别是服务器进程往往在请求到来时生成子进程处理请求。如果父进程不等待子进程结束，子进程将成为僵尸进程 (zombie) 从而占用系统资源。如果父进程等待子进程结束，将增加父进程的负担，影响服务器进程的并发性能。
@@ -186,7 +185,7 @@ int main(void)
 #include <unistd.h>
 #include <sys/stat.h>
 
-int main()
+int main(void)
 {
         FILE *fp;
         time_t t;
@@ -194,32 +193,49 @@ int main()
         int pid;
         int i;
 
+        printf("Before fork      , pgid=%d, ppid=%d, pid=%d, sid=%d\n",
+                getpgid(getpid()), getppid(), getpid(), getsid(getpid()));
+
         pid = fork();   // STEP 1
         if (pid < -1) {        // error
                 perror("fork()");
                 exit(EXIT_FAILURE);
         } else if (pid != 0) { // parent
-                fprintf(stdout, "Parent PID(%d) running", pid);
+                fprintf(stdout, "Parent PID(%d) running\n", pid);
                 exit(EXIT_SUCCESS);
         }
 
+        printf("Forked before sid, pgid=%d, ppid=%d, pid=%d, sid=%d\n",
+                getpgid(getpid()), getppid(), getpid(), getsid(getpid()));
+
         /* child */
         setsid();     // STEP 2, Detach from session.
+
+        printf("Forked after sid , pgid=%d, ppid=%d, pid=%d, sid=%d\n",
+                getpgid(getpid()), getppid(), getpid(), getsid(getpid()));
 
         pid = fork(); // STEP 3, fork again to prevent recreate a console.
         if (pid < -1) {        // error
                 perror("fork()");
                 exit(EXIT_FAILURE);
         } else if (pid != 0) { // parent
-                fprintf(stdout, "Parent PID(%d) running", pid);
+                fprintf(stdout, "Parent PID(%d) running\n", pid);
                 exit(EXIT_SUCCESS);
         }
+
+        printf("After second fork, pgid=%d, ppid=%d, pid=%d, sid=%d\n",
+                getpgid(getpid()), getppid(), getpid(), getsid(getpid()));
+
+        sleep(1);
+
+        printf("Sleep for a while, pgid=%d, ppid=%d, pid=%d, sid=%d\n",
+                getpgid(getpid()), getppid(), getpid(), getsid(getpid()));
 
         for(i = 0; i < getdtablesize(); i++) // STEP 4, close all opend file discript.
                 close(i);
 
         chdir("/tmp");  // STEP 5
-        umask(0);       // STEP 6
+        umask(022);     // STEP 6
 
         while (1) {
                 fp = fopen("test.log", "a");
@@ -233,21 +249,37 @@ int main()
 }
 {% endhighlight %}
 
-### 一次 VS. 两次 fork()
+可以通过如下命令查看当前进程的状态。
+
+{% highlight text %}
+$ ps -axo pid,ppid,pgid,sid,state,comm | grep test
+{% endhighlight %}
 
 实际上，在上述的第二步中，可以再执行一次 `fork()` 操作。
 
-第一次 `fork()` 后子进程继承了父进程的进程组 ID，但有一个新进程 ID，这就保证了子进程不是一个进程组的首进程，然后 `setsid()` 是为了跟主进程的 SID PGID 脱离设置成子进程的 SID PGID。
+第一次 `fork()` 后子进程继承了父进程的进程组 ID，但有一个新进程 ID，这就保证了子进程不是一个进程组的首进程。
 
-虽然此时子进程已经被 init 接管了，但是只有 `setsid()` 之后才算是跟那个主进程完全脱离，不受他的影响。
+然后 `setsid()` 是为了跟主进程的 SID PGID 脱离设置成子进程的 SID PGID，此时其父进程是 1 ，SID PGID 均等于 PID 。
+
+虽然此时子进程已经被 init 接管了，但是只有 `setsid()` 之后才算是跟那个主进程完全脱离，不受他的影响 (原进程组、会话组被 kill 后该进程不会退出)。
 
 #### 第二次 fork()
 
-第二次 `fork()` 不是必须的，主要目的是为了防止进程再次打开一个控制终端。
+第二次 `fork()` 不是必须的，主要目的是为了防止进程再次打开一个控制终端(暂时不知道如何打开)。
 
 因为打开一个控制终端的前提条件是该进程必须是会话组长，那么再 `fork()` 一次后，子进程 ID 不再等于 sid (sid 是进程父进程的 sid)，所以也无法打开新的控制终端。
 
-此时这个子进程是首进程了 ，然后此时为了避免他是首进程，所以又 `fork()` 了一次。
+此时这个子进程是首进程了，然后此时为了避免他是首进程，所以又 `fork()` 了一次，此时其父进程是上次 `fork()` 的进程，当父进程退出后其父进程变为 1 。
+
+及时已经关闭所有的文件描述符，那么打印消息时仍然会打印到原终端。
+
+#### 防止出现僵尸进程
+
+另外一种说法是为了防止出现僵尸进程。
+
+每次调用父进程必须要保证可以快速退出，否则会导致子进程的父进程 ID 仍然为原进程，如果此时子进程先退出就会成为僵尸进程，即使已经调用了 `setsid()`。
+
+无论如何都必须要保证父进程的快速推出，否则不管是 fork 了几次，仍然会出现僵尸进程。
 
 
 ## 参考

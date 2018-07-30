@@ -3690,6 +3690,190 @@ http://kaiyuan.me/2015/09/04/TCP%E7%9A%84%E6%94%B6%E5%8F%91%E5%8C%85%E6%9C%BA%E5
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+/post/linux-kernel-process.html
+
+waitpid()
+
+WNOHANG 如果没有任何已经结束的子进程则马上返回，此时返回 0；
+WUNTRACED 如果子进程进入到了 Trace 状态，那么则直接返回 0；
+
+WIFEXITED(status)：如果子进程正常结束则为非0 值.
+WEXITSTATUS(status)：取得子进程exit()返回的结束代码, 一般会先用WIFEXITED 来判断是否正常结束才能使用此宏.
+WIFSIGNALED(status)：如果子进程是因为信号而结束则此宏值为真
+WTERMSIG(status)：取得子进程因信号而中止的信号代码, 一般会先用WIFSIGNALED 来判断后才使用此宏.
+WIFSTOPPED(status)：如果子进程处于暂停执行情况则此宏值为真. 一般只有使用WUNTRACED时才会有此情况.
+WSTOPSIG(status)：取得引发子进程暂停的信号代码, 一般会先用WIFSTOPPED 来判断后才使用此宏.
+
+返回值：如果执行成功则返回子进程识别码(PID), 如果有错误发生则返回-1. 失败原因存于errno 中.
+
+https://github.com/krallin/tini
+https://github.com/Yelp/dumb-init
+
+## tini
+
+其功能类似于 init 进程，一般用于容器中，
+
+在编译静态二进制文件时会依赖 glibc 的静态库，对于 CentOS 来说，需要通过 `yum install glibc-static` 安装。
+
+可以通过该工程查看 CMake 的编写，以及编写类似 init 进程的注意事项。
+
+
+在 /post/linux-kernel-process 中有关于孤儿进程和僵尸进程的介绍，简单来说：
+
+* 孤儿进程。当父进程被 kill 掉，其子进程就会成为孤儿进程 (Orphaned Process)，并被 init(PID=1) 所接管。
+
+
+### 孤儿进程如何被接管
+
+在 Linux 内核中，有如下的代码 [Kernel find_new_reaper()](https://github.com/torvalds/linux/blob/eae21770b4fed5597623aad0d618190fa60426ff/kernel/exit.c#L479) ，其开头的注释摘抄如下：
+
+/*
+ * When we die, we re-parent all our children, and try to:
+ * 1. give them to another thread in our thread group, if such a member exists
+ * 2. give it to the first ancestor process which prctl'd itself as a
+ *    child_subreaper for its children (like a service manager)
+ * 3. give it to the init process (PID 1) in our pid namespace
+ */
+
+也就是说，接管分三步：A) 找到相同线程组里其他可用的线程；B) 如果没有找到则进行第二步C) 最后交由 PID=1 的进程管理。
+
+
+
+### SubReaper
+
+当一个进程被标记为 child_subreaper 后，这个进程所创建的所有子进程，包括子进程的子进程，都将被标记拥有一个 subreaper。
+
+那么当某个进程成为了孤儿进程时，会沿着它的进程树向祖先进程找一个最近的是 child_subreaper 且运行着的进程，这个进程将会接管这个孤儿进程。
+
+http://adoyle.me/blog/orphaned-process-and-zombie-process-and-docker.html
+
+
+https://stackoverflow.com/questions/9305992/if-threads-share-the-same-pid-how-can-they-be-identified/9306150#9306150
+
+https://blog.cryptomilk.org/2014/07/21/what-is-preloading/
+https://blog.fpmurphy.com/2012/09/all-about-ld_preload.html
+https://rafalcieslak.wordpress.com/2013/04/02/dynamic-linker-tricks-using-ld_preload-to-cheat-inject-features-and-investigate-programs/
+
+## RBASH
+
+restricted bash, rhash 也就是受限制的 bash，实际上这只是指向 bash 的软连接，也可以通过 `bash -r` 参数启动，作用相同。
+
+此时，启动的这个 BASH 会在某些功能上受限制，包括：
+
+
+
+* 通过 cd 来改变工作目录
+* 设置或取消环境变量 SHELL、PATH、ENV、BASH_ENV
+* 命令名中不能包含目录分隔符 '/'
+
+
+包含有 ‘/’ 的文件名作为内置命令 ‘.’ 的参数
+hash 内置命令有 -p 选项时的文件名参数包含 ‘/’
+在启动时通过 shell 环境导入函数定义
+在启动时通过 shell 环境解析 SHELLOPTS 的值
+使用 >，>|， <>， >&， &>， >> 等重定向操作符
+使用 exec 内置命令
+通过 enable 内置命令的 -f 和 -d 选项增加或删除内置命令
+使用 enable 内置命令来禁用或启用 shell 内置命令
+执行 command 内置命令时加上 -p 选项
+通过 set +r 或 set +o restricted 关闭受限模式
+
+## 逃逸
+
+rbash 提供的受限环境的安全程度取决于用户能执行的命令，很多命令都能调用外部命令，从而导致逃逸出受限环境。
+
+例如用 vim 打开一个文件，然后通过 `!bash` 执行外部命令，那么就可以启动一个不受限的 bash，这对 more，less，man 等命令同样有效。如果还能执行脚本，如 python、perl 等，则有更过的方式来启动一个不受限的 shell 。
+
+也可以通过如下方式执行：
+
+$ BASH_CMDS[a]=/bin/sh;a 
+$ /bin/bash
+$ export PATH=$PATH:/bin:/usr/bin
+
+
+要让 rbash 更安全，可以限制用户能够执行的命令，如我们让用户执行执行 ssh 命令。一种方法是，修改 PATH 环境变量。
+
+例如我们创建一个 ruser 用户，让他只能执行 ssh 命令：
+
+$ ls -s /bin/bash /bin/rbash
+
+$ useradd -s /bin/rbash ruser
+
+$ chown -R root:ruser /home/ruser/.bashrc /home/ruser/.bash_profile
+
+$ chmod 640 /home/ruser/.bashrc /home/ruser/.bash_profile
+
+$ mkdir /home/ruser/bin
+然后修改 PATH 环境变量的值为 /home/ruser/bin，并将允许执行的命令放到这个目录下。：
+
+$ echo "export PATH=/home/ruser/bin" >> /home/ruser/.bash_profile
+把用户可执行的命令链接到用户 PATH 路径下：
+
+$ ln -s /user/bin/ssh /home/ruser/bin/ssh
+这样就可以只让登录的用户执行 ssh 命令。
+
+## 限制用户执行命令
+
+git比较两个分支
+https://blog.csdn.net/u011240877/article/details/52586664
+
+流分为了文本流和二进制流，在 Linux 中两者没有区别，而 Windows 会做区分。
+
+基于流的操作最终会调用 read()/write() 函数进行 IO 操作，为了提高程序的运行效率，流对象通常会提供缓冲区，以减少调用系统 IO 库函数的次数。
+
+通常提供如下的三种缓冲方式：
+
+1. 全缓冲。在缓冲区满了之后才调用系统 IO 函数，例如磁盘文件。
+2. 行缓冲。直到遇到换行符 '\n' 或者缓冲区满时才调用系统 IO 库函数，例如标准输出。
+3. 无缓冲。无缓冲区，数据会立即读入或者输出到外存文件和设备上。例如标准错误输出，可以保证及时将错误反馈给客户。
+
+对于标准输入、输出可以通过如下的程序进行测试。
+
+#include <stdio.h>
+
+void print_info(FILE *f)
+{
+        if(f->_flags & _IO_UNBUFFERED)
+                printf("unbuffered\n");
+        else if(f->_flags & _IO_LINE_BUF)
+                printf("line-buffered\n");
+        else
+                printf("fully-buffered\n");
+        printf("    buffer size: %ld\n", f->_IO_buf_end - f->_IO_buf_base);
+        printf("    discriptor : %d\n\n", fileno(f));
+}
+
+int main(void)
+{
+        printf("stdin  is ");
+        print_info(stdin);
+
+        printf("stdout is ");
+        print_info(stdout);
+
+        printf("stderr is ");
+        print_info(stderr);
+
+        return 0;
+}
+
+也可以通过命令 `./foobar <main.c 1>out.txt 2>err.txt` 测试重定向之后的属性。
+
+
+
+
+
 -->
 
 {% highlight text %}
