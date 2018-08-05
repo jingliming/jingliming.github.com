@@ -168,14 +168,14 @@ mysql> FLUSH PRIVILEGES;
 
 ----- 返回信息，可以包含请求
 {
-	"errcode": 2,                            # 返回状态，0表示正常
+	"errcode": 2,                            # 返回状态，0表示正常，目前直接忽略返回值
 	"jobs": [{
 		"id": "ddc8a9b9-55bd-4ddd-b53d-47095ee19466",  # 任务ID信息，由服务端指定，客户端上报执行结果时会带上
 		"action": "install",                           # 指定任务操作，也开始是"upgrade" "uninstall" "restart" "stop"等
 		"name": "BasicAgent",                          # 需要操作的子Agent名称
 		"url": "ftp://server:port/BasicAgent/BasicAgent-1.5.6..rpm",
 		"checksum": "SHA256:4a34b8d7d3009bb9ef9475fbf33e7bbe4a1e8db003aefc578a241c2f51c2c2f2",
-		"env": {                                       # 运行时的环境变量，一般在初次安装时配置，可以每次更新
+		"envs": {                                      # 运行时的环境变量，一般在初次安装时配置，可以每次更新
 			"PATH": "/usr/bin;/usr/local/bin"
 		},
 		"limits": {                                    # 资源使用限制

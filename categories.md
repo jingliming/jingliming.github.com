@@ -397,6 +397,18 @@ Git 是一免费、开源的分布式版本控制系统，可有效、高速的�
 * [Git 分支管理](/post/git-branch-model.html)，主要介绍 git 的分支处理常用操作，以及比较经典的版本分支管理方式。
 * [Git 使用杂项](/post/git-tips.html)，记录 git 常见的示例，可以用来作为参考使用。
 
+
+![RAFT Logo]({{ site.url }}/images/databases/raft/raft-logo.png "RAFT Logo"){: .pull-center width="210" }
+
+PAXOS 算法从 90 年提出到现在已经有二十几年了，不过其流程过于复杂，目前较多的有 Chubby、libpaxos ，以及 Zookeeper 修改后的 Zookeeper Atomic Broadcase, ZAB 。
+
+RAFT 是斯坦福的 Diego Ongaro、John Ousterhout 两人设计的一致性算法，在 2013 年发布了论文 《In Search of an Understandable Consensus Algorithm》，目前已经有近十多种语言的实现，其中使用较多的是 ETCD 。
+
+* [RAFT 协议简介](/post/raft-consensus-algorithms-introduce.html)，一个为真实世界应用建立的协议，注重落地性和可理解性。
+* [ETCD 简介](/post/golang-raft-etcd-introduce.html)，主要介绍 ETCD 如何使用，包括安装、部署、使用以及常见的介绍。
+* [ETCD 示例源码](/post/golang-raft-etcd-example-sourcode-details.html)，源码中关于如何 RAFT 协议的示例代码，直接使用的是内存数据库。
+* [ETCD 源码解析](/post/golang-raft-etcd-sourcode-details.html)，除了上述的示例代码，这里简单介绍其代码的实现。
+
 ## Tags
 
 {% for category in site.categories %}

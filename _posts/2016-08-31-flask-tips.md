@@ -68,6 +68,8 @@ app = Flask(__name__)
 
 @app.route('/register', methods=['POST'])
 def register():
+    print request.get_data()                           # 获取原始数据
+    print request.data                                 # 同上
     print request.headers                              # 头部信息
     print request.form                                 # 所有表单内容
     print request.form['name']                         # 获取name参数
@@ -94,7 +96,7 @@ print r.text
 
 ## 路由、变量转换
 
-可以给 URL 添加变量部分，&lt;converter:variable_name&gt; 分别指定了转换器，以及转换后变量的名称。
+可以给 URL 添加变量部分，`<converter:variable_name>` 分别指定了转换器，以及转换后变量的名称。
 
 {% highlight python %}
 from flask import Flask

@@ -8,7 +8,7 @@ keywords: golang,go,etcd
 description:
 ---
 
-在上篇中介绍了 ETCD 代码中 RAFT 相关的示例代码，接着介绍与 ETCD 相关的代码。
+在上篇 [ETCD 示例源码](/post/golang-raft-etcd-example-sourcode-details.html) 中介绍了 ETCD 代码中 RAFT 相关的示例代码，接着介绍与 ETCD 相关的代码。
 
 <!-- more -->
 
@@ -228,7 +228,7 @@ ETCD 服务器是通过 EtcdServer 结构抽象，对应了 `etcdserver/server.g
 {% highlight text %}
 main()                             etcdmain/main.go
  |-checkSupportArch()
- |-startEtcdOrProxyV2()
+ |-startEtcdOrProxyV2()            etcdmain/etcd.go
    |-newConfig()
    |-setupLogging()
    |-startEtcd()
@@ -249,9 +249,18 @@ main()                             etcdmain/main.go
 应用通过 `raft.StartNode()` 来启动 raft 中的一个副本，函数内部会通过启动一个 goroutine 运行。
 
 {% highlight text %}
-NewServer()                           通过配置创建一个新的EtcdServer对象etcdserver/server.go
+NewServer()                           etcdserver/server.go 通过配置创建一个新的EtcdServer对象，不同场景不同
  |-store.New()
  |-wal.Exist()
+ |-restartNode()                      etcdserver/raft.go 已有WAL，直接根据SnapShot启动，最常见场景
+ | |-readWAL()                        读取WAL
+ | |-NewCluster()                     每个会对应一个新的集群配置
+ | |-raft.RestartNode()               raft/node.go 真正做重启节点的函数
+ |   |-newRaft()                      raft/raft.go 新建一个type raft struct对象
+ |   | |-raft.becomeFollower()        成为Follower状态
+ |   |-newNode()                      raft/node.go 新建一个type node struct对象
+ |   |-node.run()                     raft/node.go RAFT协议运行的核心函数，会单独启动一个协程<<<1>>>
+ |-NewAuthStore()
  |                                    <====会根据不同的启动场景执行相关任务
  |-startNode()                        新建一个节点，前提是没有WAL日志，且是新配置结点 etcdserver/raft.go
  | |-raft.NewMemoryStorage()
@@ -655,6 +664,92 @@ http://www.cnblogs.com/foxmailed/p/7173137.html
 https://www.jianshu.com/p/5aed73b288f7
 
 https://zhuanlan.zhihu.com/p/27767675
+
+
+
+
+
+
+
+
+
+##
+
+ETCD V3 底层的存储引擎是 Bolt，也就是通过 KV 结构保存上报的数据，最新的项目代码可以参考 [coreos bbolt](https://github.com/coreos/bbolt)。
+
+简单来说，通过 BoltDB 的 MVCC 保证单机数据一致性，通过 RAFT 保证集群数据的一致性。
+
+### MVCC
+
+在内存中维护了一个 BTree 结构，对应的结构体如下：
+
+type treeIndex struct {
+	sync.RWMutex
+	tree *btree.BTree
+}
+
+这个树中的 Key 是用户传入的 Key ，而 Value 却不是用户传入的 Value。
+
+关于 etcd 的版本信息有如下的特性：
+
+* 每个事务有唯一事务ID(Main ID)，在全局范围内递增且不连续；
+* 一个事务可以包含多个修改操作，如 PUT、DELETE 等，每个操作为一次 Revision，共享同一个 MainID；
+* 一个事务内连续的多个操作从 0 开始递增编号，称为 SubID；
+* 每个 Revision 通过 (MainID, SubID) 唯一标识。
+
+其中 revision 通过 `type revision struct` 进行定义，而在内存索引中，每个用户的原始 key 会关联一个 keyIndex 结构，在该结构体中维护了多版本信息。
+
+type keyIndex struct {
+	key         []byte // 用户定义的原始Key
+	modified    revision // 该Key的最后一次修改对应的Revision信息
+	generations []generation // 保存的多版本信息
+}
+
+type generation struct {
+	ver     int64
+	created revision // 创建时的第一个版本号
+	revs    []revision
+}
+
+当用户多次更新这个 key 时，对应的 revs 数组就会不断追加记录本次的 Revision 信息。
+
+多版本中，每次操作都被以版本号的形式单独记录下来，而每个版本对应的数据则保存在 BoltDB 中。
+
+在 BoltDB 存储时，会将每次的 Revision 作为 Key 进行序列化，首先从内存中获取对应的版本号，然后查询最终的数据。
+
+在多版本控制中，一般会采用 compact 来压缩历史版本，即当历史版本到达一定数量时，会删除一些历史版本，只保存最近的一些版本，在 `keyIndex` 之前有相关的解析。
+
+<!--
+tombstone就是指delete删除key，一旦发生删除就会结束当前的generation，生成新的generation，小括号里的(t)标识tombstone。
+compact(n)表示压缩掉revision.main <= n的所有历史版本，会发生一系列的删减操作，可以仔细观察上述流程。
+-->
+
+#### 总结
+
+内存中通过 BTree 维护是用户 `key -> keyIndex` 的映射，而 keyIndex 中维护了多版本的 Revision 信息，然后再通过 Revision 映射到磁盘 BoltDB 中的用户值。
+
+## Watch机制
+
+也就是时间通知机制，同样是基于 MVCC 多版本实现，客户端可以指定监听的版本，如果有历史版本数据，同时会推送当时的数据快照，后续的变化值同样会发送到客户端。
+
+newWatchableStore() 会新建unsynced、synced两个newWatcherGroup对象
+ |-syncWatchersLoop() 启动后台处理Watcher的协程
+   |-watcherGroup.size() watcher_group.go 如果有未同步的客户端则调用下面函数同步，否则等待100ms
+   |-syncWatchers() 在循环中不断调用该函数处理，如下是真正的处理过程
+     |-watcherGroup.choose() 1. 选择一批未同步的客户端
+       |-watcherGroup.chooseAll() 2. 返回最小的版本号，并删除一些重复的Wather
+
+MVCC/Watcher介绍
+https://yuerblog.cc/2017/12/10/principle-about-etcd-v3/
+
+其中会有两个队列，分别是 sync 和 unsync ，后者表示还没有完成通过，在放到 sync 队列之前会先将 unsync 队列中的请求处理完。
+
+
+
+
+
+
+
 -->
 
 

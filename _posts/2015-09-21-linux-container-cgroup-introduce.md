@@ -360,6 +360,23 @@ Python使用
 https://github.com/francisbouvier/cgroups
 
 cgred
+
+
+CGroup使用
+https://tech.meituan.com/cgroups.html
+如何通过配置文件限制资源使用
+https://blog.csdn.net/jesseyoung/article/details/39077829
+https://ggaaooppeenngg.github.io/zh-CN/2017/05/07/cgroups-%E5%88%86%E6%9E%90%E4%B9%8B%E5%86%85%E5%AD%98%E5%92%8CCPU/
+https://github.com/coredump/cgrouptool
+
+在某个容器内运行一个线程
+https://github.com/geokat/cgfy/blob/master/cgfy.c
+https://github.com/chr15p/cgshares
+https://github.com/bmwcarit/cgroup-tests
+https://github.com/erebe/collectd_cgroup_memory_pressure/blob/master/collectd_cgroup_memory_pressure.c
+https://github.com/enukane/cgpstree
+https://github.com/dveeden/udf_cgroup
+https://github.com/poelzi/ulatencyd
 -->
 
 {% highlight text %}

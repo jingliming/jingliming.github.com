@@ -167,8 +167,6 @@ func (n *node) run(r *raft) {
 				readyc = nil
 			}
 		}
-		
-
 	}
 }
 {% endhighlight %}

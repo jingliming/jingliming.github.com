@@ -61,6 +61,7 @@ export GOROOT=${GOPATH}/goroot               ← 默认在/usr/local/go，否则
 export PATH=${PATH}:${GOBIN}
 {% endhighlight %}
 
+
 #### III. 编译源码
 
 如果下载的是只是源码，可以通过 ./all.bash 进行编译，也可以下载包含可执行文件的 tarball 包。
@@ -69,6 +70,40 @@ export PATH=${PATH}:${GOBIN}
 $ go env                                     ← 查看环境变量
 $ go version                                 ← 查看版本
 {% endhighlight %}
+
+#### IV. 其它
+
+<!--
+-x 列出go build调用到的所有命令
+-->
+
+例如交叉编译可以使用：
+
+{% highlight text %}
+$ CGO_ENABLED=0 GOOS=windows GOARCH=386 go build test.go
+参数：
+	CGO_ENABLED 指明cgo工具是否可用
+	GOOS        程序构建的目标操作系统，例如 linux windows
+	GOARCH      程序构建环境的目标计算架构，例如 32bits-386 64bits-amd64
+{% endhighlight %}
+
+通过 `-gcflags` 指定编译的选项，例如 `go build -gcflags '-N -l'`，常见参数有：
+
+{% highlight text %}
+-N 禁止编译优化
+-l 禁止内联，一定程度上减小可执行程序大小，不过可能增加执行时间
+{% endhighlight %}
+
+可以使用 `go tool compile --help` 查看 `gcflags` 各参数含义。
+
+可以通过 `-ldflags` 指定的链接选项，例如 `go build -ldflags '-w -s'`，常见的有：
+
+{% highlight text %}
+-w 禁止生成debug信息，此时不方便gdb调试
+-s 禁用符号表
+{% endhighlight %}
+
+更多可以通过 `go tool link --help` 查看 `ldflags` 各参数含义。
 
 ### Hello world
 

@@ -26,7 +26,7 @@ A distributed, reliable key-value store for the most critical data of a distribu
 
 ### 源码安装
 
-下载 ectd 源码构建。
+下载 ectd 源码构建，在源码中，实际上已经包含了工程所使用的库，在编译时可以直接修改 build 脚本，例如对于 raftexample 的编译，在该脚本中会设置一堆的环境变量，以引用本项目中的三方库。
 
 {% highlight text %}
 ----- 需要go编译器支持，设置好GOPATH环境变量
@@ -343,6 +343,12 @@ Wola
 $ etcdctl exec-watch --recursive / -- sh -c "echo change detected."
 change detected.
 change detected.
+
+----- 检查集群的健康状态
+$ etcdctl cluster-health
+
+----- 查看集群的成员列表
+$ etcdctl member list
 {% endhighlight %}
 
 **注意** 默认只保存了 1000 个历史事件，所以不适合有大量更新操作的场景，这样会导致数据的丢失，其使用的典型应用场景是配置管理和服务发现，这些场景都是读多写少的。
@@ -361,6 +367,144 @@ http://www.infoq.com/cn/articles/etcd-interpretation-application-scenario-implem
 场景四：分布式通知与协调
 场景五：分布式锁、分布式队列
 场景六：集群监控与Leader竞选
+
+
+
+
+
+
+
+
+
+EtcdServer.start()
+
+startPeer()
+
+
+
+
+mini transaction支持原子性比较多个键值并且操作多个键值。之前的CompareAndSwap实际上一个针对单个key的mini transaction。一个简单的例子是 Tx(compare: A=1 && B=2, success: C = 3, D = 3, fail: C = 0, D = 0)。当etcd收到这条transcation请求，etcd会原子性的判断A和B当前的值和期待的值。如果判断成功，C和D的值会被设置为3。
+
+-I 只显示头
+-i 显示头以及返回信息
+
+curl -i http://127.0.0.1:2379/version
+curl -i http://127.0.0.1:2380/members
+
+ETCD V3 对外提供的 API 接口保存在 `etcdserver/api/etcdhttp` 目录下，常见的 URI 包括：
+/debug/vars 获取调试信息，包括启动参数、资源使用等
+/version 当前版本信息
+/health 服务器的健康状态
+
+V2 VS. V3
+https://www.compose.com/articles/etcd2to3-new-apis-and-new-possibilities/
+https://blog.gopheracademy.com/advent-2015/etcd-distributed-key-value-store-with-grpc-http2/
+https://github.com/go-up/go-example
+https://doc.oschina.net/grpc?t=60133
+https://grpc.io/docs/quickstart/go.html
+
+V2 版本只提供了基本的原子操作 CAS(Compare And Swap)，并在此基础上实现分布式锁；在 V3 上则实现了 MVCC 事务模型，抛弃了原来的原子操作。
+
+那么其并发事务的隔离模型是怎样的？如何处理提交时的冲突？
+
+实际上是直接把 MVCC 的版本机制暴露给了用户，在事务提交冲突时完全由用户控制是回滚还是忽略冲突直接提交，从而给用户以最大的灵活性，这也就是 STM 的代码。
+
+software transactional memory
+
+Serializable reads
+
+Linearized Reads
+
+如果要保证线性读，那么客户端需要从主上读取数据。
+
+## 一致性模型
+
+简单来说，可以根据不同的场景定义模型，从而使写的程序可预测。
+
+Strong consistency models，一步步介绍一致性模型
+https://aphyr.com/posts/313-strong-consistency-models
+
+## 参考
+Serializability and Distributed Software Transactional Memory with etcd3
+https://coreos.com/blog/transactional-memory-with-etcd3.html
+http://lday.me/2017/02/01/0003_seri-stm-etcd3/
+
+
+相比 V2 而言 V3 提供了 gRPC 通讯，对于不支持 gRPC 的语言，etcd 提供 JSON 的 grpc-gateway 网关，作为 RESTful 代理，翻译 HTTP/JSON 请求为 gRPC 消息。
+
+https://leonlee110.github.io/kubernetes/2018/03/31/learning-etcd-by-code-1
+
+embed.StartEtcd()
+EtcdServer.Start()
+EtcdServer.servePeers()
+ |-serve()
+   |-grpc.NewServer() 新建一个gRPC的服务器etcdserver/api/v3rpc/grpc.go
+EtcdServer.serveClients()
+
+
+
+在 `type Node interface` 中定义了一些与 RAFT 核心相关的接口函数，
+
+Propose() 用来提交日志
+Ready() 返回一个Ready管道，表示已经提交的日志
+
+在 raft/node.go 中会启动一个后台程序，对应了 `func (n *node) run(r *raft)` 函数，
+
+在 ETCD RAFT 的实现中有两个核心的数据结构 `type node struct` 以及 `type raft struct` ，前者定义了用于 RAFT 核心与应用层的通讯的通讯管道，后者则保存了 RAFT 协议中需要保存的状态信息。
+
+
+在 etcdserver/server.go 文件中定义了 type EtcdServer struct 结构体，保存了与 ETCD 的服务端相关的设置。注意，这里涉及到了一堆的继承关系，EtcdServer -> raftNodeConfig -> raft.Node ，也就是 Propose 对应了 type Node interface 中的函数接口。
+
+
+
+processInternalRaftRequestOnce() V3接口提交日志
+ |-EtcdServer.r.Propose() 实际上是raftNode中
+
+
+数据的提交分成了 4 步：
+
+1. 数据写入到Leader的本地存储，一般是内存；
+2. Leader向各个Follower同时开始发送数据，并判断是否达到多数派提交成功；
+3. Leader在提交成功后发起Apply请求，将日志应用到Leader所在的状态机。
+4. Follower接收到Apply请求之后，同时将日志应用到Follower所在的状态机。
+
+继任Leader是否可以将已经复制超过半数的 log 提交掉？不能，
+
+目前还有疑问???????
+
+如果做批量发送？批量的策略是什么？通过Ready对象实现；目前还没有确认是批量N条还是批量N秒内的数据
+如何判断是否在集群中持久化成功？正常来说，commit成功之后就可以返回给客户端在集群中已经提交成功。
+如果多数派的数据永久丢失，那么如何恢复？实际上在正式的论文中没有讨论，在FM-RAFT中有相关的介绍，也就是通过InitializeCluster接口
+怎样定义一个节点是否是健康的？对于Leader？对于Follower可以周期接收到从Leader中发送的心跳信息，可以提供用户只读的是lastApplied的数据，也就是已经持久化到状态机的数据。
+Term溢出(TermID一般是无符号整形)会导致什么问题？
+https://coolshell.cn/articles/11466.html
+https://developer.apple.com/library/content/documentation/Security/Conceptual/SecureCodingGuide/Introduction.html
+
+## Lexical Bytes-Order
+
+也可以称为 Alphabetical Order，另外还有 Numerical Order，例如 1 10 2 是属于前者。
+
+
+
+一致性区分
+https://github.com/coreos/etcd/blob/master/Documentation/learning/api_guarantees.md
+
+
+http://www.ituring.com.cn/book/tupubarticle/16510
+https://coreos.com/blog/announcing-etcd-3.3
+
+系统调用的错误注入
+https://lrita.github.io/2017/06/27/systemtap-inject-syscall-error/
+
+当前系统信息收集
+https://github.com/coreos/mayday
+分布式的测试工具
+https://github.com/coreos/dbtester
+
+
+自习周报：CoreOS 的黑魔法
+https://zhuanlan.zhihu.com/p/29882654
+
 -->
 
 {% highlight text %}

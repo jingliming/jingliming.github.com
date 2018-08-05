@@ -437,11 +437,17 @@ http://dockone.io/article/2955
 
 ## 参考
 
-官方地址 [raft.github.io](https://raft.github.io/)，论文可以参考 [Github RAFT 中文翻译](https://github.com/maemual/raft-zh_cn)；从理论应用到实践的论文 [Raft consensus algorithm](https://github.com/ongardie/dissertation)，也就是作者的博士毕业论文。
+#### 常见参考
 
+官方地址 [raft.github.io](https://raft.github.io/)，常见的参考地址有：
+1. [Github RAFT 中文翻译](https://github.com/maemual/raft-zh_cn)，比较不错的中文翻译，仅供参考；
+2. [In Search of an Understandable Consensus Algorithm(Extended Version)](https://ramcloud.stanford.edu/~ongaro/thesis.pdf) 简版论文，也可以参考 [本地文档](/reference/databases/RAFT/0-In Search of an Understandable Consensus Algorithm.pdf)；
+3. 从理论应用到实践的论文 [Raft consensus algorithm](https://github.com/ongardie/dissertation)，也就是作者的博士毕业论文，[本地文档](/reference/databases/RAFT/1-CONSENSUS BRIDGING THEORY AND PRACTICE.pdf)；
+4. 关于实现的细节补充可以参考 [Four modifications for the Raft consensus algorithm FM-RAFT](http://openlife.cc/system/files/4-modifications-for-Raft-consensus.pdf)，以及 [本地文档](/reference/databases/RAFT/3-4-modifications-for-Raft-consensus.pdf) 。
+
+#### 其它
 
 一些常见一致性算法可以参考 [Github Awesome Consensus](https://github.com/dgryski/awesome-consensus) 。
-
 
 {% highlight text %}
 {% endhighlight %}
