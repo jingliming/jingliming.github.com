@@ -142,6 +142,23 @@ https://coreos.com/etcd/docs/latest/op-guide/performance.html
 configuration management, service discovery, and coordinating distributed work. Many organizations use etcd to implement production systems such as container schedulers, service discovery services, and distributed data storage. Common distributed patterns using etcd include leader election, distributed locks, and monitoring machine liveness.
 -->
 
+### 单机集群测试
+
+在搭建本地集群时，可以直接使用 goreman 工具，默认使用的是当前目录下的 Procfile 配置文件，运行前需要确保配置正确。
+
+{% highlight text %}
+----- 检查配置是否合法
+$ goreman check
+----- 启动，或者指定配置文件启动
+$ goreman start
+$ goreman -f MyProcfile start
+----- 查看当前的状态
+$ goreman run status
+----- 停止、启动、重启某个进程(stop start restart)
+$ goreman run stop PROCESS_NAME
+{% endhighlight %}
+
+简单来说，直接通过 `goreman start` 启动即可，此时会在当前目录下生成 `infra{1,2,3}.etcd` 三个目录，用于保存各个进程的信息。
 
 ## API
 
@@ -352,6 +369,37 @@ $ etcdctl member list
 {% endhighlight %}
 
 **注意** 默认只保存了 1000 个历史事件，所以不适合有大量更新操作的场景，这样会导致数据的丢失，其使用的典型应用场景是配置管理和服务发现，这些场景都是读多写少的。
+
+### ClientV3
+
+在 ETCD 的源码目录下保存了一个 clientv3 的代码，详细可以参考 [ETCD ClientV3](https://github.com/coreos/etcd/tree/master/clientv3) 。
+
+#### etcdctl V3
+
+{% highlight text %}
+----- 使用V3版本需要提前设置环境变量，否则etcdctl --version查看
+$ ETCDCTL_API=3 ./etcdctl version
+etcdctl version: 3.3.1
+API version: 2
+
+----- 查看当前集群的列表，默认使用本地2379端口，也可以通过参数指定
+$ ETCDCTL_API=3 ./etcdctl member list
+$ ETCDCTL_API=3 ./etcdctl --endpoints=127.0.0.1:2379,127.0.0.1:22379,127.0.0.1:32379 member list
+
+----- CURD，可以指定输出格式、前缀匹配
+$ ETCDCTL_API=3 ./etcdctl put foo "Hello World!"
+$ ETCDCTL_API=3 ./etcdctl get foo
+$ ETCDCTL_API=3 ./etcdctl --write-out="json" get foo
+$ ETCDCTL_API=3 ./etcdctl --prefix get foo
+$ ETCDCTL_API=3 ./etcdctl --prefix del foo
+
+----- 查看集群状态
+$ ETCDCTL_API=3 ./etcdctl --write-out=table endpoint status
+$ ETCDCTL_API=3 ./etcdctl endpoint health
+
+----- 管理集群成员add remove update list
+$ ETCDCTL_API=3 ./etcdctl --write-out=table member list
+{% endhighlight %}
 
 ## 参考
 

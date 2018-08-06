@@ -676,7 +676,7 @@ $ rpm --scripts -qp XXX.rpm
 
 如下是一个测试用的脚本，可以用来生成简单的测试 SPEC 脚本，并执行。
 
-该脚本会将 /tmp/foobar 目录作为工作目录，然后生成一个简单的 Hello world 程序。
+该脚本会将 `/tmp/foobar` 目录作为工作目录，然后生成一个简单的 Hello world 程序，也可以直接下载 [package-rpm.sh](/reference/linux/package-rpm.sh) 脚本文件。
 
 {% highlight bash %}
 #!/bin/bash
@@ -689,7 +689,8 @@ mkdir -pv ${WORKSPACE}/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS,Workspace/fooba
 echo "1. Generate tar"
 cd ${WORKSPACE}/Workspace/foobar-1.0.0
 cat << EOF > main.c
-#include
+#include <stdio.h>
+
 int main(int argc, char *argv)
 {
     printf("Hello World!!!\n");
@@ -698,9 +699,9 @@ int main(int argc, char *argv)
 EOF
 cat << "EOF" > Makefile
 all: main.c
-        gcc -o foobar $< -Wall
+	gcc -o foobar $< -Wall
 install:
-        install -m 755 foobar ${DESTDIR}/usr/bin/foobar
+	install -m 755 foobar ${DESTDIR}/usr/bin/foobar
 EOF
 cd ${WORKSPACE}/Workspace
 tar -jcf foobar-1.0.0.tar.bz2 foobar-1.0.0
@@ -736,7 +737,7 @@ It is a RPM example.
 %build
 make %{?_smp_mflags}
 #echo %{_sysconfdir}
-~
+
 %install
 #/usr/bin/
 install -d -m 0751 %{buildroot}/%{_bindir}
@@ -762,13 +763,13 @@ rm -rf %{buildroot}
 
 #--- 7.chagelog section
 %changelog
-* Fri Dec 29 2012 foobar foobar@kidding.com - 1.0.0-1
+* Fri Dec 28 2012 foobar foobar@kidding.com - 1.0.0-1
 - Initial version
 EOF
 
 echo "3. Perform rpmbuild"
 cd ${WORKSPACE}
-rpmbuild --clean --define '_topdir /tmp/foobar' -ba SPECS/foobar-1.0.0.spec~
+rpmbuild --clean --define '_topdir /tmp/foobar' -ba SPECS/foobar-1.0.0.spec
 {% endhighlight %}
 
 

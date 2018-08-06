@@ -163,7 +163,7 @@ message HelloReply {
 }
 {% endhighlight %}
 
-{% highlight text %}
+{% highlight go %}
 package main
 
 import (
@@ -205,7 +205,7 @@ func main() {
 }
 {% endhighlight %}
 
-{% highlight text %}
+{% highlight go %}
 package main
 
 import (
@@ -281,7 +281,7 @@ gRPC 服务和客户端之间是通过 http2 进行交互，其中包含了客�
 
 在 gRPC 源码 `peer/peer.go` 中包含了创建的上下文信息，其中就记录的远端地址；而且在 gRPC 请求中默认都会含有 Context 值，这样就可以通过如下方法获取。
 
-{% highlight text %}
+{% highlight go %}
 func getClietIP(ctx context.Context) (string, error) {
 	pr, ok := peer.FromContext(ctx)
 	if !ok {
@@ -301,7 +301,7 @@ func getClietIP(ctx context.Context) (string, error) {
 
 将服务端的代码修改为如下。
 
-{% highlight text %}
+{% highlight go %}
 package main
 
 import (
@@ -406,7 +406,7 @@ message Response {
 }
 {% endhighlight %}
 
-{% highlight text %}
+{% highlight go %}
 package main
 
 import (
@@ -490,7 +490,7 @@ func main() {
 }
 {% endhighlight %}
 
-{% highlight text %}
+{% highlight go %}
 package main
 
 import (
@@ -565,8 +565,6 @@ func main() {
 ### 监听地址
 
 在调用 `net.Listen()` 时，如果通过 `:8080` 方式指定端口，那么可能会监听到 IPv6 地址上，如果要使用 IPv4 那么需要显示指定 `127.0.0.1:8080` 。
-
-
 
 ## 参考
 
