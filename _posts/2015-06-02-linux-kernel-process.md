@@ -758,6 +758,21 @@ waitpid的返回值比wait稍微复杂一些，一共有3种情况：
     如果设置了选项WNOHANG，而调用中waitpid发现没有已退出的子进程可收集，则返回0；
     如果调用中出错，则返回-1，这时errno会被设置成相应的值以指示错误所在；
 当pid所指示的子进程不存在，或此进程存在，但不是调用进程的子进程，waitpid就会出错返回，这时errno被设置为ECHILD；
+
+
+/post/linux-kernel-process.html
+
+waitpid()
+
+WNOHANG 如果没有任何已经结束的子进程则马上返回，此时返回 0；
+WUNTRACED 如果子进程进入到了 Trace 状态，那么则直接返回 0；
+
+WIFEXITED(status)：如果子进程正常结束则为非0 值.
+WEXITSTATUS(status)：取得子进程exit()返回的结束代码, 一般会先用WIFEXITED 来判断是否正常结束才能使用此宏.
+WIFSIGNALED(status)：如果子进程是因为信号而结束则此宏值为真
+WTERMSIG(status)：取得子进程因信号而中止的信号代码, 一般会先用WIFSIGNALED 来判断后才使用此宏.
+WIFSTOPPED(status)：如果子进程处于暂停执行情况则此宏值为真. 一般只有使用WUNTRACED时才会有此情况.
+WSTOPSIG(status)：取得引发子进程暂停的信号代码, 一般会先用WIFSTOPPED 来判断后才使用此宏.
 -->
 
 

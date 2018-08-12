@@ -12,6 +12,55 @@ description: 整理下 C 语言中常用的技巧。变长数组。
 
 <!-- more -->
 
+## 缓冲类型
+
+流分为了文本流和二进制流，在 Linux 中两者没有区别，而 Windows 会做区分。
+
+基于流的操作最终会调用 `read()/write()` 函数进行 IO 操作，为了提高程序的运行效率，流对象通常会提供缓冲区，以减少调用系统 IO 库函数的次数。
+
+通常提供如下的三种缓冲方式：
+
+1. 全缓冲。在缓冲区满了之后才调用系统 IO 函数，例如磁盘文件。
+2. 行缓冲。直到遇到换行符 `'\n'` 或者缓冲区满时才调用系统 IO 库函数，例如标准输出。
+3. 无缓冲。无缓冲区，数据会立即读入或者输出到外存文件和设备上。例如标准错误输出，可以保证及时将错误反馈给客户。
+
+对于标准输入、输出可以通过如下的程序进行测试。
+
+{% highlight c %}
+#include <stdio.h>
+
+void print_info(FILE *f)
+{
+	if(f->_flags & _IO_UNBUFFERED)
+		printf("unbuffered\n");
+	else if(f->_flags & _IO_LINE_BUF)
+		printf("line-buffered\n");
+	else
+		printf("fully-buffered\n");
+	printf("    buffer size: %ld\n", f->_IO_buf_end - f->_IO_buf_base);
+	printf("    discriptor : %d\n\n", fileno(f));
+}
+
+int main(void)
+{
+	printf("stdin  is ");
+	print_info(stdin);
+
+	printf("stdout is ");
+	print_info(stdout);
+
+	printf("stderr is ");
+	print_info(stderr);
+
+	return 0;
+}
+{% endhighlight %}
+
+也可以通过命令 `./foobar <main.c 1>out.txt 2>err.txt` 测试重定向之后的属性。
+
+可以通过 `setvbuf(stdout, NULL, _IOLBF, 0);` 设置为行缓冲模式。
+
+
 ## 变长数组
 
 实际编程中，经常会使用变长数组，但是 C 语言并不支持变长的数组，可以使用结构体实现。

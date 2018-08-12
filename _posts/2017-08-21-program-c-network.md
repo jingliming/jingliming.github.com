@@ -346,6 +346,173 @@ int main()
 
 直接编译运行，然后通过 `netstat -atunp | grep 8888` 查看。
 
+## 非阻塞链接
+
+对于面向连接的 socket 类型，如 SOCK_STREAM，在通过 `connect()` 函数建立链接时，对于 TCP 需要三次握手过程。
+
+{% highlight c %}
+#include <sys/types.h>
+#include <sys/socket.h>
+int connect(int sockfd, struct sockaddr *serv_addr, int addrlen);
+{% endhighlight %}
+
+正常返回 0 ，失败返回 -1 并设置 errno 标示失败的原因，常见原因是主机不可达或超时。
+
+对于 TCP 套接字，在通过 connect() 函数建立链接时需要经过三次握手，Linux 内核默认的超时时间是 75s ，如果是阻塞模式，那么 connect() 会等到链接建立成功或者超时失败，这也就导致如果服务异常，每个客户端都要等待 75s 才可能退出。
+
+使用非阻塞 connect 时需要注意的问题是：
+
+1. 很可能 调用 connect 时会立即建立连接（比如，客户端和服务端在同一台机子上），必须处理这种情况。
+2. POSIX 定义了两个与非阻塞相关的内容：
+	* 成功建立连接时，socket 描述字变为可写，报错可以通过 getsockopt() 获取。
+	* 连接建立失败时，socket 描述字既可读又可写同时报错，可以优先检查报错退出。
+
+{% highlight c %}
+#include <sys/epoll.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/select.h>
+#include <fcntl.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#include <errno.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+
+int select_version(int sockfd)
+{
+	fd_set rset, wset;
+
+	FD_ZERO(&rset);
+	FD_ZERO(&wset);
+	FD_SET(sockfd, &rset);
+	FD_SET(sockfd, &wset);
+
+	struct timeval tval;
+	tval.tv_sec = 0;
+	tval.tv_usec = 300 * 1000;
+
+	int rdynum;
+	rdynum = select(sockfd + 1, &rset, &wset, NULL, &tval);
+	if (rdynum < 0) {
+		fprintf(stderr, "Select error, %s\n", strerror(errno));
+		return -1;
+	} else if (rdynum == 0) {
+		fprintf(stderr, "Select timeout\n");
+		return -1;
+	}
+
+	if (FD_ISSET(sockfd, &rset)) {
+		fprintf(stderr, "read \n");
+	}
+
+	if (FD_ISSET(sockfd, &wset)) {
+		fprintf(stderr, "write \n");
+	}
+
+	return 0;
+}
+
+int epoll_version(int sockfd)
+{
+	int ep, i, evtnum;
+
+	ep = epoll_create(1024); /* ignore 1024 since Linux 2.6.8 */
+	if (ep < 0) {
+		fprintf(stderr, "Create epoll error, %s\n", strerror(errno));
+		return -1;
+	}
+
+	struct epoll_event event;
+	event.events = EPOLLIN | EPOLLOUT | EPOLLET;
+	event.data.fd = sockfd;
+	epoll_ctl(ep, EPOLL_CTL_ADD, sockfd, &event);
+
+
+	int err = 0;
+	int errlen = sizeof(err);
+
+	struct epoll_event events[64];
+	evtnum = epoll_wait(ep, events, sizeof(events), 60 * 1000);
+	for (i = 0; i < evtnum; i++) {
+		int fd = events[i].data.fd;
+		if (events[i].events & EPOLLERR) {
+			fprintf(stderr, "error\n");
+
+			if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &errlen) == -1) {
+				fprintf(stderr, "getsockopt(SO_ERROR): %s", strerror(errno));
+				close(fd);
+				//return -1;
+			}
+
+			if (err) {
+				fprintf(stderr, "%s\n", strerror(err));
+				close(fd);
+				//return -1;
+			}
+		}
+
+		if (events[i].events & EPOLLIN) {
+			fprintf(stderr, "in\n");
+		}
+
+		if (events[i].events & EPOLLOUT) {
+			fprintf(stderr, "out\n");
+		}
+	}
+
+	return 0;
+}
+
+
+int main(int argc, char** argv)
+{
+	struct sockaddr_in svraddr;
+	int sockfd, rc;
+
+
+	memset(&svraddr, 0, sizeof(svraddr));
+	svraddr.sin_family = AF_INET;
+	svraddr.sin_port = htons(8009);
+	inet_aton("127.0.0.1", &svraddr.sin_addr.s_addr);
+
+	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		perror("Create socket fail");
+		return -1;
+	}
+
+	if (fcntl(sockfd, F_SETFL, fcntl(sockfd, F_GETFL, 0) | O_NONBLOCK) < 0) {
+		perror("Set socket O_NONBLOCK fail");
+		return -1;
+	}
+
+	rc = connect(sockfd, (struct sockaddr *)&svraddr, sizeof(struct sockaddr_in));
+	if (rc < 0 && errno != EINPROGRESS) {
+		perror("Connect remote server fail");
+		return -1;
+	}
+
+	//select_version(&c_fd);
+	epoll_version(sockfd);
+
+	close(sockfd);
+
+	return 0;
+}
+{% endhighlight %}
+
+<!--
+非阻塞socket调用connect, epoll和select检查连接情况示例
+http://www.cnblogs.com/yuxingfirst/archive/2013/03/08/2950281.html
+
+非阻塞Connect对于select时应注意问题
+http://www.cnitblog.com/zouzheng/archive/2016/07/21/71711.html
+
+http://kimi.it/515.html EPOLL Write方式
+https://www.zhihu.com/question/22840801
+-->
 
 
 {% highlight text %}

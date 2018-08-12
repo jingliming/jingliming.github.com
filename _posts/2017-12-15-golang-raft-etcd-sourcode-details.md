@@ -12,13 +12,11 @@ description:
 
 <!-- more -->
 
-## ETCD
-
-### 数据结构
+## 数据结构
 
 简单介绍下一些常见的数据结构。
 
-#### type Storage interface
+### type Storage interface
 
 定义了存储的接口。
 
@@ -52,7 +50,7 @@ type Storage interface {
 
 其中官方提供的 [Github Raft Example](https://github.com/coreos/etcd/tree/master/contrib/raftexample) 中使用的是库自带 MemoryStorage 。
 
-#### type Ready struct
+### type Ready struct
 
 对于这种 IO 网络密集型的应用，提高吞吐最好的手段就是批量操作，ETCD 与之相关的核心抽象就是 Ready 结构体。
 
@@ -101,7 +99,7 @@ type Ready struct {
 }
 {% endhighlight %}
 
-#### type node struct
+### type node struct
 
 在 `raft/node.go` 中定义了 `type node struct` 对应的结构，一个 RAFT 结构通过 Node 表示各结点信息，该结构体内定义了各个管道，用于同步信息，下面会逐一遇到。
 
@@ -122,10 +120,7 @@ type node struct {
 
 其实现，就是通过这些管道在 RAFT 实现与外部应用之间来传递各种消息。
 
-
-
-
-#### type raft struct
+### type raft struct
 
 在 `raft/raft.go` 中定义了 `type raft struct` 结构，其中有两个关键函数指针 `tick` 和 `step`，在不同的状态时会调用不同的函数，例如 Follower 中使用 `tickElection()` 和 `stepFollower()` 。
 
@@ -190,7 +185,24 @@ type raft struct {
 
 Node 代表了 etcd 中一个节点，是 RAFT 协议核心部分实现的代码，而在 EtcdServer 的应用层与之对应的是 raftNode ，两者一对一，raftNode 中有匿名嵌入了 node 。
 
-### 整体框架
+
+## 整体架构
+
+Etcd 服务端主要由几大组件构成，各部分介绍如下：
+
+* `EtcdServer[etcdserver/server.go]` 主进程，直接或者间接包含了 raftNode、WAL、snapshotter 等多个核心组件，可以理解为一个容器。
+* `raftNode[etcdserver/raft.go]` 对内部 RAFT 协议实现的封装，暴露简单的接口，用来保证写事务的集群一致性。
+
+<!--
+Store 管理维护Etcd数据库
+Wal 管理事务日志
+Snapshotter 负责数据快照，管理store数据库在内存中和磁盘上的相互转换。
+
+raftNode除了负责集群间raft消息交互，还负责事务和快照的存储，保持数据一致性。
+-->
+
+
+### 处理流程
 
 这里的采用的是异步状态机，基于 GoLang 的 Channel 机制，RAFT 状态机作为一个 Background Thread/Routine 运行，会通过 Channel 接收上层传来的消息，状态机处理完成之后，再通过 Ready() 接口返回给上层。
 
@@ -217,7 +229,7 @@ func (n *node) Ready() <-chan Ready { return n.readyc }
 
 注意，上述的第 4 部分和 RAFT 论文中的内容有所区别，论文中只要节点收到了成员变更日志就应用，而这里实际需要等到日志提交之后才会应用。
 
-### 启动流程
+## 启动流程
 
 ETCD 服务器是通过 EtcdServer 结构抽象，对应了 `etcdserver/server.go` 中的代码，包含属性 `r raftNode`，代表 RAFT 集群中的一个节点，启动入口在 `etcdmain/main.go` 文件中。
 
@@ -226,21 +238,37 @@ ETCD 服务器是通过 EtcdServer 结构抽象，对应了 `etcdserver/server.g
 -->
 
 {% highlight text %}
-main()                             etcdmain/main.go
+main()                                etcdmain/main.go
  |-checkSupportArch()
- |-startEtcdOrProxyV2()            etcdmain/etcd.go
+ |-startEtcdOrProxyV2()               etcdmain/etcd.go
    |-newConfig()
    |-setupLogging()
    |-startEtcd()
-   | |-embed.StartEtcd()           embed/etcd.go
+   | |-embed.StartEtcd()              embed/etcd.go
    |   |-startPeerListeners()
    |   |-startClientListeners()
-   |   |-etcdserver.ServerConfig() 生成新的配置
-   |   |-etcdserver.NewServer()    正式启动RAFT服务etcdserver/server.go
+   |   |-EtcdServer.ServerConfig()    生成新的配置
+   |   |-EtcdServer.NewServer()       etcdserver/server.go正式启动RAFT服务<<<1>>>
+   |   |-EtcdServer.Start()           开始启动服务
+   |   | |-EtcdServer.start()
+   |   |   |-wait.New()               新建WaitGroup组以及一些管道服务
+   |   |   |-EtcdServer.run()         etcdserver/raft.go 启动应用层的处理协程<<<2>>>
+   |   |-Etcd.servePeers()            启动集群内部通讯
+   |   | |-etcdhttp.NewPeerHandler()  启动http服务
+   |   | |-v3rpc.Server()             启动gRPC服务 api/v3rpc/grpc.go
+   |   |   |-grpc.NewServer()         调用gRPC的接口创建
+   |   |   |-pb.RegisterKVServer()    注册各种的服务，这里包含了多个
+   |   |   |-pb.RegisterWatchServer()
+   |   |-Etcd.serveClients()          启动协程处理客户请求
+   |   |-Etcd.serveMetrics()
    |-notifySystemd()
-   |-select()                      等待stopped
+   |-select()                         等待stopped
    |-osutil.Exit()
 {% endhighlight %}
+
+在标记 1 处会启动 RAFT 协议的核心部分，也就是 `node.run()[raft/node.go]` 。
+
+在标记 2 处启动的是 ETCD 应用层的处理协程，对应了 `raftNode.start()[etcdserver/raft.go]` 。
 
 这里基本上是大致的启动流程，主要是解析参数，设置日志，启动监听端口等，接下来就是其核心部分 `etcdserver.NewServer()` 。
 
@@ -268,7 +296,9 @@ NewServer()                           etcdserver/server.go 通过配置创建一
  |   |-newRaft()                      创建RAFT对象raft/raft.go
  |   |-raft.becomeFollower()          这里会对关键对象初始化以及赋值，包括step=stepFollower r.tick=r.tickElection函数
  |   | |-raft.reset()                 开始启动时设置term为1
- |   |   |-raft.resetRandomizedElectionTimeout() 更新选举的随机超时时间
+ |   | | |-raft.resetRandomizedElectionTimeout() 更新选举的随机超时时间
+ |   |-raftLog.append()               将配置更新日志添加
+ |   |-raft.addNode()
  |   |-newNode()                      新建节点
  |   |-node.run()                     raft/node.go 节点运行，会启动一个协程运行 <<<long running>>>
  |     |-newReady()                   新建type Ready对象
@@ -277,131 +307,261 @@ NewServer()                           etcdserver/server.go 通过配置创建一
  |-time.NewTicker()                   在通过&EtcdServer{}创建时新建tick时钟 etcdserver/server.go
 {% endhighlight %}
 
-启动的后台程序如下。
+启动的后台程序也就是 `node.run()`。
+
+## 客户端发送请求
+
+这里是通过 `clientv3` 发送数据，该端口使用的是 gRPC 通讯，关于客户端的使用方式，可以参考代码 clientv3 目录下的 example 示例，例如 `example_kv_test.go` 。
+
+{% highlight text %}
+clientv3.New()                 clientv3/client.go
+ |-newClient()
+ | |-Client{}                  示例化Client对象
+ | |-newHealthBalancer()       etcd实现的负载均衡策略
+ | |-Client.dial()             开始建立链接
+ | | |-Client.dialSetupOpts()
+ | | |-grpc.DialContext()      真正建立链接
+ | |-NewCluster()              新建集群配置
+ | |-NewKV()                   其入参是上述创建的Client
+ |   |-RetryKVClient()         新建KV对象时指定了remote参数<<<1>>>
+ |     |-NewKVClient()         调用proto生成的函数接口建立链接
+ |-client.autoSync()           单独协程开启自动重连
+
+cli.Put()                      实际上对应了kv.go中的实现
+ |-kv.Put()                    kv.go 中的实现
+   |-kv.Do()                   调用该函数实现，统一实现接口，根据类型调用不同的接口
+     | <<<tPut>>>
+     |-pb.PutRequest{}         构造proto中指定的请求
+     | |-kv.remote.Put()       在如上新建客户端时，将kv.remote设置为了RetryKVClient()返回值
+     |=retryKVClient.Put()     上述调用实际上就是该函数
+       |-rkv.kc.Put()          最终的gRPC调用接口，发送请求并处理返回值
+{% endhighlight %}
+
+上述的最终调用，在外层会封装一个 `retryf()` 函数，也就是如果有异常会直接重试。
+
+<!--
+https://blog.csdn.net/zoumy3/article/details/79521190
+https://yuerblog.cc/2017/12/12/etcd-v3-sdk-usage/
+
+etcd v3 的简单使用示例
+https://zhuanlan.zhihu.com/p/36719209
+-->
+
+
+## 服务端处理请求
+
+服务器 RPC 接口的定义在 `etcdserver/etcdserverpb/rpc.proto` 文件中，对应了 `service KV` 中的定义，而真正的启动对应了 `api/v3rpc/grpc.go` 中的实现。
+
+以 KV 存储为例，其对应了 `NewQuotaKVServer()` 中的实现，这里实际上是封装了一层，用来检查是否有足够的空间。
+
+### Put
+
+例如，对于 Put 请求，对应了该函数中的实现。
+
+{% highlight text %}
+quotaKVServer.Put() api/v3rpc/quota.go 首先检查是否满足需求
+ |-quotoAlarm.check() 检查
+ |-KVServer.Put() api/v3rpc/key.go 真正的处理请求
+   |-checkPutRequest() 校验请求参数是否合法
+   |-RaftKV.Put() etcdserver/v3_server.go 处理请求
+   |=EtcdServer.Put() 实际调用的是该函数
+   | |-raftRequest()
+   |   |-raftRequestOnce()
+   |     |-processInternalRaftRequestOnce() 真正开始处理请求
+   |       |-context.WithTimeout() 创建超时的上下文信息
+   |       |-raftNode.Propose() raft/node.go
+   |         |-raftNode.step() 对于类型为MsgProp类型消息，向propc通道中传入数据
+   |-header.fill() etcdserver/api/v3rpc/header.go填充响应的头部信息
+{% endhighlight %}
+
+此时，实际上已经将添加记录的请求发送到了 RAFT 协议的核心层处理。
+
+### Range
+
+没有操作单个 key 的方法，即使是读取单个 key，也是需要使用 Range 方法。
+
+上述的 quota 检查实际上只针对了 Put Txn 操作，其它的请求，例如 Range 实际上会直接调用 `api/v3rpc/key.go` 中的实现。
+
+{% highlight text %}
+kvServer.Range() api/v3rpc/key.go
+ |-checkRangeRequest()
+ |-RaftKV.Range()
+ |-header.fill()
+{% endhighlight %}
+
+## 日志复制
+
+在 RAFT 协议中，整个集群所有变更都必须通过 Leader 发起，如上其入口为 `node.Propose()` 。
 
 {% highlight go %}
-func (n *node) run(r *raft) {
-	var propc chan pb.Message
-	var readyc chan Ready
-	var advancec chan struct{}
-	var prevLastUnstablei, prevLastUnstablet uint64
-	var havePrevLastUnstablei bool
-	var prevSnapi uint64
-	var rd Ready
-
-	lead := None
-	prevSoftSt := r.softState()
-	prevHardSt := emptyState
-
-	for {
-		if advancec != nil {
-			readyc = nil
-		} else {
-			rd = newReady(r, prevSoftSt, prevHardSt)
-			if rd.containsUpdates() {
-				readyc = n.readyc
-			} else {
-				readyc = nil
-			}
-		}
-
-		if lead != r.lead {
-			if r.hasLeader() {
-				if lead == None {
-					r.logger.Infof("raft.node: %x elected leader %x at term %d",
-						r.id, r.lead, r.Term)
-				} else {
-					r.logger.Infof("raft.node: %x changed leader from %x to %x at term %d",
-						r.id, lead, r.lead, r.Term)
-				}
-				propc = n.propc
-			} else {
-				r.logger.Infof("raft.node: %x lost leader %x at term %d", r.id, lead, r.Term)
-				propc = nil
-			}
-			lead = r.lead
-		}
-
-		select {
-		// TODO: maybe buffer the config propose if there exists one (the way
-		// described in raft dissertation)
-		// Currently it is dropped in Step silently.
-		case m := <-propc:
-			m.From = r.id
-			r.Step(m)
-		case m := <-n.recvc:
-			// filter out response message from unknown From.
-			if _, ok := r.prs[m.From]; ok || !IsResponseMsg(m.Type) {
-				r.Step(m) // raft never returns an error
-			}
-		case cc := <-n.confc:
-			if cc.NodeID == None {
-				r.resetPendingConf()
-				select {
-				case n.confstatec <- pb.ConfState{Nodes: r.nodes()}:
-				case <-n.done:
-				}
-				break
-			}
-			switch cc.Type {
-			case pb.ConfChangeAddNode:
-				r.addNode(cc.NodeID)
-			case pb.ConfChangeRemoveNode:
-				// block incoming proposal when local node is
-				// removed
-				if cc.NodeID == r.id {
-					propc = nil
-				}
-				r.removeNode(cc.NodeID)
-			case pb.ConfChangeUpdateNode:
-				r.resetPendingConf()
-			default:
-				panic("unexpected conf type")
-			}
-			select {
-			case n.confstatec <- pb.ConfState{Nodes: r.nodes()}:
-			case <-n.done:
-			}
-		case <-n.tickc:
-			r.tick()
-		case readyc <- rd:
-			if rd.SoftState != nil {
-				prevSoftSt = rd.SoftState
-			}
-			if len(rd.Entries) > 0 {
-				prevLastUnstablei = rd.Entries[len(rd.Entries)-1].Index
-				prevLastUnstablet = rd.Entries[len(rd.Entries)-1].Term
-				havePrevLastUnstablei = true
-			}
-			if !IsEmptyHardState(rd.HardState) {
-				prevHardSt = rd.HardState
-			}
-			if !IsEmptySnap(rd.Snapshot) {
-				prevSnapi = rd.Snapshot.Metadata.Index
-			}
-
-			r.msgs = nil
-			r.readStates = nil
-			advancec = n.advancec
-		case <-advancec:
-			if prevHardSt.Commit != 0 {
-				r.raftLog.appliedTo(prevHardSt.Commit)
-			}
-			if havePrevLastUnstablei {
-				r.raftLog.stableTo(prevLastUnstablei, prevLastUnstablet)
-				havePrevLastUnstablei = false
-			}
-			r.raftLog.stableSnapTo(prevSnapi)
-			advancec = nil
-		case c := <-n.status:
-			c <- getStatus(r)
-		case <-n.stop:
-			close(n.done)
-			return
-		}
-	}
+func (n *node) Propose(ctx context.Context, data []byte) error {
+	return n.step(ctx, pb.Message{Type: pb.MsgProp, Entries: []pb.Entry{{Data: data}}})
 }
 {% endhighlight %}
+
+这里消息类型是 `pb.MsgProp` ，对于 leader 来说，实际上调用的是 `stepLeader()` 函数。
+
+{% highlight go %}
+case pb.MsgProp:
+	r.appendEntry(m.Entries...)
+	r.bcastAppend()
+	return
+{% endhighlight %}
+
+## RAFT 核心处理
+
+### 状态机简介
+
+在 RAFT 协议实现的代码中，`node[raft/node.go]` 是其核心的实现，也是整个分布式算法的核心所在。
+
+另外，通过 `raftNode[etcdserver/raft.go]` 对 node 进一步封装，只对 EtcdServer 暴露了 `startNode()`、`start()`、`apply()`、`processMessages()` 等少数几个接口。
+
+其中核心部分是通过 `start()` 方法启动的一个协程，这里会等待从 readyc 通道上报的数据。
+
+### 状态机处理
+
+如上，在添加数据时，已经添加到了 propc 管道中，此时会触发 `node.run()[raft/node.go]` 中协程。
+
+{% highlight text %}
+node.run()                       raft/node.go 单独的协程调用
+ |-newReady()                    获取已经就绪的数据，也就是msgs []pb.Message中的数据，保存到了rd.Messages中
+ |-Ready.containsUpdates()       判断是否有更新，以决定是否将数据发送到readyc的管道中
+ |-hasLeader()                   如果leader已经变化，那么需要获取最新的propc管道
+ |                               等待propc获取数据
+ |-raft.Step()                   raft/raft.go
+   |-raft.step()                 这里是一个函数指针，不同状态调用函数有所区别
+   |=stepLeader()                对于Leader来说，也就是同步到其它节点
+   | |
+   | |  <<<pb.MsgProp>>>
+   | |-raft.appendEntry()        将日志添加到raftlog的unstable entry中，等待commit变成stable entry
+   | | |                             放到storage中，最终变成snapshot
+   | | |-raftLog.lastIndex()     raft/log.go 日志最新的ID，并对每个消息赋值ID
+   | | |-raftLog.append()        将新的entry加到unstable entry中
+   | | | |-unstable.truncateAndAppend()
+   | | |-raft.getProgress().maybeUpdate() 这里更新了leader自己的Match
+   | | |-raft.maybeCommit()      只增加了自己的commit，未收到其它节点的返回消息，此时不会更新commit index
+   | |   |-raftLog.maybeCommit() 会读取raft.prs中的内容，也就是Progress
+   | |     |-raftLog.commitTo()  修改commitIndex
+   | |
+   | |-raft.bcastAppend()        将entry广播到其它的节点，也就是日志复制
+   | | |-raft.sendAppend()       构造pb.MsgApp类型的消息结构体开始发送
+   | |   |-raft.send()
+   | |     |-append()            添加到msgs []pb.Message中，这里相当于一个发送的缓冲区
+   | |
+   | |  <<<pb.MsgAppResp>>>
+   | |-maybeUpdate()             从其它节点获取到的响应消息，更新本地计数
+   | |-raft.maybeCommit()        判断是否提交成功，如果更新成功则广播
+   | |-raft.bcastAppend()
+   |
+   |=stepFollower()              对于Follower来说
+     |
+     |  <<<pb.MsgProp>>>
+     |-raft.send()               直接添加到msgs []pb.Message数组中并转发给Leader
+     |
+     |  <<<pb.MsgApp>>>
+     |-raft.handleAppendEntries()
+       |-raft.send()
+{% endhighlight %}
+
+注意，这里在处理时，readyc 和 advancec 只有一个是有效值。
+
+{% highlight go %}
+if advancec != nil { /* 如果 advance 不空，则把 readyc 置空 */
+	readyc = nil
+} else { /* 每次循环都会创建一个新的ready对象，其中包含了数据msgs */
+	rd = newReady(r, prevSoftSt, prevHardSt)
+	if rd.containsUpdates() { /* 如果raft.msgs中队列大小不为0，表示有数据发出 */
+		readyc = n.readyc
+	} else {
+		readyc = nil
+	}
+}
+
+if lead != r.lead {
+	if r.hasLeader() {//当前raft节点r中lead不为空，表示已经存在leader
+		if lead == None {
+			r.logger.Infof("raft.node: %x elected leader %x at term %d", r.id, r.lead, r.Term)
+		} else {
+			r.logger.Infof("raft.node: %x changed leader from %x to %x at term %d", 
+					    r.id, lead, r.lead, r.Term)
+		}
+		propc = n.propc
+	} else {
+		r.logger.Infof("raft.node: %x lost leader %x at term %d", r.id, lead, r.Term)
+		propc = nil
+	}
+	lead = r.lead
+}
+{% endhighlight %}
+
+
+在下个循环中，会通过 `newReady()` 读取数据，也就是 `msgs []pb.Message` 中的数据，并发送到 readyc 管道中。接着会触发消息的发送，也就是 `raftNode.start()[etcdserver/raft.go]` 中的处理。
+
+{% highlight text %}
+raftNode.start() etcdserver/raft.go 单独协程处理，包括发送消息
+ |
+ | <<<readyc>>>                这里会等待raft/node.go中node.Ready()返回的管道
+ |-rd := <- r.Ready()          阻塞等待readyc管道中的消息，包括上述提交的数据
+ |-apply{}                     构造apply对象，其中包括了已经提交的日志，SnapShot等
+ |-updateCommittedIndex()
+ | |-raftReadyHandler.updateCommittedIndex()
+ | applyc<-ap                  添加到管道中，并等待提交完成
+ |-transport.Send()            将数据，真正发送到对端
+ |
+ |-raftNode.processMessages()  会根据不同类型的消息进行一些异常的处理
+ |-transport.Send()            rafthttp/transport.go 发送请求消息
+ |-storage.Save()              这里同时会对日志以及SnapShot进行持久化处理
+{% endhighlight %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### 消息发送
+
+在消息通过 `append(r.msgs, m)` 添加到了发送缓冲区中之后，接着就是如何通过网络层发送数据。
+
+在搜索 `r.msgs` 是，实际用的只有在 `newReady()` 函数中，也就是上述的处理协程中，对应了 `node.run()` 函数，此时会发送到 readyc 管道中。
+
+其中，raft/node.go 中有如下的实现。
+
+func (n *node) Ready() <-chan Ready { return n.readyc }
+
+也就是是说，实际处理 readyc 请求是在 `raftNode.start()[etcdserver/raft.go]` 中。
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -719,10 +879,8 @@ type generation struct {
 
 在多版本控制中，一般会采用 compact 来压缩历史版本，即当历史版本到达一定数量时，会删除一些历史版本，只保存最近的一些版本，在 `keyIndex` 之前有相关的解析。
 
-<!--
 tombstone就是指delete删除key，一旦发生删除就会结束当前的generation，生成新的generation，小括号里的(t)标识tombstone。
 compact(n)表示压缩掉revision.main <= n的所有历史版本，会发生一系列的删减操作，可以仔细观察上述流程。
--->
 
 #### 总结
 
@@ -858,6 +1016,354 @@ https://blog.csdn.net/zoumy3/article/details/79521190
 https://yuerblog.cc/2017/12/12/etcd-v3-sdk-usage/
 https://www.compose.com/articles/utilizing-etcd3-with-go/
 
+
+
+
+
+
+
+
+
+
+
+## Storage
+
+应用程序需要实现存储 IO 和网络通讯，其中存储在 RAFT 中通过 type Storage interface 定义，包括了读取 log、执行 Snapshot 等接口，其本身实现了一个基于内存的 MemoryStorage 。
+
+对应的实现在 raft/storage.go 文件中，对于 ETCD 是将 MemoryStorage 作为 Cache ，每次事务中会先将日志持久化到存储设备上，然后再更新 MemoryStorage 。
+
+type Storage interface {
+    // 初始化时会返回持久化之后的HardState和ConfState
+    InitialState() (pb.HardState, pb.ConfState, error)
+	// 返回范围[lo,hi)内的日志数据
+    Entries(lo, hi, maxSize uint64) ([]pb.Entry, error)
+	// 获取entry i的term值
+    Term(i uint64) (uint64, error)
+	// 日志中最新一条日志的序号
+    LastIndex() (uint64, error)
+	// 日志中的第一条日志序号，老的日志已经保存到snapshot中
+    FirstIndex() (uint64, error)
+    Snapshot() (pb.Snapshot, error)
+}
+
+type MemoryStorage struct {
+   sync.Mutex
+   hardState pb.HardState
+   snapshot  pb.Snapshot
+   ents []pb.Entry
+}
+
+
+Storage和MemoryStorage是接口和实现的关系
+
+与unstable一样，Storage也被嵌入在raftLog结构中。需要说明的一点是：将日志项追加到Storage的动作是由应用完成的，而不是raft协议核心处理层。目前尚不理解Storage存在的意义是什么，与unstable到底有什么区别？
+
+### ETCD 实现
+
+实际上是在 etcdserver/storage.go 中实现，接口定义名称与上述相同，也是 `type Storage interface`，注意不要将两者混淆。
+
+type Storage interface {
+	Save(st raftpb.HardState, ents []raftpb.Entry) error
+	SaveSnap(snap raftpb.Snapshot) error
+	Close() error
+}
+type storage struct {
+	*wal.WAL
+	*snap.Snapshotter
+}
+
+在上述定义的 `type storage struct` 结构体中，根据 Go 语言的特性，因为没有声明成员变量的名字，可以直接使用 WAL 和 Snapshotter 定义的方法，也就是该结构体是对后两者的封装。
+
+这里的 storage 和 MemoryStorage 的结合使用就是在 etcdserver/raft.go 实现，对应了 `type raftNode struct` 结构体，其中包含的是 `type raftNodeConfig struct` ，也就是真正的封装。
+
+type raftNodeConfig struct {
+    isIDRemoved func(id uint64) bool
+    raft.Node
+    raftStorage *raft.MemoryStorage
+    storage     Storage
+    heartbeat   time.Duration // for logging
+    transport rafthttp.Transporter
+}
+
+如上，raftStorage就是提供给Raft library的，而storage则是etcd实现的持久化存贮。在使用中，etcd以连续调用的方式实现二者一致的逻辑。以etcd server重启为例，我们看看同步是如何实现的，且看restartNode()的实现。
+
+NewServer()
+ |-store.New() store/store.go 根据入参创建一个初始化的目录
+ | |-newStore() 创建数据存储的目录
+ |-snap.New() snap/snapshotter.go 这里只是初始化一个对象，并未做实际操作
+ |-openBackend() etcdserver/backend.go
+ | |-newBackend() 在新的协程中打开，同时会设置10秒的超时时间
+ |
+ | <<<haveWAL>>> 存在WAL日志，也就是非第一次部署
+ |-Snapshotter.Load() snap/snapshotter.go 开始加载snapshot
+ | |-Snapshotter.snapNames() 会遍历snap目录下的文件，并逆序排列返回
+ | |-loadSnap() 依次加载上述返回的snap文件
+ |   |-Read() 读取文件，如果报错那么会添加一个.broken的后缀
+ |     |-ioutil.ReadFile() 调用系统接口读取文件
+ |     |-snappb.Unmarshal() 反序列化
+ |     |-crc32.Update() 更新并校验CRC的值
+ |     |-raftpb.Unmarshal() 再次反序列化获取值
+ |-store.Recovery() store/store.go 从磁盘中恢复数据
+ | |-json.Unmarshal() snap中保存的应该是json体
+ | |-newTtlKeyHeap() 一个TTL的最小栈，用来查看将要过期的数据
+ | |-recoverAndclean() ???没有理清楚具体删除的是什么过期数据
+ |-recoverSnapshotBackend() etcdserver/backend.go 开始恢复snapshot
+ | |-openSnapshotBackend() 这里会将最新的一次的snapshot重命名为DB
+ |   |-openBackend()
+ |
+ |-restartNode() etcdserver/raft.go
+ | |-readWAL()
+ | |-raft.NewMemoryStorage()
+ | |-ApplySnapshot()
+ | |-SetHardState()
+ | |-Append()
+ | |-RestartNode()
+ |-SetStore()
+ |-SetBackend()
+ |-Recover()
+
+
+
+这个函数的主要处理逻辑就是通过读取 Snapshot 和 WAL，然后通过 SetHardState() 和 Append() 恢复当前 memoryStrorage 的状态。
+
+
+## SnapShot
+
+涉及到几个重要的问题：
+
+1. 何时触发。
+2. 效率如何。
+
+保存的是某个时间节点系统当前状态的一个快照，便用户恢复到此时的状态，ECTD 中 snapshot 的目的是为了回收日志占用的存储空间，包括内存和磁盘。
+
+更新首先被转化为更新日志，按照顺序追加到日志文件，并在集群中进行同步，只有在写入多个节点的日志项会应用到状态机，日志会一直增长，因此需要特定的机制来回收那些无用的日志。
+
+ETCD 中的 snapshot 代表了应用的状态数据，而执行 snapshot 的动作也就是将应用状态数据持久化存储，这样，在该 snapshot 之前的所有日志便成为无效数据，可以删除。
+
+### 结构体
+
+SnapShot 的结构体在 raft/raftpb/raft.proto 中定义，`message Snapshot` 定义了序列化后的格式，其中包括了日志条目的序号等信息。
+
+### 持久化
+
+
+EtcdServer.snapshot() etcdserver/server.go 真正处理
+ |-store.Clone() store/store.go
+ | |-newStore() 会新建一个对象，并复制所需要的成员
+ | |-KV().Commit()
+ |
+ |-storage.SaveSnap()
+ | |-walpb.Snapshot{} 实例化对象，这里会设置Index和Term
+ | |-WAL.SaveSnapshot()
+ | |-Snapshotter.SaveSnap() snap/snapshotter.go
+ | | |-Snapshotter.save() 将数据序列化后保存到磁盘上
+ | |   |-pioutil.WriteAndSyncFile() 格式化并保存
+ | |-WAL.ReleaseLockTo()
+
+raftStorage.CreateSnapshot()
+
+BoltDB的COW技术
+http://www.d-kai.me/boltdb%E4%B9%8Bcow%E6%8A%80%E6%9C%AF/
+
+ETCD 监控
+https://coreos.com/etcd/docs/latest/op-guide/monitoring.html
+
+
+
+
+
+这里没有理清楚，为什么第一发送数据需要写入到 WAL 以及存储中？？？？？？
+
+
+也就是说在 Readyc 中包含了需要发送的数据、已经提交的数据、需要应用的数据，那么如何区分呢？？？？？
+
+
+经过该步之后，日志条目才写入到wal文件和memorty storage。消息也才经Transport发送给其他节点。
+
+
+消息处理。。。。
+
+
+
+
+http://blog.sina.com.cn/s/blog_4b146a9c0102yml3.html
+https://blog.csdn.net/xxb249/article/details/80787501
+http://www.ituring.com.cn/book/tupubarticle/16510
+
+https://my.oschina.net/fileoptions/blog/1825531
+https://blog.csdn.net/xxb249/article/details/80790587
+http://www.opscoder.info/ectd-raft-library.html
+https://yuerblog.cc/2017/12/10/principle-about-etcd-v3/
+
+
+## SnapShot
+
+
+snapshot是wal快照，为了节约磁盘空间，当wal文件达到一定数据，就会对之前的数据进行压缩，形成快照。
+2）snapshot另外一个原因，当新的节点加入到集群中，为了同步数据，就会把snapshot发送到新节点，这样能够节约传输数据(生成的快照文件比wal文件要小很多，5倍左右)，使之尽快加入到集群中。
+
+
+## Storage
+
+也就是静态存储，用来将数据持久化到磁盘上，是对 WAL 和 Snapshot 的封装。
+
+## MemoryStorage
+
+## Etcd VS. BoltDB
+
+
+1. 客户端的请求通过 propc 管道传递给内部的 RAFT 协议层；
+2. 收到集群内其它节点的响应后，对投票进行计数，如果超过半数则提交？？？？
+3. 从 Ready() 中读取已经提交后的日志，并发送给 readyc 管道 node.run()[raft/node.go]；备注：readyc 处理完之后，会继续更新 advancec 管道。
+4. 在 raftNode 中会阻塞等待 readyc 管道，当读取到之后，会构建一个 apply 对象，并再次传递给 applyc 管道；同时会阻塞等待处理完成。raftNode.start()[etcdserver/raft.go]
+5. 接着调用 EtcdServer 中阻塞等待的协程，也就是 ap := <-s.r.apply() ，此时会直接调用后台将数据写入。
+
+ETCD 会启动几个后台的协程。
+
+node.run() raft/node.go
+
+
+真正读取数据。
+
+store.Get() store/store.go
+ |-store.internalGet() 用于获取数据
+ | |-walkFunc 函数指针，用来递归查找
+ | | |-parent.Children[name] 从map中获取节点
+ | |-store.walk() 遍历各个节点
+ |-loadInternalNode() store/node_extern.go
+   |-node.Read() store/node.go
+
+flock / funlock / mmap / munmap
+
+newBackend() mvcc/backend/backend.go
+ |-bolt.Open()
+ |-backend{} 实例化一个后端对象
+ |-newBatchTxBuffered() 批量缓存对象
+ |-backend.run() [协程]后台的批量刷新任务
+   |-time.NewTimer()
+   |-batchTx.CommitAndStop() 最后事件退出时保存数据
+   |-batchTx.Commit() 周期性的提交数据
+   |-time.Reset() 重置定时器
+
+
+网络发送
+状态机应用
+WAL追加
+
+storeTxnWrite.put() mvcc/kvstore_txn.go
+ |-newRevBytes()
+ |-revToBytes()
+ |-kv.Marshal() 对数据序列化
+ |-UnsafeSeqPut() mvcc/backend/batch_tx.go 真正的数据持久化
+ |-kvindex.Put() 添加到key->revision索引
+
+kvindex 实际上是内存中的 btree ，可以参考 mvcc/index.go 中的实现。
+
+
+实际上 `type Ready struct` 封装了多种消息的更新，
+
+type Ready struct {
+
+// Messages specifies outbound messages to be sent AFTER Entries are
+    // committed to stable storage.
+    // If it contains a MsgSnap message, the application MUST report back to raft
+    // when the snapshot has been received or has failed by calling ReportSnapshot.
+
+	用来保存在提交持久化之后应该发送的消息
+	Messages []pb.Message
+}
+
+## Backend 写入
+
+EtcdServer.run() etcdserver/server.go
+ |-raftStorage.Snapshot()
+ |-NewFIFOScheduler() ???不清楚干嘛用的
+ |
+ | <<<applyc>>> 这里调用的是raftNode.apply()返回后的管道
+ |-Schedule() 会新建一个FIFO调度队列处理如下的请求
+ |-EtcdServer.applyAll()
+   |-EtcdServer.applySnapshot()
+   |-EtcdServer.applyEntries()
+     |-EtcdServer.apply()
+	   |-EtcdServer.applyEntryNormal()
+         |-applyV3.Apply() etcdserver/apply.go 这里会根据操作类型调用特定的接口处理
+           |-applyV3.Put()
+             |-KV().Write()
+               |-txn.Put()
+                 |-tw.tx.UnsafeSeqPut()
+
+也就是说，在 run() 协程中，会消费 applyc 管道中的数据，并持久化到磁盘中，那么 applyc 的数据是从哪里来的？
+
+
+整体来说，这个库实现了raft协议核心的内容，比如append log的逻辑，选主逻辑，snapshot，成员变更等逻辑。需要明确的是：library没有实现消息的网络传输和接收，库只会把一些待发送的消息保存在内存中，用户自定义的网络传输层取出消息并发送出去，并且在网络接收端，需要调一个library的函数，用于将收到的消息传入library，后面会详细说明。同时，library定义了一个Storage接口，需要library的使用者自行实现。
+
+
+客户端发起的状态更新请求首先都会被记录在日志中，待主节点将更新日志在集群多数节点之间完成同步以后，便将该日志项内容在状态机中进行应用，进而便完成了一次客户的更新请求。
+
+ETCD-RAFT 核心库实际上没有实现日志的追加逻辑，WAL 需要应用来实现，重点讨论：
+
+1. 应用如何调用 WAL 库完成日志追加；
+2. WAL 库如何管理日志；
+3. WAL 如何与协议核心相互配合完成日志内容的同步。
+
+### WAL
+
+相关的代码在 wal 目录下，用来处理日志的追加、日志文件的切换、日志的回放等操作。
+
+日志只有 read 和 appending 两种方式，且两种模式不会同时出现，在所有老日志读取完成之后，会变为 appending 模式，此时只增加不能修改之前日志，通过 `type WAL struct` 表示一个日志。
+
+WAL 在持久化时采用的是 protobuf 协议，对应了 wal/walpb/record.proto 中的格式，而其编码解码对应的实现为 wal/{decoder.go,encoder.go} 。
+
+
+
+Create() wal/wal.go
+ |-CreateDirAll() 创建临时目录
+
+### RaftLog
+
+实际上 RAFT 协议的核心工作是在集群节点之间复制日志，协议核心需要了解当前日志的复制情况，这个结构便是 `type raftLog struct`，其实现在 raft/log.go 文件中。
+
+在 raftLog 结构体中记录了当前日志的状态。
+
+type raftLog struct {
+	storage Storage    // 最近一次snapshot之后所有稳定的日志
+	unstable unstable  // 未提交的entries，日志缓存，用于集群各个节点间复制日志，最后持久化到存储中
+	committed uint64   // 已经在集群内完成提交的最大索引值
+	applied uint64     // 已经将日志应用到状态机的最近一次提交 applied<=committed
+	logger Logger
+}
+
+type unstable struct {
+   snapshot *pb.Snapshot
+   entries []pb.Entry
+   offset  uint64
+}
+
+unstable 在内存中使用数组维护所有的更新日志项，在 Leader 中保存了客户端的所有更新请求；在 Follower 中维护了从 Leader 节点复制后的日志项。
+
+任何节点的日志都会先保存在 unstable 结构中，然后再由内部状态机将 unstable 维护的日志项交给应用层处理，并由应用层将日志项进行持久化并转发至系统其它节点。
+
+注意：将日志项追加到 Storage 的动作是由应用完成的，而不是 raft 协议核心处理层。
+
+
+
+
+
+
+
+
+https://www.jianshu.com/p/27329f87c104
+https://www.jianshu.com/p/21acb670ccf1
+https://zhuanlan.zhihu.com/p/29865583
+
+http://blog.sina.com.cn/s/blog_4b146a9c0102yml3.html
+http://www.ituring.com.cn/book/tupubarticle/16510
+https://www.jianshu.com/p/ae1031906ef4
+https://blog.csdn.net/xxb249/article/details/80779577
+https://www.cnblogs.com/foxmailed/p/7161878.html
+
+https://www.jianshu.com/p/ef1ac201f685
+https://bbs.huaweicloud.com/blogs/f65bc75d3ba811e89fc57ca23e93a89f
 -->
 
 

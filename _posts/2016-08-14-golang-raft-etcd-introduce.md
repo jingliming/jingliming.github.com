@@ -399,7 +399,33 @@ $ ETCDCTL_API=3 ./etcdctl endpoint health
 
 ----- 管理集群成员add remove update list
 $ ETCDCTL_API=3 ./etcdctl --write-out=table member list
+
+----- 查看告警
+$ ETCDCTL_API=3 ./etcdctl alarm list
 {% endhighlight %}
+
+### 压测
+
+在源码中内置了一个压测工具 `tools/benchmark` ，类似于 raftexample ，同样可以通过修改 `build` 文件编译。
+
+详细的使用方法可以查看源码中的文档 [Github op-guide performance](https://github.com/coreos/etcd/blob/master/Documentation/op-guide/performance.md) 。
+
+{% highlight text %}
+$ go build -o "${out}/benchmark" ${REPO_PATH}/tools/benchmark || return
+{% endhighlight %}
+
+{% highlight text %}
+----- 可以先查看当前集群的状态
+$ ETCDCTL_API=3 ./etcdctl --endpoints=127.0.0.1:2379,127.0.0.1:22379,127.0.0.1:32379 \
+     --write-out=table endpoint status
+
+$ ./benchmark --endpoints=127.0.0.1:2379 --target-leader --conns=1 --clients=1 \
+	put --key-size=8 --sequential-keys --total=10000 --val-size=256
+{% endhighlight %}
+
+<!--
+https://indico.cern.ch/event/560399/contributions/2262460/attachments/1318051/1975404/slides.pdf
+-->
 
 ## 参考
 
@@ -415,12 +441,6 @@ http://www.infoq.com/cn/articles/etcd-interpretation-application-scenario-implem
 场景四：分布式通知与协调
 场景五：分布式锁、分布式队列
 场景六：集群监控与Leader竞选
-
-
-
-
-
-
 
 
 
@@ -552,6 +572,26 @@ https://github.com/coreos/dbtester
 
 自习周报：CoreOS 的黑魔法
 https://zhuanlan.zhihu.com/p/29882654
+
+
+
+
+
+
+
+Linearizability 用来保证针对某个对象的一系列操作在墙上时间 (wall-clock) 是有序的，通常针对的是分布式系统。也就是说，针对多个节点可以完成原子操作，例如写完成后，其它节点可以立即读取到当前的状态。
+
+Serializability 保证一系列针对多个对象的操作与针对对象的序列操作是相同的，通常是针对数据库的最高级别操作。
+
+Strict Serializability 实际上是结合了上述的两种方式。
+
+Linearizable read requests go through a quorum of cluster members for consensus to fetch the most recent data. 
+Serializable read requests are cheaper than linearizable reads since they are served by any single etcd member, instead of a quorum of members, in exchange for possibly serving stale data.
+
+https://aphyr.com/posts/313-strong-consistency-models
+
+
+
 
 -->
 
