@@ -186,6 +186,13 @@ http://www.yankay.com/go-clear-concurreny/
 
 ## 其它
 
+`go build` 和 `go install` 命令会尝试匹配目录而非源码文件，会查找 `$GOROOT/src` 和 `$GOPATH/src` 目录的同名目录。例如，代码保存在 `/tmp/test/src/foobar` 目录下，可以通过如下方式编译。
+
+{% highlight text %}
+$ GOPATH=$GOROOT:/tmp/test go run main.go
+{% endhighlight %}
+
+
 ### 环境变量
 
 介绍下一些常见的环境变量使用方法，可以通过 go env 查看当前的环境变量。
@@ -485,6 +492,10 @@ $ goreman run status
 * [Network programming with Go](https://jan.newmarch.name/go/)，关于网络编程相关。
 * [Go Resources](http://www.golang-book.com/)，有两本不错的书 An Introduction to Programming in Go、Introducing Go。
 * [Go Bootcamp](http://www.golangbootcamp.com/)、[The Little Go Book](http://openmymind.net/The-Little-Go-Book/)、[Learning Go](https://www.miek.nl/go/)、[Building Web Apps With Go](https://www.gitbook.com/book/codegangsta/building-web-apps-with-go/details) 。
+
+<!--
+https://golang.org/ref/spec#Program_initialization_and_execution
+-->
 
 {% highlight text %}
 {% endhighlight %}

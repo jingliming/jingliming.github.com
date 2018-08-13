@@ -576,8 +576,6 @@ HTTP2 的协议详解
 https://developers.google.com/web/fundamentals/performance/http2/?hl=zh-cn
 
 
-Protocol Buffer 序列化原理大揭秘
-https://blog.csdn.net/carson_ho/article/details/70568606
 https://github.com/grpc/grpc/blob/master/doc/health-checking.md
 https://github.com/go-training/grpc-health-check
 -->

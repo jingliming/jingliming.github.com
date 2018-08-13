@@ -304,7 +304,6 @@ https://hitzhangjie.github.io/2017/05/23/Protoc%E5%8F%8A%E6%8F%92%E4%BB%B6%E5%B7
 {% highlight text %}
 $ protoc --plugin=protoc-gen-custom=plugin.py --custom_out=./build hello.proto
 {% endhighlight %}
-
 -->
 
 
@@ -321,6 +320,9 @@ $ protoc --plugin=protoc-gen-custom=plugin.py --custom_out=./build hello.proto
 <!--
 Protobuf 语言指南
 https://blog.csdn.net/cchd0001/article/details/50669079
+
+Protocol Buffer 序列化原理大揭秘
+https://blog.csdn.net/carson_ho/article/details/70568606
 -->
 
 
