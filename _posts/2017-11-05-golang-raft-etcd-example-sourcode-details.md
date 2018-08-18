@@ -598,6 +598,299 @@ etcd-raft和应用之间是通过channel进行消息的通信，而消息的结�
 需要注意的一点是：所有的客户端请求都是直接发往应用的。应用需要将这些请求先提交给raft组件以保证在集群多数节点之间完成数据同步。应用提交的过程其实就是调用raft模块的Propose()接口。
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## 等待提交
+
+
+每次启动之后，及时没有发送数据也会调用 readCommits() 接口？？？？？
+为什么会有这么多的readyc数据，都是啥啊？？？？
+
+
+
+newKVStore() kvstore.go
+ |-kvstore.readCommits() 等待已经提交的数据，也就是阻塞在commitC管道中
+
+serveChannels() raft.go
+ | <<<readyc>>>
+ |-raftNode.publishEntries() raft.go 这里会将数据发送到commitC管道中
+
+那么 readyc 中的数据又是从何而来，为什么会在启动时就已经有数据的提交了。
+
+实际上，本地启动之后，在与集群的其它节点建立链接之前，已经有 snapshot 之后 WAL 中的数据会在自己的节点中提交，并应用到日志中。
+
+
+raft.RestartNode() raft/node.go 如果已经安装过WAL则直接重启Node，这最常见场景
+ |-raft.newRaft() raft/raft.go
+ | |-raft.becomeFollower() 启动后默认先成为follower 【became follower at term】
+ | | 返回新建对象 【newRaft】
+ |-newNode() raft/node.go 这里只是实例化一个node对象
+ |-node.run() 启动一个后台协程开始运行
+
+transport.Start() rafthttp/transport.go 启动HTTP服务
+ |-newStreamRoundTripper() 如下的实现是对http库的封装，保存在pkg/transport目录下
+ | |-NewTimeoutTransport()
+ |   |-NewTransport()
+ |     |-http.Transport{} 调用http库创建实例
+ |-NewRoundTripper()
+transport.AddPeer() rafthttp/transport.go 添加对端服务，如果是三个节点，会添加两个
+ |-startPeer() rafthttp/peer.go 【starting peer】
+ | |-pipeline.start() rafthttp/pipeline.go
+ | | |-pipeline.handle() 这里会启动一个协程处理
+ | |--->  【started HTTP pipelining with peer】
+ | |-peer{} 新建对象
+ | | |-startStreamWriter() 会启动两个streamWriter
+ | |   |-streamWriter.run() 启动协程处理 heartbeatc、msgc、cw.connc、cw.stopc【started streaming with peer (writer)】
+ | |     |  <<<cw.connc>>>
+ | |     |-cw.status.active() 与对端已经建立链接【peer 1 became active】
+ | |     |---> 【established a TCP streaming connection with peer (... writer)】
+ | |-streamReader.start() 这里会启动msgAppV2Reader、msgAppReader两个streamReader读取
+ |   |-streamReader.run() 启动协程处理，这里是一个循环处理 【started streaming with peer (... reader)】
+ |---> 【started peer】
+
+一般是定时器超时
+raft.Step()
+ | <<<pb.MsgHup>>>
+ |- 【is starting a new election at term】
+ |-raft.campaign()
+   |-raft.becomeCandidate() 进入到选举状态，也可以是PreCandidate
+   |-raft.poll() 首先模拟收到消息给自己投票
+   |-raft.quorum() 因为集群可能是单个节点，这里会检查是否满足条件，如果是
+   | |-raft.becomeLeader() 如果满足则成为主
+   |-raft.send() 发送选举请求，消息类型可以是MsgPreVote或者MsgVote 【sent MsgVote request】
+
+raft.stepCandidate()
+ |-raft.poll() 【received MsgVoteResp from】
+ | |-raft.becomeLeader() 如果满足多数派
+ | | |-raft.appendEntry() 添加一个空日志，记录成为主的事件
+ | | |---> 【became leader at term】
+ | |-raft.bcastAppend() 广播发送
+ |   |-raft.sendAppend()
+ |---> 【has received 2 MsgVoteResp votes and 0 vote rejections】
+
+node.run()
+ |---> 【raft.node ... elected leader at term ...】
+
+
+其中 RestartNode() 与 StartNode() 的区别在于，前者从日志文件中读取配置，而后者需要从命令行中传参。
+
+
+
+curl -L http://127.0.0.1:12380/my-key -XPUT -d hello
+curl -L http://127.0.0.1:12380/my-key
+
+
+在实现时，日志和 snapshot 糅合到了一起，因此在重新构建状态机时必须要两者合作才可以。
+
+首先需要加载 snapshot 的最新值，然后根据这个 index 在 WAL 目录下查找之后的日志，并回放这些日志即可。
+
+
+
+snap.New() snap/snapshotter.go 只是实例化一个对象，并设置其中的dir成员
+wal.Exist() wal/util.go 简单判断目录是否存在
+raftNode.replayWAL() raft.go 开始读取WAL日志，并赋值到raftNode.wal中
+ |-raftNode.loadSnapshot()
+ |-raftNode.openWAL() 打开snapshot，如果WAL目录不存在则创建
+ | |-wal.Open() 会打开指定snap位置的WAL日志，注意snap需要持久化到WAL中才可以
+ |   |-wal.openAtIndex() 打开某个snapshot处的日志，并读取之后
+ |     |-readWalNames() wal/util.go读取日志目录下的文件，会检查命名格式
+ |     |-searchIndex() 查找指定的index序号
+ |-wal.ReadAll() 真正开始读取WAL
+ |-raft.NewMemoryStorage() raft/storage.go 新建内存存储
+ |--->>> 从这里开始的三步操作是文档中启动节点前要求的
+ |-MemoryStorage.ApplySnapshot() 这里实际上只更新snapshot和新建ents成员，并未做其它操作
+ |-MemoryStorage.SetHartState() 更新hardState成员
+ |-MemoryStorage.Append() 添加到ents中
+ |-raftNode.lastIndex 更新成员变量
+raft.Config{} raft/raft.go构建RAFT核心的配置项，详细可以查看源码中的定义
+raft.RestartNode() raft/raft.go
+rafthttp.Transport{}
+rafthttp.Start() 启动对外服务
+
+raftNode.serveRaft()
+raftNode.serveChannels() 真正的处理
+ |-
+
+
+
+在 `raft/raft.go` 中定义了 `type Config struct` 结构体。
+
+type Config struct {
+	ID uint64  本节点的ID，不能为0
+	peers []uint64 当前集群的所有ID列表，目前仅用来测试
+	learners []uint64 集群中的Learner列表，仅用来接收Leader节点发送的消息，不会进行投票选举
+	ElectionTick int 也就是选举的超时时间，单位是Node.Tick；当Follower在当前选举周期内没有收到任何消息时开始变成Candidate开始选举
+	HeartbeatTick int Leader为了维持其当前的角色发起的心跳请求
+}
+
+一般来说要满足 ElectionTick >> HeartbeatTick ，以防一些无必要的主切换，一般为 ElectionTick = 10 * HeartbeatTick 。
+
+### 定时器创建
+
+对于 ETCD 来说，在 newRaftNode() 函数中，会新建一个 ticker 时钟触发器，用来产生时钟事件。示例中，会在 `raftNode.serveChannels()` 中初始化定时器。
+
+对于时间间隔，默认是保存在 `embed/config.go` 中的 cfg.TickMs ，可以通过命令行入参 `--heartbeat-interval` 指定。
+
+NewServer() etcdserver/server.go
+ |-heartbeat 会设置为cfg.TickMs的值，而该值默认在embed/config.go中初始化为100ms
+ |-newRaftNode() etcdserver/raft.go 在该函数中会将相应的heartbeat的值传入
+   |-time.NewTicker() 调用time包中提供的函数实现
+
+接着看下这里的配置是如何生效的。
+
+无论是通过 RestartNode() 还是 StartNode() ，最终都会调用 newRaft() 新建一个 raft 对象，其中会将上述的配置分别赋值给 electionTimeout 和 heartbeatTimeout 。
+
+### 定时器触发
+
+在 `raftNode.start()[etcdserver/raft.go]` 中，会等待时钟事件的触发，一次也就是一个 Tick 。
+
+每次 Tick 都需要调用 node.Tick()[raft/node.go] 函数，该函数实际上就是向 tickc 中发送一个空的结构体，用来触发一次心跳事件。
+
+为了防止由于负载过高导致时钟事件丢失，会将管道设置为 128 缓冲。
+
+raftNode.start()
+ | <<<raftNode.ticker.C>>>
+ |-node.Tick() 触发tick事件，向tickc中发送一个结构体
+
+node.run() raft/node.go
+ | <<<node.tickc>>> 触发了心跳事件
+ |-raft.tick() 这里是一个函数指针，不同的角色调用的函数不同
+ |=== Leader
+ |-raft.tickHeartBeat() 对于Leader会调用该函数
+   | 判断是否要发送心跳信息，如果需要则发送MsgBeat类型的消息
+
+
+
+
+
+
+
+
+
+在启动时会将已经写入到 WAL 中的数据写入到 Ready CommittedEntries
+
+
+通过 `type Ready struct` 定义可以知道，其中保存了多种状态的数据：
+
+1. 什么时候可以读。ReadState 用来支持 Linearizable Read。
+2. 需要持久话的状态。HardState、Entries 需要在正式发送数据之前持久化。
+3. 需要执行SnapShot的数据。Snapshot 。
+3. 已经提交的数据，可以应用到状态机。CommittedEntries 。
+4. 需要发送到其它机器的消息。Messages 需要在处理完持久化数据之后处理。
+
+在 `node.run()[raft/node.go]` 中，会通过 `newReady()` 新建 Ready 对象，其中包含了上述的成员内容，那么新建 Ready 对象无非就是如何构建其中的成员变量。
+
+另外，在示例代码 `raftNode.serveChannels()` 中，可以将 Ready 对象打印出来。
+
+type Ready struct {
+        *SoftState
+
+        // The current state of a Node to be saved to stable storage BEFORE
+        // Messages are sent.
+        // HardState will be equal to empty state if there is no update.
+        pb.HardState
+
+        // ReadStates can be used for node to serve linearizable read requests locally
+        // when its applied index is greater than the index in ReadState.
+        // Note that the readState will be returned when raft receives msgReadIndex.
+        // The returned is only valid for the request that requested to read.
+        ReadStates []ReadState
+
+        Entries []pb.Entry 通过raftLog.unstableEntries()读取的是raftLog.unstable.entries中的数据
+
+        // Snapshot specifies the snapshot to be saved to stable storage.
+        Snapshot pb.Snapshot
+
+        CommittedEntries []pb.Entry 包括了所有已经持久化到日志但是还没有应用到状态机的数据
+					raftLog.nextEnts() raft/log.go 用来获取所有需要提交的日志，用来应用到状态机
+
+		Messages []pb.Message 包含了应该发送给对端的数据，也就是直接读取的raft.msgs[]中缓存的数据
+
+        // MustSync indicates whether the HardState and Entries must be synchronously
+        // written to disk or if an asynchronous write is permissible.
+        MustSync bool
+}
+
+
+type raftLog struct {
+        storage Storage  包含了上次snapshot之后所有持久化的日志
+        unstable unstable 未提交的日志，包括snapshot
+        committed uint64 已经在多数节点上持久化的最大日志号
+        applied uint64 在本节点已经应用到状态机的日志号
+
+        logger Logger
+}
+
+
+首先看下
+
+
+firstIndex() 用来获取已经持久化的最近序号  正常来说applyid应该大于snapshot id，为什么还需要比较？？？
+ |-maybeFirstIndex() 如果有snapshot，那么就返回snapshot的下一条记录
+ |-FirstIndex() raft/storage.go 如果没有snapshot，尝试从storage中获取 不确认是否是该文件中的实现
+   |-MemoryStorage.firstIndex()
+
+
+
+
+
+
+raftNode.serveChannels()
+ | <<<readyc>>> 等待处理上述的请求
+ |-wal.Save() 保存HardState和Entries
+ |-
+ |-raftNode.entriesToApply() 选取需要提交的日志，也就是rd.CommittedEntries
+ |-raftNode.publishEntries() 处理提交的日志，此时会发送到commitC管道中
+
+
+RestartNode() raft/node.go
+ |-newRaft() raft/raft.go
+   |-newLog() raft/log.go 对应的Logger接口实现在raft/logger.go文件中定义
+
+
+## PUT方法
+
+
+ServeHTTP()                           httpapi.go
+  |====> PUT方法
+  |-ioutil.ReadAll()                  从HTTP中读取请求
+  |-kvstore.Propose()                 kvstore.go 正式提交请求，阻塞直到RAFT状态机提交成功
+  | |-glob.NewEncoder()               序列化
+  | |-s.proposeC <- buf.String()      通过proposeC管道发送请求到RAFT核心，会阻塞直到返回
+  |
+  |-http.ResponseWriter.WriteHeader() 返回数据结果
+  |
+  |====> GET方法
+  |-kvstore.Lookup()                  查找并返回数据
+
+
+## BugFix
+
+实际上，在 `etcdserver/raft.go` 文件中，有定义 `init()` 函数用于设置默认的 logger，也就是 `raft.SetLogger()` 的处理。
 -->
 
 

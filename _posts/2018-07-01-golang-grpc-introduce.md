@@ -578,6 +578,33 @@ https://developers.google.com/web/fundamentals/performance/http2/?hl=zh-cn
 
 https://github.com/grpc/grpc/blob/master/doc/health-checking.md
 https://github.com/go-training/grpc-health-check
+
+
+
+./configure --prefix=/usr
+export PKG_CONFIG_PATH=/usr/lib/pkgconfig && make
+
+如果不行只能手动下载包了。
+
+$ git clone -b $(curl -L https://grpc.io/release) https://github.com/grpc/grpc
+$ cd grpc
+$ git submodule update --init
+$ make
+$ [sudo] make install
+
+默认会安装到如下的目录下。
+
+/usr/local/lib
+/usr/local/include/grpc
+/usr/local/share/grpc
+
+https://www.jianshu.com/p/48ad37e8b4ed
+
+pkg-config --list-all
+
+export PKG_CONFIG_PATH=/usr/lib/pkgconfig && pkg-config --list-all
+
+
 -->
 
 {% highlight text %}

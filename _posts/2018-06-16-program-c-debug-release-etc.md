@@ -16,21 +16,36 @@ description: 整理下 C 语言中调试、发布的流程。
 
 ## 编码规范
 
-这里直接使用的是 Linux 的编码规范。
+这里直接使用的是 Linux 的编码规范，中文可以查看 [Linux 内核代码风格](https://www.kernel.org/doc/html/v4.15/translations/zh_CN/coding-style.html) 。
 
 {% highlight text %}
 $ scripts/checkpatch.pl --no-tree -f log.c
 {% endhighlight %}
 
+如果是通过命令行执行，则可以执行如下命令检查提交代码是否符和规范。
+
+{% highlight text %}
+$ git diff agent/*.[ch] | contrib/checkpatch.pl --no-tree --no-signoff -
+{% endhighlight %}
+
+另外，也可以添加到 git 的 `pre-commit` 脚本中。
+
+{% highlight text %}
+$ cat >.git/hooks/pre-commit
+#!/bin/bash
+exec git diff --cached agent/*.[ch] | contrib/checkpatch.pl --no-tree --no-signoff -
+^D
+$ chmod 755 .git/hooks/pre-commit
+{% endhighlight %}
+
+注意，`pre-commit` 不能添加到版本仓库中。
+
 <!---
 谈谈Linux内核驱动的coding style
 http://www.cnblogs.com/wwang/archive/2011/02/24/1960283.html
-
-采用的Linux内核的编码规范
-https://www.kernel.org/doc/html/v4.15/translations/zh_CN/coding-style.html
 -->
 
-#### FAQ
+### FAQ
 
 {% highlight text %}
 ERROR: need consistent spacing around '*' (ctx:WxV)
@@ -39,6 +54,16 @@ ERROR: need consistent spacing around '*' (ctx:WxV)
 {% endhighlight %}
 
 实际上是无法识别 `__pmem` 引起的，此时需要在脚本的 `our $Sparse` 中添加 `__pmem` 。
+
+#### 不检查
+
+如果不需要检查一行记录，可以通过添加宏覆盖掉，例如使用 `__SUPP(x)` 宏，并在 `foreach my ...` 中增加如下语句。
+
+{% highlight text %}
+if ($line=~/__SUPER/) {
+	next;
+}
+{% endhighlight %}
 
 <!--
 ## Linux 代码正式发布以及问题排查
@@ -55,7 +80,11 @@ https://darkdust.net/files/GDB%20Cheat%20Sheet.pdf
 http://www.brendangregg.com/blog/2016-08-09/gdb-example-ncurses.html
 -->
 
+## 正式发布
+
 ### BackTrace
+
+在代码中，如果发生异常，直接 coredump 会导致文件过大，此时可以通过 `backtrace` 在代码中打印日志信息。
 
 {% highlight c %}
 #include <stdio.h>
@@ -145,8 +174,6 @@ addr2line -Cifp -a 0x400a29 -e test
 `-f` 用来打印函数名，`-C` 同时 demangle 处理，`-i` 同时处理 inline 函数。
 
 <!--
-
-
 1. 不包含任何的行信息，无法确定具体那个函数出问题。
 2. 无法确定函数的入参以及本地的变量值；
 3. 无法确定打印的栈函数是否为静态。
@@ -158,23 +185,8 @@ You cannot trust the function names given in the backtrace, since
 the debugger doesn’t know about static functions.
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 disas 0x41dde0,0x41ef00
 disas 0x41e500,0x41efff
-
 
 
 对程序进行汇编级调试。
@@ -194,6 +206,40 @@ disas 0x41e500,0x41efff
 
 执行到返回
 (gdb) finish
+
+
+
+
+
+
+
+
+
+
+## Linux 代码正式发布以及问题排查
+
+## 0. 开发测试
+## 1. RPM包安装
+
+## 2. DebugInfo
+
+https://www.mawenbao.com/research/glibc-backtrace-parsing.html
+
+使用库函数backtrace和backtrace_symbols定位段错误
+http://blog.sina.com.cn/s/blog_590be5290102w5yw.html
+https://blog.csdn.net/ieearth/article/details/49763481
+https://blog.csdn.net/astrotycoon/article/details/8142588
+http://silencewt.github.io/2015/05/11/Segmentation-Fault%E9%94%99%E8%AF%AF%E5%8E%9F%E5%9B%A0%E6%80%BB%E7%BB%93/
+
+while true ; do  echo -e "HTTP/1.1 200 OK\n\n $(date)" | nc -l -p 1500  ; done
+
+
+
+
+关于AK/SK介绍
+https://bbs.huaweicloud.com/blogs/079b918999c111e7b8317ca23e93a891
+
+https://github.com/jobbole/awesome-c-cn
 -->
 
 

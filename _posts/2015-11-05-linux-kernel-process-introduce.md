@@ -6,7 +6,10 @@ language: chinese
 category: [linux]
 keywords: linux,进程,daemon
 description: 简单介绍一下 Linux 中的常见的一些与进程相关的操作，例如执行命令、守护进程等。
---- 简单介绍一下 Linux 中的常见的一些与进程相关的操作，例如执行命令、守护进程等。 
+---
+
+简单介绍一下 Linux 中的常见的一些与进程相关的操作，例如执行命令、守护进程等。
+
 <!-- more -->
 
 ## 进程执行

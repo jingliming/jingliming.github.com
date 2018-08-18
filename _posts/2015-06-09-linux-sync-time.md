@@ -547,7 +547,199 @@ Exit the ntpd just after the first time the clock is set. This behavior mimics t
 <!--
 另外两篇包括了 常见服务器时钟不准的解决方案 、 [NTP alibaba](/reference/misc/ntp/ntp.tar.gz) 。
 
+NTP Client
+http://blog.csdn.net/rich_baba/article/details/6052863
+https://lettier.github.io/posts/2016-04-26-lets-make-a-ntp-client-in-c.html
+http://blog.csdn.net/rich_baba/article/details/6052863
+https://www.vfe.cc/NewsDetail-2332.aspx NTP计算方法推导
+http://blog.csdn.net/C3080844491/article/details/77934050
 
+https://pthree.org/2013/11/05/real-life-ntp/
+
+一般可以通过 ntpdate 和 ntpd 进行时钟同步，两种方式区别如下：
+
+* ntpdate 只同步一次，需要配合 cron 机制进行周期同步；时钟会立即进行同步，会导致时间瞬间被修改。
+* ntpd 是一个后台程序，会自动周期性的与服务端进行同步更新；时钟采用渐进同步方式，如果大于30min会直接退出。
+
+ntpdc 用于访问 ntpd ，可以查看以及修改一些参数。
+
+
+修改完配置文件后，可以通过如下的方式启动，查看是否正常。
+
+----- 启动ntpd服务
+# systemctl start ntpd
+
+----- 查看启动是否正常
+# netstat -atunp | grep ntpd
+
+
+ntpdc -p
+ntp
+
+delay/offset 使用的单位是 milliseconds ，如果 offset 大于 0 则表示远端大于本地。
+
+----- 查看当前的时间偏差，不更新时钟
+ntpdate -q 192.144.52.46
+
+ntpd 会渐进同步，一般启动后大概 5~10 分钟后会完成同步，所以开始通过 ntpstat 查看时显示的是未同步。
+
+# ntpstat
+unsynchronised
+   polling server every 64 s
+
+也可以通过 `ntpdate IP` 直接同步。
+
+/usr/sbin/ntpd -p /var/run/ntp/ntpd.pid -g -u ntp:ntp -i /var/lib/ntp -c /etc/ntp.conf
+
+/usr/bin/ntpstat
+/usr/sbin/ntp-keygen
+/usr/sbin/ntpd
+/usr/sbin/ntpdc
+/usr/sbin/ntpq
+/usr/sbin/ntptime
+/usr/sbin/tickadj
+
+
+通过gnuplot进行绘图
+https://github.com/hans-mayer/ntpgraph
+http://www.cnblogs.com/sonwnja/p/6758261.html
+https://www.eecis.udel.edu/~mills/ntp/html/miscopt.html
+官方文档，排查问题，以及ntpq输出
+http://support.ntp.org/bin/view/Support/TroubleshootingNTP
+查询ntp的sysinfo信息
+ntpdc -c sysinfo
+ntpq -p  检查*号
+
+### 本地测试
+
+服务端
+
+#----- 允许远端查询
+#restrict default nomodify notrap nopeer noquery
+restrict default nomodify
+#----- 如果无法与远端通讯，则使用本地的时钟
+server 127.127.1.0
+fudge 127.127.1.0 stratum 0
+
+date -s "2018-2-27 21:05:00"
+
+#### 时间跳变
+
+ntpd 在发现与服务端的时间差超过 1000s (默认值) 后会自动退出，此时需要手动进行时钟同步，也可以在启动时通过 -g 参数忽略开始的检查。
+
+客户端和服务端的时间同步有两种情况：时间跳变 (Time Step) 和渐变 (Time Slew)。
+
+跳变是指在client和server间时间差过大时（默认128ms），瞬间调整client端的系统时间
+
+渐变是指时间差较小时，通过改变client端的时钟频率，进而改变client端中“1秒”的“真实时间”，保持client端时间连续性。
+
+举个例子，如果client端比server端慢10s，通过ntpd，client端的中每1秒现实时间是1.0005秒！虽然client端的时间仍然是1秒1秒增加的，通过调整每秒的实际时间，直到与serrver的时间相同。在这个例子中，10s/0.0005s=20000s，20000s/60/60=5.55555小时，即需要5个多小时才能消除10s的误差。
+
+在linux中，很多应用软件依赖系统的时间连续性来正确工作，系统时间的跳变将导致软件出现意想不到的问题，所以时间渐变才是ntpd的主要应用场景。
+
+3、那么怎么禁止ntpd的时间跳变，只采用时间渐变呢？
+
+刚开始通过man ntpd，尝试在ntpd启动配置(/etc/sysconfig/ntpd)中加-x选项：
+
+-xNormally, the time is slewed if the offset is less than the step threshold, which is 128 ms by default, and stepped if above the threshold. This option forces the time to be slewed in all cases. If the step threshold is set to zero, all offsets are stepped, regardless of value and regardless of the -x option. In general, this is not a good idea, as it bypasses the clock state machine which is designed to cope with large time and frequency errors Note: Since the slew rate is limited to 0.5 ms/s, each second of adjustment requires an amortization interval of 2000 s. Thus, an adjustment of many seconds can take hours or days to amortize. This option can be used with the -q option.
+结果发现-x只是提高了时间跳变的阈值，在client与server时间差小于600秒时，时间的调整使用渐变，大于600秒，时间调整使用跳变形式。
+
+查了很多资料，最后确定在ntp配置文件/etc/ntp.conf中添加字段：
+
+[html] view plain copy
+tinker panic 600
+
+这句话的意思是在时间差大于600秒的情况下，ntpd进程自动关闭，ntpd退出时会向/var/log/messages中写入log
+在时间差过大时，应该由用户手动设置系统时间或者调用ntpdate命令，这样能避免因为时间跳变出现的问题。
+
+
+http://www.cnblogs.com/sonwnja/p/6767936.html
+http://blog.csdn.net/u014707812/article/details/52150563
+
+#### 权限设置
+
+通过 `restrict` 关键字设置，可以通过 `-6` 参数指定为 IPv6 ，其语法为：
+
+restrict [-6] IP mask MASK ARGS
+IP: 配置的IP地址，可以是default，也就是不指定的默认值
+ARGS:
+   ignore    关闭所有的NTP请求
+   nomodify  客户端不能更改服务端的配置参数
+   nopeer    不与同一层的NTP服务器同步
+   notrust   拒绝没有通过认证的客户端请求
+   noquery   不提供客户端的时间查询，一般作为主机客户端
+   notrap    不提供ntpdc的trap远程事件登录的功能
+   kod       阻止Kiss of Death类型的DDoS攻击
+
+常见设置有：
+restrict default kod nomodify notrap nopeer noquery     # IPv4设置
+restrict -6 default kod nomodify notrap nopeer noquery  # IPv6设置
+
+# 允许本地所有操作
+restrict 127.0.0.1
+restrict -6 ::1
+
+# 允许的局域网络段或单独IP
+restrict 10.0.0.0 mask 255.0.0.0 nomodify notrap
+restrict 192.168.0.0 mask 255.255.255.0 nomodify notrap
+restrict 192.168.1.123 mask 255.255.255.255 nomodify notrap
+
+#### 服务端设置
+
+设定上级时间服务器，语法为：
+
+server IP/HOSTNAME [prefer] [iburst]
+
+增加 prefer 表示优先选择，否则按照配置文件的顺序由高到低。
+
+iburst 用于开始快速进行同步，一般开始一分钟只发送一次请求，通过该参数可以在第一分钟内发送多次查询，直到时间同步；如果服务没有响应，同样会快速查询。
+
+而 burst 则会一直发送多次请求，不建议使用该选项，可能会视为攻击而被禁止。
+
+##### poll
+
+关于 minpoll/maxpoll 用于设置 NTP 消息的最小和最大轮询间隔，最大默认为 10(1024s) 可以设置为 17(36.4h)；最小默认为 6(64s) 也可以设置为 4(16s)；注意，这里的单位不是秒，而是 2 的几次方。
+
+# 使用多选项的本地配置
+server 127.127.1.0 prefer burst iburst minpoll 6 maxpoll 10
+fudge 127.127.1.0 stratum 0
+
+#### 其它配置
+
+# 如果无法与上层服务器通信则以本地时间作标准时间，fudge用于指定本地
+server 127.127.1.0     # local clock
+fudge 127.127.1.0 stratum 10
+
+# 指定driftfile文件名，用于写入时间偏差
+ftfile /var/lib/ntp/driftrestrict
+
+# 加密及key文件
+includefile /etc/ntp/crypto/pw
+keys /etc/ntp/keys
+
+
+除了 ntpdate 还可以使用 rdate，不过这是一个很老的的协议了。
+
+tinker step 0
+tinker panic 0
+disable monitor
+disable kernel
+
+## 典型配置
+
+一般生产环境至少需要两台，设置为对等模式，相互备份，同时可以防止由于单台主机异常导致全网异常。
+
+http://haibing.org/?p=52
+
+jitter 与BIOS硬件时间差异
+
+当系统出问题后，每次输入命令都会输出 `You have new mail in /var/spool/mail/root` 类似的内容。
+
+这个是 Linux 系统自动发送的一些邮件，用来提醒用户系统中出了哪些问题，通常收件箱位于 `/var/mail/` 目录下，对于 root 可以直接通过 `cat /var/mail/root` 文件。
+
+----- 关闭邮件提醒
+# echo "unset MAILCHECK" >> /etc/profile
+# source /etc/profile
 -->
 
 {% highlight text %}

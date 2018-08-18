@@ -215,6 +215,24 @@ mysql> FLUSH PRIVILEGES;
 }
 {% endhighlight %}
 
+#### Agent 重启策略
+
+每隔 60s 检查一次，如果进程异常退出在 3min 内不会重启，如果在 15min 内异常则标记一次异常事件，当连续异常超过 3 次后则认为程序异常，不再尝试重启。
+
+
+<!--
+1. 进程管理
+   1.1 配置文件中有多个 Name 相同的配置文件。后续的配置文件解析时会报错。
+   1.2 执行用户相关。
+       1.2.0 用户存在。以指定用户执行。
+       1.2.1 用户不存在。直接报错退出。
+       1.2.2 用户没有指定。默认通过root执行。
+       1.2.3 属组非默认。指定属组执行。
+
+ps -eo ppid,pid,user,group,euser,egroup,cmd | grep gearman
+usermod -a -G root monitor 将monitor用户添加到root组中
+-->
+
 ### 基础 Gearman
 
 #### 0. 核心流程
