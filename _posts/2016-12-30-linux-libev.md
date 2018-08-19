@@ -967,6 +967,19 @@ ev_stat_init (&makefile, filestat_cb, "Makefile", 0.);
 ev_stat_start (loop, &makefile);
 {% endhighlight %}
 
+### 其它
+
+也就是 `ev_prepare`、`ev_check`、`ev_idle`，这三个类型的实际上是事件循环的扩展。
+
+* ev_prepare 在事件循环发生阻塞前会被触发。
+
+<!--
+* ev_check 在事件循环阻塞结束后会被触发。ev_check的触发是按优先级划分的。可以保证，ev_check是同一个优先级上阻塞结束后最先被触发的watcher。所以，如果要保证ev_check是最先被执行的，可以把它的优先级设成最高。
+ev_idle 当没有其他watcher被触发时被触发。ev_idle也是按优先级划分的。它的语义是，在当前优先级以及更高的优先级上没有watcher被触发，那么它就会被触发，无论之后在较低优先级上是否有其他watcher被触发。
+-->
+
+
+
 ## 信号处理
 
 Linux 中的信号时异步发生的，一般是从内核态切换到用户态时进行检查，从而从用户代码角度看，就是异步处理。

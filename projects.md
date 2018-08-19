@@ -30,5 +30,19 @@ DevOps 的三大原则：
 包含的内容有：
 
 * [基础平台简介](/projects/devops/introduce.html)，对整体基础平台的介绍。
+
+### Agents
+
+按照功能划分为如下几类 Agent，通过 BootAgent 管理 基本、监控、日志、安全、网络等客户端。
+
+* BootAgent 装机时安装，负责安装、升级、监控、重启下述的Agent，通过短链接主动上报如下Agent状态信息
+* BasicAgent 基本命令执行(同步、异步、查询)，安装部署
+* LogAgent 按照固定格式采集日志数据
+* MonitorAgent 采集监控数据
+* SecureAgent 安全相关
+
+如下是实现的细节。
+
+* [BootAgent 实现细节](/projects/devops/platform-bootagent.html)。
 * [搭建基础平台](/projects/devops/platform.html)，实现的具体细节。
 

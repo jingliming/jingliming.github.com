@@ -10,9 +10,226 @@ description: Protobuf (Google Protocol Buffers) 是 google 开发的的一套用
 
 Protobuf (Google Protocol Buffers) 是 google 开发的的一套用于数据存储，网络通信时用于协议编解码的工具库，与 XML 和 JSON 数据格式类似，但采用的是二进制的数据格式，具有更高的传输，打包和解包效率。
 
+相比 JSON 来说，Protobuf 的效率、编解码速度更快、数据体积更小，带来的问题是数据可读性变差，协议升级比较麻烦。
+
 <!-- more -->
 
-## 源码安装
+![protobuf introduce]({{ site.url }}/images/programs/protobuf-format.png "protobuf introduce"){: .pull-center width="70%" }
+
+## 简介
+
+可以通过 `protoc` 生成编译后的文件，例如。
+
+{% highlight text %}
+$ protoc --go_out=plugins=grpc:. users.proto
+{% endhighlight %}
+
+生成一个 `users.pb.go` 文件，其中定义了客户端和服务端的方法。
+
+常用参数如下。
+
+{% highlight text %}
+-IPATH, --proto_path=PATH
+    用来指定 import 的查找目录，可以多次指定，此时将会按照顺序查找，不指定则默认使用当前目录。
+	当多个 proto 文件之间有互相依赖时，需要 import 其他几个 proto 文件，这时候就要用 -I 来指定搜索目录。
+
+--go_out
+   通过 golang 的编译插件，支持 golang 的编译，支持以下参数。
+       plugins=  指定插件，目前只支持grpc，也就是 plugins=grpc
+       最后是指定生成的目录路径，注意是与proto文件的相对路径。
+{% endhighlight %}
+
+<!--
+M 参数 - 指定导入的.proto文件路径编译后对应的golang包名(不指定本参数默认就是.proto文件中import语句的路径)
+
+import_prefix=xxx - 为所有import路径添加前缀，主要用于编译子目录内的多个proto文件，这个参数按理说很有用，尤其适用替代一些情况时的M参数，但是实际使用时有个蛋疼的问题导致并不能达到我们预想的效果，自己尝试看看吧
+
+import_path=foo/bar - 用于指定未声明package或go_package的文件的包名，最右面的斜线前的字符会被忽略
+
+protoc -I . --go_out=plugins=grpc,Mfoo/bar.proto=bar,import_prefix=foo/,import_path=foo/bar:. ./*.proto
+
+GOPATH=$GOROOT:`pwd`/src go run client.go
+
+protoc -I src/hello --go_out=plugins=grpc:src/hello src/hello/users.proto
+-->
+
+## GoLang 语言支持
+
+在 GoLang 中使用 Protobuf ，有两个可选的包 [goprotobuf](https://github.com/golang/protobuf)(官方) 和 [gogoprotobuf](https://github.com/gogo/protobuf) ，或者完全兼容前者，而且据说它生成的代码质量和编解码性能均比官方的要高一些。
+
+### 安装
+
+首先是安装官方的版本。
+
+{% highlight text %}
+----- 安装protobuf库文件
+$ go get github.com/golang/protobuf/proto
+----- 安装插件，用来生成proto.pb.go文件
+$ go get github.com/golang/protobuf/protoc-gen-go
+{% endhighlight %}
+
+接着可以安装 gogo 版本，其中有 `protoc-gen-gogo` 和 `protoc-gen-gofast` 两个插件可用，后者生成的代码更加复杂，但是性能也更高 (快5~7倍)。
+
+{% highlight text %}
+----- 安装两个插件
+$ go get github.com/gogo/protobuf/protoc-gen-gogo
+$ go get github.com/gogo/protobuf/protoc-gen-gofast
+----- 安装库文件(可选)
+$ go get github.com/gogo/protobuf/gogoproto
+{% endhighlight %}
+
+最后是使用上述的插件生成编译后的 go 文件。
+
+{% highlight text %}
+$ protoc --go_out=. *.proto
+$ protoc --gogo_out=. *.proto
+$ protoc --gofast_out=. *.proto
+{% endhighlight %}
+
+### 示例
+
+目录结构如下。
+
+{% highlight text %}
+.
+ |-server.go
+ |-client.go
+ |-proto/
+   |-userinfo/         用来保存生成的go文件
+   |-userinfo.proto
+{% endhighlight %}
+
+其中 `userinfo.proto` 的内容如下。
+
+{% highlight text %}
+syntax = "proto3";
+
+package userinfo;
+
+enum Gender {
+        MALE = 0;
+        FEMALE = 1;
+};
+
+message UserInfo {
+        string name = 1;
+        int32 age = 2;
+        Gender gender = 3;
+}
+{% endhighlight %}
+
+客户端和服务端的代码如下。
+
+{% highlight go %}
+package main
+
+import (
+        pb "./proto/userinfo"
+        "fmt"
+        "net"
+
+        "github.com/golang/protobuf/proto"
+        //"github.com/gogo/protobuf/proto"
+)
+
+func main() {
+        Addr := "localhost:6600"
+        var conn net.Conn
+        var err error
+
+        conn, err = net.Dial("tcp", Addr)
+        if err != nil {
+                fmt.Println("connecting to", Addr, "fail", err)
+                return
+        }
+        fmt.Println("connect to", Addr, "success")
+        defer conn.Close()
+
+        Request := &pb.UserInfo{
+                Name:   "foobar",
+                Age:    15,
+                Gender: pb.Gender_MALE,
+        }
+
+        data, err := proto.Marshal(Request)
+        if err != nil {
+                panic(err)
+        }
+
+        conn.Write(data)
+}
+{% endhighlight %}
+
+{% highlight go %}
+package main
+
+import (
+        pb "./proto/userinfo"
+        "fmt"
+        "io"
+        "net"
+
+        "github.com/golang/protobuf/proto"
+        //"github.com/gogo/protobuf/proto"
+)
+
+func main() {
+        listener, err := net.Listen("tcp", "localhost:6600")
+        if err != nil {
+                panic(err)
+        }
+
+        for {
+                conn, err := listener.Accept()
+                if err != nil {
+                        panic(err)
+                }
+                fmt.Println("New connect from", conn.RemoteAddr())
+                go readMessage(conn)
+        }
+}
+
+func readMessage(conn net.Conn) {
+        defer conn.Close()
+        buf := make([]byte, 4096, 4096)
+        for {
+                cnt, err := conn.Read(buf)
+                if err == io.EOF {
+                        fmt.Println("Client", conn.RemoteAddr(), "quit.")
+                        return
+                } else if err != nil {
+                        panic(err)
+                }
+
+                Response := &pb.UserInfo{}
+
+                err = proto.Unmarshal(buf[:cnt], Response)
+                if err != nil {
+                        panic(err)
+                }
+
+                fmt.Println("Got data from", conn.RemoteAddr(), Response)
+        }
+}
+{% endhighlight %}
+
+然后，在根目录下执行如下命令。
+
+{% highlight text %}
+$ protoc -I proto proto/userinfo.proto --go_out=plugins=grpc:proto/userinfo
+
+$ GOPATH=$PWD:$GOPATH go run server.go
+$ GOPATH=$PWD:$GOPATH go run client.go
+{% endhighlight %}
+
+<!--
+http://lihaoquan.me/2017/6/29/how-to-use-protobuf.html
+https://blog.csdn.net/qq_15437667/article/details/78425151
+-->
+
+
+
+## C 语言支持
 
 源码安装最新版本的 protoc 。
 
@@ -305,12 +522,6 @@ https://hitzhangjie.github.io/2017/05/23/Protoc%E5%8F%8A%E6%8F%92%E4%BB%B6%E5%B7
 $ protoc --plugin=protoc-gen-custom=plugin.py --custom_out=./build hello.proto
 {% endhighlight %}
 -->
-
-
-
-
-
-
 
 
 ## 参考

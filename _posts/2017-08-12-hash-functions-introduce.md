@@ -109,6 +109,15 @@ FNV hash
 
 Fowler-Noll-Vo, FNV 哈希算法是以三位发明人 Glenn Fowler、Landon Curt Noll、Phong Vo 的名字来命名的，最早在 1991 年提出；可以保持较小的冲突率，高度分散使它适用于 Hash 一些非常相近的字符串，比如 URL、Hostname、文件名、text、IP 地址等。
 
+
+## Hash Table
+允许多线程读写的并发Hash库，以及murmur3
+https://github.com/efficient/libcuckoo
+https://github.com/savoirfairelinux/opendht
+
+非加密 Hash 算法使用比较多的是 [xxHash](https://github.com/Cyan4973/xxHash)、
+
+
 -->
 
 ## 参考

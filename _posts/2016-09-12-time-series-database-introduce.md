@@ -144,6 +144,37 @@ https://zhuanlan.zhihu.com/p/22651783
 
 http://blog.jobbole.com/88475/
 http://www.michael-noll.com/blog/2013/01/18/implementing-real-time-trending-topics-in-storm/
+
+
+
+
+
+
+
+
+https://blog.acolyer.org/2016/05/03/gorilla-a-fast-scalable-in-memory-time-series-database/
+http://san-yun.iteye.com/blog/2364490
+https://github.com/Cistern/catena
+
+2017.3.3 3:00:00   1488481200
+2017.3.3 3:01:02   1488481262
+2017.3.3 3:02:02   1488481322
+2017.3.3 3:03:02   1488481382
+
+秒级别时间戳用 long 类型存储需要占用 8B，如果直接存储以上数据需要 4 * 8B = 32B(256bits) 。
+
+最简单的是存储差值 Delta ，此时需要引入一个起始时间戳和 Delta 阈值，比如对于上述的时间戳，设置起始时间为 3:00:00，其阈值为 2 个小时(7200s)。
+
+那么上述的值修改为。
+
+2017.3.3 3:00:00   1488481200 0
+2017.3.3 3:01:02   1488481262 62
+2017.3.3 3:02:02   1488481322 60
+2017.3.3 3:03:02   1488481382 60
+
+
+
+
 -->
 
 {% highlight text %}

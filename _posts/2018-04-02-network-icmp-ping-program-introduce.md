@@ -8,6 +8,7 @@ keywords: network,icmp,ping
 description:
 ---
 
+Internet Control Message Protocol, ICMP(RFC-792) 基于 IP 协议，工作在七层协议的第三层，主要用来解析网络路由情况，通过返回错误信息进行分析定位。
 
 <!-- more -->
 
@@ -18,29 +19,6 @@ description:
 
 
 
-
-
-
-
-Ping result
-
-tcpdump -nni eth0 icmp
-
------ ICMP echo request
-tcpdump -nni eth0 -e icmp[icmptype] == 8
-
------ ICMP echo reply
-tcpdump -nni eth0 -e icmp[icmptype] == 0
-
------ 保存到文件中
-tcpdump -nni eth0 -w /tmp/icmp.pcap -e icmp[icmptype] == 0
-
------ 读取文件
-tcpdump -nn -r icmp.pcap
-
-
-systemctl restart siteagent
-bin/siteagentctl config setlog debug0
 
 
 
@@ -185,20 +163,6 @@ http://www.freebuf.com/articles/network/150071.html
 http://www.freebuf.com/articles/web/165139.html
 
 
-/post/mysql-core-file.html
-
-在 CentOS 中，对应的 debuginfo 信息可以直接从 [CentOS DebugInfo](http://debuginfo.centos.org/7/x86_64/) 。
-
-program-c-complie-link.html
-http://www.cirosantilli.com/elf-hello-world/
-
-## Hash Table
-允许多线程读写的并发Hash库，以及murmur3
-https://github.com/efficient/libcuckoo
-https://github.com/savoirfairelinux/opendht
-
-非加密 Hash 算法使用比较多的是 [xxHash](https://github.com/Cyan4973/xxHash)、
-
 
 IP 报文头为 20 字节 [IP头部结构详解](http://codingstone.com/content.php?blockTableName=network&blogID=2) 。
 
@@ -322,6 +286,88 @@ default:
         log_warning(LIBNAME "IPv4 unexpected ICMP type 0x%02x", icmp_hdr->icmp_type);
         return NULL;
 }
+-->
+
+
+## 其它
+
+### 抓包
+
+可以通过如下命令获取包。
+
+{% highlight text %}
+----- ICMP echo request
+$ tcpdump -nni eth0 -e icmp[icmptype] == 8
+
+----- ICMP echo reply
+$ tcpdump -nni eth0 -e icmp[icmptype] == 0
+
+----- 保存到文件中
+$ tcpdump -nni eth0 -w /tmp/icmp.pcap -e icmp[icmptype] == 0
+
+----- 读取文件
+$ tcpdump -nn -r icmp.pcap
+{% endhighlight %}
+
+### TTL
+
+Time To Live, TTL 存活时间，表示这个 PING 数据包能在网络上存活多少时间，实际上就是用来表示可以被路由转发多少次，在 IP 头中通过 8bits 表示。
+
+执行 Ping 操作时，会在本机发送一个数据包，正常来说，数据包会经过一定的路由到达目的主机。不过，由于很多原因可能会导致一些数据包不能正常传送到目的主句，为了防止由于数据包一直传输导致网络负载增加，增加的 TTL 作为包的存活时间。
+
+当数据包传送到一个路由器之后，TTL 就自动减 1，如果减到 0 了还是没有传送到目的主机，那么就自动丢弃，此时一般是 Request timed out 了。
+
+{% highlight text %}
+64 bytes from 192.168.9.1: icmp_seq=1 ttl=60 time=0.909 ms
+{% endhighlight %}
+
+目前测试来看，当 ICMP 报文发送之后，其返回的报文实际上会重新设置(依赖目标机器的设置)，也即是说 TTL 的值是单程的。
+
+在 Linux 命令行中，可以通过 `-t` 参数进行设置。例如，返回的 TTL 为 60，那么你可以初步猜测对端设置的初始 TTL 为 64，那么通过 `-t 2` 设置时候，就会出现 `Time to live exceeded` 的报错。
+
+#### 系统设置
+
+Windows 一般在 `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters` 注册表中设置。
+
+在 Linux 中，可以通过如下方式修改默认的 TTL 。
+
+{% highlight text %}
+----- 临时修改
+# sysctl net.ipv4.ip_default_ttl=129
+# echo 129 > /proc/sys/net/ipv4/ip_default_ttl
+----- 保存到配置文件中
+$ cat /etc/sysctl.conf
+net.ipv4.ip_default_ttl=129
+{% endhighlight %}
+
+各个系统的默认值如下。
+
+{% highlight text %}
+Linux              64/255
+Windows NT/2000/XP 128
+Windows 98         32
+UNIX               255
+{% endhighlight %}
+
+
+### QoS
+
+Quality of Service, QoS 服务质量，提供的质量越好，表示有越低的延迟、丢包、抖动等，同时其吞吐量和可靠性要更高。简单来说，就是利用包的特定标志位，告诉路由器如何处理包，是先还是后。
+
+在第二层(Link Layer)和第三层(IP)都有标示位，其中 IP 层采用的是 8Bits，包括 IPv4 和 IPv6 都有，只是其位置不同。
+
+
+
+## 参考
+
+可以参考 [Github liboping](https://github.com/octo/liboping) 。
+
+关于各个操作系统的默认 TTL 可以参考 [Default TTL (Time To Live) Values of Different OS](https://subinsb.com/default-device-ttl-values/) 。
+
+
+<!--
+http://gienmin.blogspot.com/2013/12/qos_18.html
+http://www.map.meteoswiss.ch/map-doc/ftp-probleme.htm
 -->
 
 {% highlight text %}

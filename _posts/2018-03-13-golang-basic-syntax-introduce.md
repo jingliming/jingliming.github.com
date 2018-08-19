@@ -85,6 +85,29 @@ func (g Grade) Pass() bool {
 [...] int {2:1,4:3} 
 {% endhighlight %}
 
+#### 数组遍历
+
+通常有如下的两种遍历方式。
+
+{% highlight go %}
+package main
+
+import "fmt"
+
+func main() {
+        var arr = [...]int{1, 2, 3, 4, 5}
+
+        for idx, val := range arr {
+                fmt.Printf("array[%d] = %d\n", idx, val)
+        }
+        fmt.Println(">>>>>>>>>>>>>")
+
+        for idx := 0; idx < len(arr); idx++ {
+                fmt.Printf("array[%d] = %d\n", idx, arr[idx])
+        }
+}
+{% endhighlight %}
+
 ### 结构体
 
 通过结构体新建对象时的语法比较多，而且相比而言有些特殊。
@@ -185,6 +208,78 @@ func (p myType) funcName ( a, b int, c string ) ( r, s int ) {
 包括了定义函数的关键字 `func`，函数名称 `funcName`，入参 `a, b int, c string`，返回值 `r,s int` 以及函数体 `{}`。
 
 而且，golang 可以为某个类型定义函数，也即为类型对象定义方法，也就是 `p myType` 参数，当然这不是必须的，如果为空则纯粹是一个函数，可以通过包名称访问。
+
+## 字符串操作
+
+这应该是最常见的，在 Golang 中有多种方式可以完成拼接，详见如下的测试程序。
+
+{% highlight go %}
+package main
+
+import (
+        "bytes"
+        "fmt"
+        "strings"
+        "time"
+)
+
+var ways = []string{
+        "fmt.Sprintf ",
+        "+           ",
+        "strings.Join",
+        "bytes.Buffer",
+}
+
+func benchmarkStringFunction(n int, idx int) {
+        var s string
+        var buf bytes.Buffer
+
+        v := "hello world, just for test"
+        begin := time.Now()
+        for i := 0; i < n; i++ {
+                switch idx {
+                case 0: // fmt.Sprintf
+                        s = fmt.Sprintf("%s[%s]", s, v)
+                case 1: // string +
+                        s = s + "[" + v + "]"
+                case 2: // strings.Join
+                        s = strings.Join([]string{s, "[", v, "]"}, "")
+                case 3: // stable bytes.Buffer
+                        buf.WriteString("[")
+                        buf.WriteString(v)
+                        buf.WriteString("]")
+                }
+
+        }
+        if idx == 3 {
+                s = buf.String()
+        }
+        fmt.Printf("string len: %d\t", len(s))
+        fmt.Printf("time of [%s]=\t %v\n", ways[idx], time.Since(begin))
+}
+
+func main() {
+        for idx, _ := range ways {
+                benchmarkStringFunction(10000, idx)
+        }
+}
+{% endhighlight %}
+
+执行结果如下。
+
+{% highlight text %}
+string len: 280000      time of [fmt.Sprintf ]=  366.809538ms
+string len: 280000      time of [+           ]=  231.356836ms
+string len: 280000      time of [strings.Join]=  497.997435ms
+string len: 280000      time of [bytes.Buffer]=  867.259µs
+{% endhighlight %}
+
+结论: A) `strings.Join` 最慢；B) 其次为 `fmt.Sprintf` 和 `string +`；C) 最快为 `bytes.Buffer` 。
+
+<!--
+https://sheepbao.github.io/post/golang_byte_slice_and_string/
+-->
+
 
 ## 接口 (interface)
 
@@ -362,6 +457,44 @@ http://kejibo.com/golang-exceptions-handle-defer-try/
 http://bookjovi.iteye.com/blog/1335282
 https://github.com/astaxie/build-web-application-with-golang/blob/master/02.3.md
 -->
+
+## 协程
+
+另外，一种方式是一直阻塞在管道中，利用 for 循环遍历。
+
+{% highlight go %}
+package main
+
+import (
+        "fmt"
+        "time"
+)
+
+func readCommits(commitC <-chan *string) {
+        for data := range commitC {
+                if data == nil {
+                        fmt.Println("Got nil data")
+                        continue
+                }
+                fmt.Println(*data)
+        }
+}
+
+func main() {
+        commitC := make(chan *string)
+
+        go func() {
+                for {
+                        s := "hi"
+                        time.Sleep(1 * time.Second)
+
+                        commitC <- &s
+                }
+        }()
+
+        readCommits(commitC)
+}
+{% endhighlight %}
 
 ## 反射
 

@@ -497,6 +497,7 @@ echo 1 >/proc/sys/kernel/core_uses_pid
 
 对于如何分离 debuginfo 文件可以参考 [Debugging Information in Separate Files](https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html) 。
 
+在 CentOS 中，对应的 debuginfo 信息可以直接从 [CentOS DebugInfo](http://debuginfo.centos.org/7/x86_64/) 。
 
 <!--
 https://www.percona.com/blog/2011/08/26/getting-mysql-core-file-on-linux/

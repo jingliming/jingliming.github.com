@@ -17,6 +17,10 @@ description: 简单介绍常见的三方模块使用，例如 log、unsafe 等�
 
 golang 通过 time 包的函数初始化定时器，可以通过 `reset()`、`stop()` 重置和停止定时器。另外，定时器存在一个 `chan time.Time` 类型的缓冲 channel 字段 C，时间到了之后，定时器就会向自己的 C 字段发送一个 `time.Time` 类型的元素值。
 
+### time
+
+最简单的定时器。
+
 {% highlight go %}
 package main
 
@@ -36,7 +40,90 @@ func main() {
 }
 {% endhighlight %}
 
+### Ticker
+
+周期性的触发时间事件，会以指定的时间间隔重复的向通道 C 发送时间值。
+
+{% highlight go %}
+package main
+
+import (
+        "fmt"
+        "time"
+)
+
+func main() {
+        var ticker *time.Ticker = time.NewTicker(1 * time.Second)
+
+        go func() {
+                for t := range ticker.C {
+                        fmt.Println("Tick at", t)
+                }
+        }()
+
+        time.Sleep(time.Second * 5)
+        ticker.Stop()
+        fmt.Println("Ticker stopped")
+}
+{% endhighlight %}
+
 如果使用周期性的定时器，可以使用 `time.Ticker` 类型。
+
+<!--
+package main
+
+import (
+        "fmt"
+        "time"
+)
+
+func main() {
+        t := time.NewTicker(1 * time.Second)
+        defer t.Stop()
+
+        for {
+                select {
+                case <-t.C:
+                        fmt.Println(time.Now())
+                }
+        }
+}
+-->
+
+## fmt
+
+其中最常用的是 `%v`，这是一个通用的格式化方式，用来打印 struct 的成员变量名称。
+
+{% highlight text %}
+%v   默认格式，只打印各个字段的值，没有字段名称；
+%+v  当打印结构体时，同时会添加字段名称；
+%#v  类似+v，同时会打印对象名称，并用语法标示数据类型，例如字符串会加""；
+%T   变量对应的类型名称 pakage.struct；
+{% endhighlight %}
+
+示例如下。
+
+{% highlight go %}
+package main
+
+import (
+        "fmt"
+)
+
+type User struct {
+        name string
+        age  int
+}
+
+func main() {
+        u := &User{name: "andy", age: 30}
+
+        fmt.Printf("%v\n", *u)  // {andy 30}
+        fmt.Printf("%+v\n", *u) // {name:andy age:30}
+        fmt.Printf("%#v\n", *u) // main.User{name:"andy", age:30}
+        fmt.Printf("%T\n", *u)  // main.User
+}
+{% endhighlight %}
 
 ## 日志 (log)
 

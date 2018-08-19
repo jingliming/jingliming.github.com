@@ -5,7 +5,8 @@ comments: true
 language: chinese
 category: [misc]
 keywords: grpc,golang
-description:
+description: gRPC 一开始由 google 开发，是一款开源的远程过程调用 (RPC) 系统。在 gRPC 里客户端应用可以像调用本地对象一样直接调用另一台不同的机器上服务端应用的方法，能够更容易地创建分布式应用和服务。
+
 ---
 
 gRPC 一开始由 google 开发，是一款开源的远程过程调用 (RPC) 系统。
@@ -17,6 +18,8 @@ gRPC 一开始由 google 开发，是一款开源的远程过程调用 (RPC) 系
 ![grpc introduce]({{ site.url }}/images/go/grpc-introduce.png "grpc introduce"){: .pull-center width="70%" }
 
 ## HTTP2
+
+![grpc introduce]({{ site.url }}/images/network/http2-introduce.png "grpc introduce"){: .pull-center width="70%" }
 
 ### HTTP/1.x
 
@@ -558,6 +561,27 @@ func main() {
         }
 }
 {% endhighlight %}
+
+## 负载均衡器
+
+这里每次的请求都会进行负载均衡，而非每个连接，也即是说，即使只有一个链接，请求仍然会在服务器间做负载均衡。
+
+在 [Load Balancing in gRPC](https://github.com/grpc/grpc/blob/master/doc/load-balancing.md) 中有关于 LB 的设计理念，以及一个相关的设计方案。
+
+<!--
+https://segmentfault.com/a/1190000008672912
+https://segmentfault.com/a/1190000015231956
+
+Resolver and balancer API changes(gRPC新的负载均衡方案实现)
+https://github.com/menghanl/proposal/blob/936c96af113915efbbf8e78e16aa18cf73575e62/L9-go-resolver-balancer-API.md
+
+实现的一种方案
+https://segmentfault.com/a/1190000010471761
+
+gRPC-gateway，通过对 RPC 的扩展，实现 REST 给RPC 的协议转换。
+https://www.cnblogs.com/andyidea/p/6529900.html
+![grpc gateway]({{ site.url }}/images/programs/grpc-gateway.png "grpc gateway"){: .pull-center width="70%" }
+-->
 
 
 ## 其它

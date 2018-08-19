@@ -627,6 +627,11 @@ An alias for –syms
 
 正常来说 `ld-linux(8)` 会查找一个程序需要加载的库，然后解析执行，通过 `LD_PRELOAD` 或者 `/etc/ld.so.preload` 可以提前加载一些动态库。
 
+
+<!--
+http://www.cirosantilli.com/elf-hello-world/
+-->
+
 {% highlight text %}
 {% endhighlight %}
 

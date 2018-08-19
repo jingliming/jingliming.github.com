@@ -3452,9 +3452,9 @@ EPOLLHUP 表示客户端套接字已经断开连接；
 EPOLLET	使用边沿触发，默认是水平触发；
 EPOLLONESHOT 只监听一次事件，事件触发后会自动关闭，如果需要再次监听则需要重新设置。
 
-1、listen fd，有新连接请求，触发EPOLLIN。 
-2、对端发送普通数据，触发EPOLLIN。 
-3、带外数据，只触发EPOLLPRI。 
+1、listen fd，有新连接请求，触发EPOLLIN。
+2、对端发送普通数据，触发EPOLLIN。
+3、带外数据，只触发EPOLLPRI。
 
 1. 当对端正常关闭时，会触发 EPOLLIN 和 EPOLLRDHUP 事件，而非 EPOLLERR 和 EPOLLHUP，此时读缓冲区大小为 0 。
 
@@ -3593,10 +3593,6 @@ http://adoyle.me/blog/orphaned-process-and-zombie-process-and-docker.html
 
 https://stackoverflow.com/questions/9305992/if-threads-share-the-same-pid-how-can-they-be-identified/9306150#9306150
 
-https://blog.cryptomilk.org/2014/07/21/what-is-preloading/
-https://blog.fpmurphy.com/2012/09/all-about-ld_preload.html
-https://rafalcieslak.wordpress.com/2013/04/02/dynamic-linker-tricks-using-ld_preload-to-cheat-inject-features-and-investigate-programs/
-
 ## RBASH
 
 restricted bash, rhash 也就是受限制的 bash，实际上这只是指向 bash 的软连接，也可以通过 `bash -r` 参数启动，作用相同。
@@ -3629,7 +3625,7 @@ rbash 提供的受限环境的安全程度取决于用户能执行的命令，�
 
 也可以通过如下方式执行：
 
-$ BASH_CMDS[a]=/bin/sh;a 
+$ BASH_CMDS[a]=/bin/sh;a
 $ /bin/bash
 $ export PATH=$PATH:/bin:/usr/bin
 
@@ -3662,6 +3658,58 @@ https://blog.csdn.net/u011240877/article/details/52586664
 
 
 
+
+
+
+##
+
+简单来说，如下是对一个内存中的值进行累加，
+
+package main
+
+import (
+        "fmt"
+        "sync"
+)
+
+var (
+        N         = 0
+        waitgroup sync.WaitGroup
+)
+
+func counter(number *int) {
+        *number++
+        waitgroup.Done()
+}
+
+func main() {
+
+        for i := 0; i < 1000; i++ {
+                waitgroup.Add(1)
+                go counter(&N)
+        }
+        waitgroup.Wait()
+        fmt.Println(N)
+}
+
+https://zhuanlan.zhihu.com/p/33158981
+http://watoud.com/2016/10/25/Go-Race-Detector/
+https://brantou.github.io/2017/05/23/go-race-detector/
+https://mikespook.com/2013/06/%E7%BF%BB%E8%AF%91go-%E7%9A%84%E7%AB%9E%E6%80%81%E6%A3%80%E6%B5%8B%E5%99%A8/
+https://zhuanlan.zhihu.com/p/27642824
+https://88250.b3log.org/optimizing-concurrent-map-access-in-go-chinese
+http://liyangliang.me/posts/2015/01/concurrent-safe-map-in-golang/
+https://www.jianshu.com/p/10a998089486
+https://colobu.com/2017/07/11/dive-into-sync-Map/
+http://www.open-open.com/lib/view/open1451882746667.html
+https://blog.csdn.net/erlib/article/details/44152511
+https://studygolang.com/articles/3373
+https://hitzhangjie.github.io/jekyll/update/2018/05/19/golang-select-case%E5%AE%9E%E7%8E%B0%E6%9C%BA%E5%88%B6.html
+
+
+
+一个简单的时序数据库
+https://github.com/Cistern/catena
 
 -->
 
