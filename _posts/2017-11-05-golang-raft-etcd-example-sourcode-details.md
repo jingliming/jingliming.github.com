@@ -819,6 +819,9 @@ Linearizable/Lease read
 优化点包含了哪些？
 核心处理流程：A) AppendLog；B) 选主；C) Snapshot；D) 成员变更等。
 存储的接口通过 type Storage interface 指定，其中示例中直接使用了库中的 MemoryStorage 实现，每次从 WAL 和 Snapshot 中读取并恢复到内存中。
+
+https://www.jianshu.com/p/27329f87c104
+https://bbs.huaweicloud.com/blogs/f65bc75d3ba811e89fc57ca23e93a89f
 -->
 
 {% highlight text %}
