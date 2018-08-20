@@ -3661,52 +3661,6 @@ https://blog.csdn.net/u011240877/article/details/52586664
 
 
 
-##
-
-简单来说，如下是对一个内存中的值进行累加，
-
-package main
-
-import (
-        "fmt"
-        "sync"
-)
-
-var (
-        N         = 0
-        waitgroup sync.WaitGroup
-)
-
-func counter(number *int) {
-        *number++
-        waitgroup.Done()
-}
-
-func main() {
-
-        for i := 0; i < 1000; i++ {
-                waitgroup.Add(1)
-                go counter(&N)
-        }
-        waitgroup.Wait()
-        fmt.Println(N)
-}
-
-https://zhuanlan.zhihu.com/p/33158981
-http://watoud.com/2016/10/25/Go-Race-Detector/
-https://brantou.github.io/2017/05/23/go-race-detector/
-https://mikespook.com/2013/06/%E7%BF%BB%E8%AF%91go-%E7%9A%84%E7%AB%9E%E6%80%81%E6%A3%80%E6%B5%8B%E5%99%A8/
-https://zhuanlan.zhihu.com/p/27642824
-https://88250.b3log.org/optimizing-concurrent-map-access-in-go-chinese
-http://liyangliang.me/posts/2015/01/concurrent-safe-map-in-golang/
-https://www.jianshu.com/p/10a998089486
-https://colobu.com/2017/07/11/dive-into-sync-Map/
-http://www.open-open.com/lib/view/open1451882746667.html
-https://blog.csdn.net/erlib/article/details/44152511
-https://studygolang.com/articles/3373
-https://hitzhangjie.github.io/jekyll/update/2018/05/19/golang-select-case%E5%AE%9E%E7%8E%B0%E6%9C%BA%E5%88%B6.html
-
-
 
 一个简单的时序数据库
 https://github.com/Cistern/catena

@@ -761,6 +761,88 @@ Quit Channel/Done Channel 还没有搞明白
 https://segmentfault.com/a/1190000006815341
 -->
 
+## 竞态条件
+
+如下是一个简单的示例，简单来说，是对一个内存中的值进行累加，
+
+{% highlight go %}
+package main
+
+import (
+        "fmt"
+        "sync"
+)
+
+var (
+        N         = 0
+        waitgroup sync.WaitGroup
+)
+
+func counter(number *int) {
+        *number++
+        waitgroup.Done()
+}
+
+func main() {
+
+        for i := 0; i < 1000; i++ {
+                waitgroup.Add(1)
+                go counter(&N)
+        }
+        waitgroup.Wait()
+        fmt.Println(N)
+}
+{% endhighlight %}
+
+如果运行多次，可以发现绝大多数情况下其累加值不是 1000 。
+
+解决方法是在执行累加时，对操作加锁。
+
+{% highlight go %}
+package main
+
+import (
+        "fmt"
+        "sync"
+)
+
+var (
+        N         = 0
+        mutex     sync.Mutex
+        waitgroup sync.WaitGroup
+)
+
+func counter(number *int) {
+        mutex.Lock()
+        *number++
+        mutex.Unlock()
+        waitgroup.Done()
+}
+
+func main() {
+
+        for i := 0; i < 1000; i++ {
+                waitgroup.Add(1)
+                go counter(&N)
+        }
+        waitgroup.Wait()
+        fmt.Println(N)
+}
+{% endhighlight %}
+
+### 竞态条件检测
+
+GoLang 工具内置了竞态检测工具，只需要加上 `-race` 即可。
+
+{% highlight text %}
+$ go test -race mypkg    // test the package
+$ go run -race mysrc.go  // compile and run the program
+$ go build -race mycmd   // build the command
+$ go install -race mypkg // install the package
+{% endhighlight %}
+
+使用该参数，GO 会记录不同线程对共享变量的访问情况，如果发现非同步的访问则会退出并打印告警信息。
+
 
 ## 语法糖
 
