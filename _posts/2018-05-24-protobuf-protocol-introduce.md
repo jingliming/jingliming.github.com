@@ -111,10 +111,23 @@ enum Gender {
         FEMALE = 1;
 };
 
+message Addr {
+        string city = 1;
+}
+
+message Contact {
+        string email = 1;
+}
+
 message UserInfo {
         string name = 1;
         int32 age = 2;
         Gender gender = 3;
+
+        oneof method {
+                Addr addr = 5;
+                Contact cont = 6;
+        }
 }
 {% endhighlight %}
 
@@ -145,10 +158,15 @@ func main() {
         fmt.Println("connect to", Addr, "success")
         defer conn.Close()
 
-        Request := &pb.UserInfo{
+	Request := &pb.UserInfo{
                 Name:   "foobar",
                 Age:    15,
                 Gender: pb.Gender_MALE,
+                Method: &pb.UserInfo_Addr{
+                        Addr: &pb.Addr{
+                                City: "foobar",
+                        },
+                },
         }
 
         data, err := proto.Marshal(Request)
@@ -207,8 +225,17 @@ func readMessage(conn net.Conn) {
                 if err != nil {
                         panic(err)
                 }
-
                 fmt.Println("Got data from", conn.RemoteAddr(), Response)
+
+                switch x := Response.Method.(type) {
+                case *pb.UserInfo_Addr:
+                        fmt.Printf("Addr %+v\n", x.Addr)
+                case *pb.UserInfo_Cont:
+                        fmt.Println("Cont")
+                case nil:
+                default:
+                        panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+                }
         }
 }
 {% endhighlight %}
