@@ -8,13 +8,47 @@ keywords:
 description:
 ---
 
+## 简介
 
+用来管理上述列表中最基本的 Agent，提供基本的功能。通过最简单的方式与服务端进行通讯，也就是利用 `HTTP/1.2` 短链接与服务端通讯，只提供简单的 PUSH 机制，由 BootAgent 主动发起。
 
-<!-- more -->
+## 实现功能
 
-用来管理上述列表中最基本的 Agent，提供基本的功能。
+其中主要功能点包括了。
 
-通过最简单的方式与服务端进行通讯，也就是利用 `HTTP/1.2` 短链接与服务端通讯，只提供简单的 PUSH 机制，由 Agent 主动发起。
+{% highlight text %}
+1. 任务管理。
+   1.1 子Agent安装。
+   1.2 修改配置。
+2. 子进程管理。
+   2.1 子Agent退出自动拉起。
+   2.2 子Agent资源限制。
+3. 事件上报机制。
+   3.1 子进程异常。
+{% endhighlight %}
+
+如果任务执行失败，只能等待下次 BootAgent 上报数据时处理。
+
+## REST-API 接口
+
+### 启动注册接口
+
+{% highlight text %}
+----- POST /agent/register
+{
+	"hostname": "127.0.0.1",
+	"agentsn": "bfdcc18c-b6b9-4725-9c47-37fd93dba5b6"
+}
+
+----- 返回信息
+{
+	"status": 0,
+	"agentsn": "dcb886e9-04ed-41bb-9c12-4d2de12cd59b",  # 如果上层判断有冲突，则执行AgentSN
+	"tags": "service=ecs,component"
+}
+{% endhighlight %}
+
+### 状态上报接口
 
 {% highlight text %}
 ----- POST /agent/status 上报当前Agent状态
@@ -64,6 +98,7 @@ description:
       * killed 资源超限等原因被强制杀死
 {% endhighlight %}
 
+### 任务执行结果
 
 {% highlight text %}
 ----- POST /agent/job/result 上报任务执行的状态
@@ -80,6 +115,16 @@ description:
 	"errcode": 0                                           # 一般都是0，非0会一直尝试上报上述结果
 }
 {% endhighlight %}
+
+## TODO
+
+{% highlight text %}
+1. 安全通讯。
+{% endhighlight %}
+
+## 测试用例
+
+## FAQ
 
 #### Agent 重启策略
 

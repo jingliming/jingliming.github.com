@@ -86,7 +86,78 @@ $ protoc --gogo_out=. *.proto
 $ protoc --gofast_out=. *.proto
 {% endhighlight %}
 
-### 示例
+### 示例1
+
+这里采用的是 `proto2` 的示例，目录结构如下。
+
+{% highlight text %}
+.
+ |-foobar.go
+ |-example/
+   |-example.proto
+{% endhighlight %}
+
+
+{% highlight text %}
+syntax = "proto2";
+
+package example;
+
+enum FOO { X = 17; };
+
+message Test {
+        required string label = 1;
+        optional int32 type = 2 [default=77];
+        repeated int64 reps = 3;
+        optional group OptionalGroup = 4 {
+                required string RequiredField = 5;
+        }
+}
+{% endhighlight %}
+
+{% highlight go %}
+package main
+
+import (
+        "fmt"
+        "log"
+        "reflect"
+
+        "./example"
+        "github.com/golang/protobuf/proto"
+)
+
+func main() {
+        test := &example.Test{
+                Label: proto.String("hello"),
+                Type:  proto.Int32(17),
+                Optionalgroup: &example.Test_OptionalGroup{
+                        RequiredField: proto.String("good bye"),
+                },
+        }
+
+        data, err := proto.Marshal(test)
+        if err != nil {
+                log.Fatal("marshaling error: ", err)
+        }
+        fmt.Println("type:", reflect.TypeOf(data))
+
+        newTest := &example.Test{}
+        err = proto.Unmarshal(data, newTest)
+        if err != nil {
+                log.Fatal("unmarshaling error: ", err)
+        }
+
+        if test.GetLabel() != newTest.GetLabel() {
+                log.Fatalf("data mismatch %q != %q", test.GetLabel(), newTest.GetLabel())
+        }
+}
+{% endhighlight %}
+
+然后通过 `protoc --go_out=. *.proto` 生成，其中 `Marshal()` 接口返回的数据是 `[]uint8` 或者 `[]byte` 类型。
+
+
+### 示例2
 
 目录结构如下。
 

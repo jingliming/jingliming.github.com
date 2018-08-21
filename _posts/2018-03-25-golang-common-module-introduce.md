@@ -174,6 +174,46 @@ log 的源码实现也很简单，可以参考
 http://www.flysnow.org/2017/05/06/go-in-action-go-log.html
 -->
 
+## bytes
+
+{% highlight go %}
+package main
+
+import (
+        "bytes"
+        "encoding/binary"
+        "fmt"
+)
+
+func IntToBytes(n int) []byte {
+        bytesBuffer := bytes.NewBuffer([]byte{})
+        binary.Write(bytesBuffer, binary.BigEndian, int32(n))
+        return bytesBuffer.Bytes()
+}
+
+func main() {
+        var b0 bytes.Buffer
+        b0.Write([]byte("Hello "))
+        fmt.Println(b0.String())
+
+        b1 := new(bytes.Buffer)
+        b1.WriteString("Hi World")
+        b1.WriteByte('!')
+        fmt.Println(b1.String())
+
+/*
+	// OR
+	b2 := bytes.NewBufferString("swift")
+	b3 := bytes.NewBuffer([]byte("swift"))
+	b4 := bytes.NewBuffer([]byte{'s', 'w', 'i', 'f', 't'})
+
+	// Empty Buffer
+	b5 = bytes.NewBufferString("")
+	b6 = bytes.NewBuffer([]byte{})
+*/
+}
+{% endhighlight %}
+
 ## unsafe
 
 这是一个很特殊的包，可以绕过 GoLang 本身的一些语法检查直接操作对象，从而可能会导致不可移植(可控)，而且使用比较危险。该包中包含了三个函数，以及一种类型：
@@ -379,6 +419,7 @@ func watch(ctx context.Context, name string) {
 
 也可以参考
 https://www.cnblogs.com/276815076/p/8416652.html
+
 -->
 
 

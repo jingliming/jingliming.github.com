@@ -5,13 +5,16 @@ comments: true
 language: chinese
 category: [program,golang,linux]
 keywords: golang,webserver,net,http
-description:
+description: 除去细节，理解 HTTP 构建的网络应用只要关注客户端和服务端的处理，服务器主要用来接收客户端的请求，然后返回响应，在接收请求并处理的过程中，最重要的莫过于路由 (Router)。这里简单介绍如何使用 `net/http` 构建 HTTP 请求。
 ---
 
+除去细节，理解 HTTP 构建的网络应用只要关注客户端和服务端的处理，服务器主要用来接收客户端的请求，然后返回响应，在接收请求并处理的过程中，最重要的莫过于路由 (Router)。
+
+这里简单介绍如何使用 `net/http` 构建 HTTP 请求。
 
 <!-- more -->
 
-
+## 示例
 
 如下是一个最简单的示例。
 
@@ -151,6 +154,60 @@ https://blog.csdn.net/xxb249/article/details/80779577
 https://www.codetd.com/article/1766635
 
 https://gowebexamples.com/http-server/
+
+
+
+
+
+
+
+
+
+
+## ServeMux VS. Handler
+
+Handler 负责输出 HTTP 响应的头和正文，任何满足了 `http.Handler` 接口的对象都可作为一个处理器。
+
+type Handler interface {
+	ServeHTTP(ResponseWriter, *Request)
+}
+
+Go 语言的 HTTP 包自带了几个函数用作常用处理器，比如FileServer，NotFoundHandler 和 RedirectHandler。我们从一个简单具体的例子开始：
+
+https://segmentfault.com/a/1190000006812688
+
+rafthttp/transport.go
+
+func (t *Transport) Handler() http.Handler {
+	pipelineHandler := newPipelineHandler(t, t.Raft, t.ClusterID)
+	streamHandler := newStreamHandler(t, t, t.Raft, t.ID, t.ClusterID)
+	snapHandler := newSnapshotHandler(t, t.Raft, t.Snapshotter, t.ClusterID)
+	mux := http.NewServeMux() //http 请求路由
+	mux.Handle(RaftPrefix, pipelineHandler) /* /raft */
+	mux.Handle(RaftStreamPrefix+"/", streamHandler)  /* /raft/stream/ */
+	mux.Handle(RaftSnapshotPrefix, snapHandler)      /* /raft/snapshot */
+	mux.Handle(ProbingPrefix, probing.NewHandler())  /* /raft/probing */
+	return mux
+}
+
+func newPeerHandler(cluster api.Cluster, raftHandler http.Handler, leaseHandler http.Handler) http.Handler {
+        mh := &peerMembersHandler{
+                cluster: cluster,
+        }
+
+        mux := http.NewServeMux()
+        mux.HandleFunc("/", http.NotFound)
+        mux.Handle(rafthttp.RaftPrefix, raftHandler)
+        mux.Handle(rafthttp.RaftPrefix+"/", raftHandler)
+        mux.Handle(peerMembersPrefix, mh)
+        if leaseHandler != nil {
+                mux.Handle(leasehttp.LeasePrefix, leaseHandler)
+                mux.Handle(leasehttp.LeaseInternalPrefix, leaseHandler)
+        }
+        mux.HandleFunc(versionPath, versionHandler(cluster, serveVersion))
+        return mux
+}
+
 -->
 
 为了防止由于压力过大导致雪崩，可以限制客户端的数量，详细可以参考 `golang.org/x/net/netutil/listen.go` 中关于 `LimitListener` 的实现。

@@ -1295,6 +1295,121 @@ unstable 在内存中使用数组维护所有的更新日志项，在 Leader 中
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+在如下的函数中，最终真正调用的处理函数就是 `ServeHTTP()` 接口。
+
+NewPeerHandler() etcdserver/api/etcdhttp/peer.go
+ |-newPeerHandler()
+   |-http.NewServeMux() 初始化一个Serve Multiplexer结构
+   |-mux.HandleFunc()/Handle() 注册一堆的URI
+     |-raftHandler() /raft
+     |-peerMembersHandler() /members
+
+实际上，在 ETCD 中有两个与网络交互的流处理对象：streamReader 和 streamWriter，分别用来处理网络的读写流量。
+
+### 会话建立
+
+Transport.Handler() rafthttp/transport.go
+ |-http.NewServeMux() 新建HTTP的MUX对象
+ |-mux.Handle()
+   |-pipelineHandler() /raft
+   |-streamHander() /raft/stream
+   | |-peerGetter.Get() rafthttp/peer.go 根据对端的ID获取
+   | |-newCloseNotifier() 这里只是构建一个closeNotifier对象
+   | |-attachOutgoingConn()
+   | | |-streamWriter.attach() rafthttp/stream.go 对于V3版本
+   | |   |-streamWriter.connc 将新建的链接添加到cw.connc管道中
+   | |-closeNotifier.closeNotify() 等待请求处理完成
+   |-snapHandler() /raft/snapshot
+   |-probing.NewHandler() /raft/probing
+
+在上述的处理中，`/raft/stream` 处理较为复杂，如果抓包可以发现这里实际上没有响应的报文。
+
+当上述的请求发送到管道之后，管道对端的处理是在 `streamWriter.run()` 中，一般会起一个单独的协程。
+
+### 消息发送
+
+Transport.Send() rafthttp/transport.go 开始发送
+ |-peer.send() rafthttp/peer.go 向对端发送数据
+   |-peer.pick() 根据消息类型选择具体的管道，包括pipeline.msgc、writec等
+   | |-streamWriter.writec() 如果是V3版本，返回的是streamWriter.msgc
+   |-writec <- m 然后将消息发送到管道中
+
+管道对端的处理同样是在 `streamWriter.run()` 中，这里发送完之后实际上没有关闭，一直保持着长连接。
+
+### 消息接收
+
+链接的建立是由 streamReader 发起，也就是上述没有响应的 HTTP 请求。
+
+streamReader.run() rafthttp/stream.go
+ |-dial() 开始建立链接，主要是构建HTTP的请求头
+ |-decodeLoop() 然后就开始循环处理接收到的请求
+   |-messageDecoder() 如果是V3版本
+   |-decode() rafthttp/msg_codec.go 这里对应的是raft/raftpb/raft.proto结构
+   |-streamReader.propc 如果是MsgPro消息，则发送到改管道中
+   |-streamReader.recvc 否则发送到该管道中
+
+注意，上述的两个管道实际处理流程是相同的，为了防止由于无 Leader 导致处理协程阻塞，所以单独起一个协程处理 MsgPro 类型的消息。
+
+最终调用的是 `type Raft interface` 中实现的接口，实际上就是 `etcdserver/server.go` 或者示例 `contrib/raftexample/raft.go` 中的接口实现。
+
+quotaKVServer.Put() api/v3rpc/quota.go 首先检查是否满足需求
+ |-quotoAlarm.check() 检查
+ |-kvServer.Put() api/v3rpc/key.go 真正的处理请求
+   |-checkPutRequest() 校验请求参数是否合法
+   |-RaftKV.Put() etcdserver/v3_server.go 处理请求
+   |=EtcdServer.Put() 实际调用的是该函数，这里会重新构建一个Internal的Proto对象
+   | |-raftRequest()
+   |   |-raftRequestOnce()
+   |     |-processInternalRaftRequestOnce() 真正开始处理请求，这里会完成阻塞等待处理完成
+   |       |-reqIDGent.Next() 获取最新的一个消息ID
+   |       |-Marshal() 执行序列化
+   |       |-Wait.Register(id) 注册一个ID到一个全局的MAP中，实际上是一个管道
+   |       |-context.WithTimeout() 创建超时的上下文信息
+   |       |-raftNode.Propose() raft/node.go
+   |       | |-raftNode.step() 对于类型为MsgProp类型消息，向propc通道中传入数据
+   |       |-
+   |       |-ctx.Done() 请求处理超时
+   |
+   |-header.fill() etcdserver/api/v3rpc/header.go填充响应的头部信息
+
+注意，在上述发送请求的时候，实际上先完成了一次 proto 格式的转换，会将所有的操作统一转换为 `raft_internal.proto` 中定义的 `message InternalRaftRequest` 对象，例如 Put 操作，会将 `message PutRequest` 进行转换。
+
+
+这里实际上有个同步机制，也就是在 `pkg/wait` 中的实现，简单来说，在提交完请求之后，会在这里的 map 中添加一条记录，同时返回一个管道，并阻塞在管道中。
+
+在完成处理之后，也就是已经将数据 Apply 成功，会向该管道中写入 applyResult 对象。
+
+对于后者是在 `applyEntryNormal()` 中实现。
+
+在示例的代码中有 `blocks until accepted by raft state machine` 的一段注释，不过感觉这里只能确保数据发送到了状态机中，并不能确保提交成功。
+
+node.Propose() raft/node.go
+
+在收到 InternalRaftRequest 对象之后，是如何判断这里的消息类型的？
+
+https://blog.csdn.net/zg_hover/article/details/81840556
+http://xargin.com/about-beanstalkd/
+https://segmentfault.com/a/1190000016067218
+
+
+
+
+
+
+
 https://www.jianshu.com/p/27329f87c104
 https://www.jianshu.com/p/21acb670ccf1
 https://zhuanlan.zhihu.com/p/29865583

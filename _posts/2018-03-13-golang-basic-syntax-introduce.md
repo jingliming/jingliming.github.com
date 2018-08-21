@@ -280,107 +280,6 @@ string len: 280000      time of [bytes.Buffer]=  867.259µs
 https://sheepbao.github.io/post/golang_byte_slice_and_string/
 -->
 
-
-## 接口 (interface)
-
-Interface 定义了方法集，只要某个类型实现了该接口的超集(实现了接口定义的所有方法，而且可能还有其它方法)，那么就可以说这个类型实现了该接口。
-
-这意味着，一个类型可能实现了多个接口，例如，所有的类型都实现了 `interface {}` 这个接口。
-
-另外，interface 会在编译时检查，在运行时动态生成，如果有类似类型的报错，在编译阶段就可以发现，而不像 Python 会在运行时报错。
-
-<!--
-上面说的 interface {} 比较容易混淆。interface {} 定义的是空接口，所有的类型都实现了该接口，在函数传参定义类型时，可以认为是 C 语言中的 void * ，可接收任意类型的参数。
-
-每个 interface 变量，都包含了两个指针，分别指向方法和该 interface 中定义的变量，关于其实现的详细解释可以参考 https://research.swtch.com/interfaces 以及 https://golang.org/doc/effective_go.html 。
-
-I don’t want to bleat on about this endlessly.
--->
-
-### 接口实现
-
-一般通过如下的规则判断一个类型或者指针是否实现了该接口：
-
-* 类型 `*T` 的对象可调用方法集含类型为 `*T` 或 `T` 的所有方法集。
-* 类型 `T` 的对象可调用方法集含类型为 `T` 的所有方法集。
-
-同时也可以得出一条推论：
-
-* 类型 `T` 的对象不能调用方法集类型为 `*T` 的方法集。
-
-{% highlight go %}
-package main
-
-import (
-    "log"
-)
-
-type User struct {
-        Name  string
-        Email string
-}
-
-func (u *User) Notify() error {
-        log.Printf("User: Sending User Email To %s<%s>\n", u.Name, u.Email)
-        return nil
-}
-
-type Notifier interface {
-        Notify() error
-}
-
-func SendNotification(notify Notifier) error {
-        return notify.Notify()
-}
-
-func main() {
-        user := User{
-                Name:  "AriesDevil",
-                Email: "ariesdevil@xxoo.com",
-        }
-
-        SendNotification(&user)
-}
-{% endhighlight %}
-
-如果将 `SendNotification(&user)` 替换为 `SendNotification(user)` 将会报错。
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## import
 
 在 golang 中可以通过如下的方式导入。
@@ -871,7 +770,28 @@ func main() {
 }
 {% endhighlight %}
 
+### Byte VS. Rune
 
+两种实际上是 `uint8` 和 `uint32` 类型，byte 用来强调数据是 RawData，而不是数字；而 rune 用来表示 Unicode 编码的 CodePoint。
+
+中文字符使用 3 个字节保存(为什么使用的是3个字节保存，还没有搞清楚)。
+
+{% highlight go %}
+s := "hello你好"
+fmt.Println(len(s))         // 11
+fmt.Println(len([]rune(s))) // 7，需要先转换为rune的切片在使用内置len函数
+s = "你好"
+fmt.Println(len(s))         // 6
+fmt.Println(len([]rune(s))) // 2
+s = "你"
+fmt.Println([]byte(s)) // 三个字节，也就是中文的表示方法
+fmt.Println(rune('你')) // 输出20320(0x4F60)，'你' 的编码
+{% endhighlight %}
+
+<!--
+Strings, bytes, runes and characters in Go
+https://blog.golang.org/strings
+-->
 
 {% highlight go %}
 {% endhighlight %}
