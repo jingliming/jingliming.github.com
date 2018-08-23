@@ -156,8 +156,103 @@ func main() {
 
 然后通过 `protoc --go_out=. *.proto` 生成，其中 `Marshal()` 接口返回的数据是 `[]uint8` 或者 `[]byte` 类型。
 
-
 ### 示例2
+
+目录结构如下。
+
+{% highlight text %}
+.
+ |-foobar.go
+ |-example.proto
+ |-example/
+{% endhighlight %}
+
+{% highlight text %}
+syntax = "proto3";
+
+package example;
+
+message Person {
+        string email = 1;
+
+        enum PhoneType {
+                MOBILE = 0;
+                HOME = 1;
+                WORK = 2; }
+
+        message PhoneNumber {
+                string number = 1;
+                PhoneType type = 2;
+        }
+
+        repeated PhoneNumber phones = 2;
+
+        oneof UserID {
+                string name = 3;
+                uint32 id =4;
+        }
+
+}
+{% endhighlight %}
+
+{% highlight go %}
+package main
+
+import (
+        "log"
+
+        pb "./example"
+
+        "github.com/golang/protobuf/proto"
+)
+
+func main() {
+
+        p := pb.Person{
+                Email: "foobar@example.com",
+                Phones: []*pb.Person_PhoneNumber{
+                        {Number: "12345678", Type: pb.Person_HOME},
+                },
+                UserID: &pb.Person_Name{
+                        Name: "foobar",
+                },
+        }
+
+        data, err := proto.Marshal(&p)
+        if err != nil {
+                log.Fatal("marshaling error: ", err)
+        }
+
+        ps := &pb.Person{}
+        err = proto.Unmarshal(data, ps)
+        if err != nil {
+                log.Fatal("unmarshaling error: ", err)
+        }
+
+        switch x := ps.UserID.(type) {
+        case *pb.Person_Name:
+                log.Printf("Got name %s\n", ps.GetName())
+        case *pb.Person_Id:
+                log.Printf("Got ID %d\n", ps.GetId())
+        case nil:
+        default:
+                log.Fatal("Person.UserID has unexpected type %T", x)
+        }
+
+        log.Printf("ID: %d, Name: %s, Email: %s\n",
+                ps.GetId(), ps.GetName(), ps.GetEmail())
+        for idx, val := range ps.GetPhones() {
+                log.Printf("Phone%d = %+v\n", idx, val)
+        }
+}
+{% endhighlight %}
+
+
+{% highlight text %}
+$ protoc example.proto --go_out=plugins=grpc:example
+{% endhighlight %}
+
+### 示例3
 
 目录结构如下。
 

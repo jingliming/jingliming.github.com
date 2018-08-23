@@ -3665,6 +3665,10 @@ https://blog.csdn.net/u011240877/article/details/52586664
 一个简单的时序数据库
 https://github.com/Cistern/catena
 
+https://www.byvoid.com/zhs/blog/string-hash-compare
+http://www.open-open.com/lib/view/open1451882746667.html
+https://hitzhangjie.github.io/jekyll/update/2018/05/19/golang-select-case%E5%AE%9E%E7%8E%B0%E6%9C%BA%E5%88%B6.html
+
 -->
 
 {% highlight text %}

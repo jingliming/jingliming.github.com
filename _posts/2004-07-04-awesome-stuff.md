@@ -16,9 +16,13 @@ description: 简单记录一下一些常见的资源。
 
 * [AdminLTE](https://adminlte.io/) ，一个开源的后台控制面板和仪表盘模板，基于 Bootstrap3 框架。
 
-## 其它
+## 软件工程
 
 * [Let's Build a Simple Database](https://cstack.github.io/db_tutorial/) ，详细介绍如何构建一个小型数据库，基本类似于 SQLite 。
+* [Github System Design Primer](https://github.com/donnemartin/system-design-primer)，一个应用系统的整体架构。
+
+## 其它
+
 * [www.msdmanuals.cn](https://www.msdmanuals.cn/)，默沙东诊疗手册，对于外行或者专业来说都是不错的医疗相关介绍。
 
 

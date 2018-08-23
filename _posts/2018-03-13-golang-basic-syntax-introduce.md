@@ -72,17 +72,17 @@ func (g Grade) Pass() bool {
 // 长度为5的数组，其元素分别为1, 2, 3, 4, 5
 [5] int {1,2,3,4,5}
 
-// 长度为5的数组，未赋值的默认是 0 ，也就是其元素值依次为1, 2, 0, 0, 0 
-[5] int {1,2} 
+// 长度为5的数组，未赋值的默认是 0 ，也就是其元素值依次为1, 2, 0, 0, 0
+[5] int {1,2}
 
 // 长度为5的数组，其长度是根据初始化时指定的元素个数决定的
-[...] int {1,2,3,4,5} 
+[...] int {1,2,3,4,5}
 
 // 长度为5的数组，key:value,其元素值依次为：0，0，1，2，3。在初始化时指定了2，3，4索引中对应的值：1，2，3
-[5] int { 2:1,3:2,4:3} 
+[5] int { 2:1,3:2,4:3}
 
 // 长度为5的数组，起元素值依次为：0，0，1，0，3。由于指定了最大索引4对应的值3，根据初始化的元素个数确定其长度为5
-[...] int {2:1,4:3} 
+[...] int {2:1,4:3}
 {% endhighlight %}
 
 #### 数组遍历
@@ -208,6 +208,140 @@ func (p myType) funcName ( a, b int, c string ) ( r, s int ) {
 包括了定义函数的关键字 `func`，函数名称 `funcName`，入参 `a, b int, c string`，返回值 `r,s int` 以及函数体 `{}`。
 
 而且，golang 可以为某个类型定义函数，也即为类型对象定义方法，也就是 `p myType` 参数，当然这不是必须的，如果为空则纯粹是一个函数，可以通过包名称访问。
+
+
+## 错误处理
+
+GoLang 通过内置的错误接口提供了非常简单的错误处理机制，其中 error 类型是一个接口，其定义如下。
+
+{% highlight go %}
+type error interface {
+	Error() string
+}
+{% endhighlight %}
+
+可以通过实现 `Error()` 返回具体的报错信息，简单示例如下。
+
+{% highlight go %}
+package main
+
+import (
+        "errors"
+        "fmt"
+)
+
+func Sqrt(f float64) (float64, error) {
+        if f < 0 {
+                return 0, errors.New("math: square root of negative number")
+        }
+
+        return f, nil
+}
+
+func main() {
+        if res, err := Sqrt(-1); err != nil {
+                fmt.Println(err)
+        } else {
+                fmt.Println(res)
+        }
+}
+{% endhighlight %}
+
+在函数中，通过 `errors.New()` 新建并返回一个错误信息；在调用方，如果返回的结果为 nil 则输出错误，在 `fmt` 中处理 error 时会调用 `Error()` 方法输出错误信息。
+
+<!--
+https://ethancai.github.io/2017/12/29/Error-Handling-in-Go/
+-->
+
+## MAP
+
+<!--
+https://88250.b3log.org/optimizing-concurrent-map-access-in-go-chinese
+https://colobu.com/2017/07/11/dive-into-sync-Map/
+-->
+
+在 1.9 版本的 `sync` 库中引入了并发 map 数据结构。
+
+{% highlight text %}
+The new Map type in the sync package is a concurrent map with
+amortized-constant-time loads, stores, and deletes. It is safe
+for multiple goroutines to call a Map's methods concurrently.
+{% endhighlight %}
+
+GoLang 内置类型 MAP 是用哈希表实现的，可以通过 `map[KeyType]ValueType` 定义，`ValueType` 可以是任意类型，包括 `map`，而 `KeyType` 是可以执行比较的类型，包括 `==` `!=` `<` `<=` `>` `>=` 。
+
+如果请求的 Key 不存在，则返回 Value 类型的零值，其中 `int` 为 0、`string` 为 `""` 。
+
+### 示例
+
+{% highlight go %}
+package main
+
+import "fmt"
+
+func main() {
+        /*
+                var m1 map[string]string = map[string]string{}
+                var m2 map[string]string
+                m2 = make(map[string]string) // OR
+        */
+
+        cities := map[string]string{
+                "ZheJiang": "HangZou",
+        }
+
+        newCities := cities
+        newCities["ZheJiang"] = "HangZhou" // Also change cities
+
+        cities["LiaoNing"] = "ShenYang" // len(cities) == 1
+
+        for c := range cities {
+                fmt.Println("A: Capital of", c, "is", cities[c])
+        }
+
+        for c, v := range cities {
+                fmt.Println("B: Capital of", c, "is", v)
+        }
+
+        if c, ok := cities["ShanDong"]; ok { // OR JUST CHECK _, ok := cities["ShanDong"]
+                fmt.Println("Capital of LiaoNing is", c)
+        } else {
+                fmt.Println("Get capital failed")
+        }
+
+        fmt.Println(cities["NotExists"] == "")
+        delete(cities, "LiaoNing")
+        delete(cities, "NotExists") // No side effect
+
+        fmt.Println("Current length", len(cities))
+}
+{% endhighlight %}
+
+### 稳定性
+
+当使用 `range` 循环遍历 MAP 时，遍历的顺序是不确定的，并且不能保证遍历顺序和下次遍历的顺序相同。
+
+在运行时对 MAP 遍历的顺序做随机化处理，如果依赖于遍历顺序稳定性，必须自己去维护一个遍历顺序的独立数据结构，例如切片。
+
+### 其它
+
+与切片一样，MAP 是引用类型，当一个 MAP 赋值给一个新的变量时，它们都指向同一个内部数据结构，改变其中一个也会反映到另一个。
+
+MAP 不能通过 `==` 操作符比较是否相等，能用来检测 MAP 是否为 `nil`。
+
+<!--
+https://studygolang.com/articles/11979
+https://guidao.github.io/go_map.html
+https://blog.csdn.net/Soooooooo8/article/details/70163475
+
+[Go小技巧] 实现常用的KV缓存（有序且并发安全）
+https://my.oschina.net/henrylee2cn/blog/741315
+
+https://github.com/gostor/awesome-go-storage
+内存数据库可以参考
+https://github.com/tidwall/buntdb
+https://github.com/patrickmn/go-cache
+-->
 
 ## 字符串操作
 
@@ -459,7 +593,7 @@ func main() {
 	s := []int{7, 2, 8, -9, 4, 0}
 
 	c := make(chan int)
-	
+
 	go sum(s[:len(s)/2], c)
 	go sum(s[len(s)/2:], c)
 	x, y := <-c, <-c // receive from c
@@ -742,6 +876,109 @@ $ go install -race mypkg // install the package
 
 使用该参数，GO 会记录不同线程对共享变量的访问情况，如果发现非同步的访问则会退出并打印告警信息。
 
+
+## 枚举类型
+
+GoLang 并没有提供 `enum` 的定义，不过可以使用 `const` 来模拟枚举类型。
+
+{% highlight go %}
+const (
+	STATUS_NORMAL int = 0
+	STATUS_FAILED int = 1
+)
+{% endhighlight %}
+
+另外，也可以使用 `iota` 。
+
+### iota
+
+这是 GoLang 语言中的常量计数器，只能在常量的表达式中使用；该关键字出现时将被重置为 0，然后每新增一行常量声明将使 iota 计数一次。
+
+例如，`time` 包中定义时间类型的方式如下，其中的 `_` 符号表示跳过。
+
+{% highlight go %}
+type Weekday int
+
+const (
+    Sunday Weekday = iota
+    Monday
+    Tuesday
+    Wednesday
+    _
+    Friday
+    Saturday
+)
+{% endhighlight %}
+
+注意，`iota` 的增长是按照行顺序，如果在同一行，那么值是不会增长的。
+
+其它常见场景。
+
+#### 位掩码
+
+{% highlight go %}
+package main
+
+import (
+        "fmt"
+)
+
+type Flags uint
+
+const (
+        FlagUp           Flags = 1 << iota // is up
+        FlagBroadcast                      // supports broadcast access capability
+        FlagLoopback                       // is a loopback interface
+        FlagPointToPoint                   // belongs to a point-to-point link
+        FlagMulticast                      // supports multicast access capability
+)
+
+func IsUp(v Flags) bool     { return v&FlagUp == FlagUp }
+func TurnDown(v *Flags)     { *v &^= FlagUp }
+func SetBroadcast(v *Flags) { *v |= FlagBroadcast }
+func IsCast(v Flags) bool   { return v&(FlagBroadcast|FlagMulticast) != 0 }
+
+func main() {
+        var v Flags = FlagMulticast | FlagUp
+        fmt.Printf("%b %t\n", v, IsUp(v)) // "10001 true"
+        TurnDown(&v)
+        fmt.Printf("%b %t\n", v, IsUp(v)) // "10000 false"
+        SetBroadcast(&v)
+        fmt.Printf("%b %t\n", v, IsUp(v))   // "10010 false"
+        fmt.Printf("%b %t\n", v, IsCast(v)) // "10010 true"
+}
+{% endhighlight %}
+
+#### 定义数量级
+
+{% highlight go %}
+type ByteSize float64
+
+const (
+    _           = iota                   // ignore first value by assigning to blank identifier
+    KB ByteSize = 1 << (10 * iota)       // 1 << (10*1)
+    MB                                   // 1 << (10*2)
+    GB                                   // 1 << (10*3)
+    TB                                   // 1 << (10*4)
+    PB                                   // 1 << (10*5)
+    EB                                   // 1 << (10*6)
+    ZB                                   // 1 << (10*7)
+    YB                                   // 1 << (10*8)
+)
+{% endhighlight %}
+
+它并不能用于产生 1000 的幂，因为 GoLang 并没有计算幂的运算符。
+
+#### 中间间隔
+
+{% highlight go %}
+const (
+	i = iota     // 0
+	j = 3.14     // 3.14
+	k = iota     // 2
+	l            // 3
+)
+{% endhighlight %}
 
 ## 语法糖
 

@@ -1410,6 +1410,64 @@ https://segmentfault.com/a/1190000016067218
 
 
 
+
+
+
+
+
+
+
+quotaKVServer.Put() api/v3rpc/quota.go 首先检查是否满足需求
+ |-quotoAlarm.check() 检查
+ |-kvServer.Put() api/v3rpc/key.go 真正的处理请求
+   |-checkPutRequest() 校验请求参数是否合法
+   |-RaftKV.Put() etcdserver/v3_server.go 处理请求
+   |=EtcdServer.Put() 实际调用的是该函数，这里会重新构建一个Internal的Proto对象
+   | |-raftRequest()
+   |   |-raftRequestOnce()
+   |     |-processInternalRaftRequestOnce() 真正开始处理请求，这里会完成阻塞等待处理完成
+   |       |-reqIDGent.Next() 获取最新的一个消息ID
+   |       |-Marshal() 执行序列化
+   |       |-Wait.Register(id) 注册一个ID到一个全局的MAP中，实际上是一个管道
+   |       |-context.WithTimeout() 创建超时的上下文信息
+   |       |-raftNode.Propose() raft/node.go
+   |       | |-raftNode.step() 对于类型为MsgProp类型消息，向propc通道中传入数据
+   |       |-
+   |       |-ctx.Done() 请求处理超时
+   |
+   |-header.fill() etcdserver/api/v3rpc/header.go填充响应的头部信息
+
+注意，在上述发送请求的时候，实际上先完成了一次 proto 格式的转换，会将所有的操作统一转换为 `raft_internal.proto` 中定义的 `message InternalRaftRequest` 对象，例如 Put 操作，会将 `message PutRequest` 进行转换。
+
+
+这里实际上有个同步机制，也就是在 `pkg/wait` 中的实现，简单来说，在提交完请求之后，会在这里的 map 中添加一条记录，同时返回一个管道，并阻塞在管道中。
+
+在完成处理之后，也就是已经将数据 Apply 成功，会向该管道中写入 applyResult 对象。
+
+对于后者是在 `applyEntryNormal()` 中实现。
+
+
+在收到 InternalRaftRequest 对象之后，是如何判断这里的消息类型的？
+
+在提交完之后，
+
+linearizableReadLoop
+
+
+## Pre-Vote 算法
+
+RAFT 依赖于一个特性，集群中所有的节点总是使用它所观察到的当前最大 Term 。一般 term id 使用的是 64-bits ，正常很难会溢出，当在修复一个故障节点后重新加入集群，即使之前的集群是正常的，此时的 term 仍然会加 1 。
+
+例如，一个集群有三个节点，其中一个节点因为网络被隔离，每次选举超时都会增加 Term 值，因为被隔离，始终无法完成选举。
+
+
+
+
+
+
+
+
+
 https://www.jianshu.com/p/27329f87c104
 https://www.jianshu.com/p/21acb670ccf1
 https://zhuanlan.zhihu.com/p/29865583

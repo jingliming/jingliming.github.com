@@ -77,7 +77,7 @@ Bundle 'Valloric/YouCompleteMe'
 
 
 "" Go (golang) support for Vim
-"Bundle 'fatih/vim-go'
+Bundle 'fatih/vim-go'
 "
 "" support for Chinese.
 "Bundle 'mbbill/fencview'
