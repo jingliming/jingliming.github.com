@@ -3669,6 +3669,58 @@ https://www.byvoid.com/zhs/blog/string-hash-compare
 http://www.open-open.com/lib/view/open1451882746667.html
 https://hitzhangjie.github.io/jekyll/update/2018/05/19/golang-select-case%E5%AE%9E%E7%8E%B0%E6%9C%BA%E5%88%B6.html
 
+
+
+
+
+HTTP平滑升级
+https://segmentfault.com/a/1190000004445975
+
+### WithCancel
+
+func WithCancel(parent Context) (ctx Context, cancel CancelFunc)
+
+当调用 Cencel() 函数时，相关的子协程可以通过 `ctx.Done()` 手动相关的请求。
+
+###
+
+https://deepzz.com/post/golang-context-package-notes.html
+https://juejin.im/post/5a6873fef265da3e317e55b6
+
+## 常见问题
+
+### 成员变量
+
+cannot refer to unexported field or method ver
+
+在 GoLang 中要提供给外面访问的方法或是结构体必须是首字母大写，否则会报错。
+
+exec.Command() 新建一个对象，但是没有执行
+
+Output() 会等待任务执行完成并收集输出。
+
+## GoReman 进程管理
+https://github.com/polaris1119/The-Golang-Standard-Library-by-Example/blob/master/chapter10/10.1.md
+https://www.jianshu.com/p/49e83c39cffc
+
+/post/linux-commands-text.html
+
+AWK统计操作
+
+
+grep 'Got result' /tmp/foobar.log | awk '{s[$2]++} END{ for(i in s){print i, s[i]} }' | sort
+http://blog.51cto.com/6226001001/1659824
+https://shaohualee.com/article/691
+
+
+使用较多的是网络编程中，假设存在 A 调用 B 的 API，然后 B 再调用 C 的 API，如果要取消 `A->B` 的调用，按照正常的逻辑也应该要取消 `B->C` 的调用，那么此时就可以通过传递 Context 以及正常的逻辑判断来实现。
+
+
+
+
+
+
+
 -->
 
 {% highlight text %}

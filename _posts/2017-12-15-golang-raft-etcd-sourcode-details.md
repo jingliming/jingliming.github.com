@@ -1105,6 +1105,9 @@ EtcdServer.snapshot() etcdserver/server.go 真正处理
 
 raftStorage.CreateSnapshot()
 
+
+
+
 BoltDB的COW技术
 http://www.d-kai.me/boltdb%E4%B9%8Bcow%E6%8A%80%E6%9C%AF/
 

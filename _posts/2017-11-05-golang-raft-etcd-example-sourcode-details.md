@@ -56,7 +56,11 @@ $ raftexample --id 2 --cluster http://127.0.0.1:12379,http://127.0.0.1:22379,htt
 $ raftexample --id 3 --cluster http://127.0.0.1:12379,http://127.0.0.1:22379,http://127.0.0.1:32379 --port 32380
 {% endhighlight %}
 
-如上，列出了整个集群的节点数，启动后会发起一次选举过程。
+如上，通过参数指定整个集群的节点数，启动后会发起一次选举过程。
+
+为了调试方便，可以通过 [goreman]({{ site.production_url }}/post/golang-introduce.html#goreman) 启动。
+
+#### 发送数据
 
 然后，通过如下方式发送和获取数据。
 
@@ -65,9 +69,9 @@ curl -L http://127.0.0.1:12380/my-key -XPUT -d hello
 curl -L http://127.0.0.1:12380/my-key
 {% endhighlight %}
 
-#### 新增节点
+#### 结点管理
 
-还可以通过以下方式将一个新节点加入集群:
+可以通过以下方式将一个新节点加入集群:
 
 {% highlight text %}
 $ curl -L http://127.0.0.1:12380/4 -XPOST -d http://127.0.0.1:42379
@@ -75,10 +79,23 @@ $ raftexample --id 4 --port 42380 --join \
      --cluster http://127.0.0.1:12379,http://127.0.0.1:22379,http://127.0.0.1:32379,http://127.0.0.1:42379
 {% endhighlight %}
 
-#### 删除节点
+或者删除节点。
 
 {% highlight text %}
 $ curl -L http://127.0.0.1:12380/3 -XDELETE
+{% endhighlight %}
+
+#### 压测
+
+可以通过如下的脚本生成压测的脚本。
+
+{% highlight bash %}
+#!/bin/sh -e
+
+for ((i=1; i<=150; i ++)); do
+        uuid=`uuidgen`
+        echo "curl -L http://127.0.0.1:12380/${uuid} -XPUT -d '${uuid}-hello'"
+done
 {% endhighlight %}
 
 <!--
@@ -285,25 +302,26 @@ main()                                  main.go
 一般是定时器超时
 raft.Step()
  | <<<pb.MsgHup>>>
- |- 【is starting a new election at term】
+ |--->                                  【is starting a new election at term】
  |-raft.campaign()
-   |-raft.becomeCandidate() 进入到选举状态，也可以是PreCandidate
-   |-raft.poll() 首先模拟收到消息给自己投票
-   |-raft.quorum() 因为集群可能是单个节点，这里会检查是否满足条件，如果是
-   | |-raft.becomeLeader() 如果满足则成为主
-   |-raft.send() 发送选举请求，消息类型可以是MsgPreVote或者MsgVote 【sent MsgVote request】
+   |-raft.becomeCandidate()             进入到选举状态，也可以是PreCandidate
+   |-raft.poll()                        首先模拟收到消息给自己投票
+   |-raft.quorum()                      因为集群可能是单个节点，这里会检查是否满足条件，如果是
+   | |-raft.becomeLeader()              如果满足则成为主
+   |-raft.send()                        发送选举请求，消息类型可以是MsgPreVote或者MsgVote
+   |--->                                【sent MsgVote request】
 
 raft.stepCandidate()
- |-raft.poll() 【received MsgVoteResp from】
- | |-raft.becomeLeader() 如果满足多数派
- | | |-raft.appendEntry() 添加一个空日志，记录成为主的事件
- | | |---> 【became leader at term】
- | |-raft.bcastAppend() 广播发送
+ |-raft.poll()                          【received MsgVoteResp from】
+ | |-raft.becomeLeader()                如果满足多数派
+ | | |-raft.appendEntry()               添加一个空日志，记录成为主的事件
+ | | |--->                              【became leader at term】
+ | |-raft.bcastAppend()                 广播发送
  |   |-raft.sendAppend()
- |---> 【has received 2 MsgVoteResp votes and 0 vote rejections】
+ |--->                                  【has received 2 MsgVoteResp votes and 0 vote rejections】
 
 node.run()
- |---> 【raft.node ... elected leader at term ...】
+ |--->                                  【raft.node ... elected leader at term ...】
 {% endhighlight %}
 
 其中 `RestartNode()` 与 `StartNode()` 的区别在于，前者从日志文件中读取配置，而后者需要从命令行中传参。
@@ -646,7 +664,7 @@ node.run() raft/node.go
 
 ## 日志管理
 
-在实现时，日志和 snapshot 糅合到了一起，因此在重新构建状态机时必须要两者合作才可以。
+在实现时，实际上日志 (WAL) 和 Snapshot 已经糅合到了一起，因此在重新构建状态机时必须要两者合作才可以，那么介绍时同样合到一起。
 
 首先需要加载 snapshot 的最新值，然后根据这个 index 在 WAL 目录下查找之后的日志，并回放这些日志即可。
 
@@ -793,13 +811,125 @@ serveChannels() raft.go
 那么 readyc 中的数据又是从何而来，为什么会在启动时就已经有数据的提交了。
 
 实际上，本地启动之后，在与集群的其它节点建立链接之前，已经有 snapshot 之后 WAL 中的数据会在自己的节点中提交，并应用到日志中。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+在WAL.sync()[wal/wal.go]中有实现磁盘刷新统计的功能，不过暂时不太确认实现原理
+https://github.com/prometheus/client_golang/
+https://www.cnblogs.com/gaorong/p/7881203.html
+
+
+### 创建时机
+
+示例中的 SnapShot 实际上使用的是 raft.MemoryStorage 中的实现，也就是 rc.raftStorage 实际上就是 MemoryStorage 的实现。
+
+maybeTriggerSnapshot()
+ |                       首先会判断是否需要进行SnapShot操作
+ |-getSnapshot() 这里实际上是一个函数指针，在创建RaftNode时传入
+ | |-kvstore.getSnapshot() 调用KVStore中的相应函数，实际会保存所有内存中的数据
+ |   |-json.Marshal()
+ |-MemoryStorage.CreateSnapshot() raft/storage.go 创建snapshot
+ | |- 第一个入参一般是AppliedIndex，此时会根据Index判断是否需要执行SnapShot
+ |-saveSnap() 保存
+ | |-WAL.SaveSnapshot() 先保存一条WAL日志数据
+ | | |-WAL.sync()
+ | |-Snapshotter.SaveSnap() snap/snapshotter.go
+ | | |-raft.IsEmptySnap() 判断是否为空的snap
+ | | |-Snapshotter.save()
+ | |   |-crc32.Update() 计算CRC32校验值
+ | |   |-WriteAndSyncFile() 然后写入到文件中
+ | |-wal.ReleaseLockTo() 这里会释放不需要的文件锁
+ |-MemoryStorage.Compact() 用来压缩日志，实际上就是删除内存中不需要的缓存日志
+
+CreateSnapshot() 主要用来判断此时的日志序号是否合法(大于上次SnapShot且小于最新)，然后更新 `snapshot` 中的 `Metadata` 以及 `Data` 。
+
+
+注意，在调用 Snapshotter.Load()[snap/snapshotter.go] 时，实际上循环遍历所有的 snap 文件，并进行校验，而真正返回的是最后一个文件。
+
+* 开发环境
+* 应用场景
+* V3接口使用
+* RAFT协议介绍
+* 安全性(用户密码、通讯协议)
+* 网络通讯
+* 存储引擎
+* RAFT核心(数据CURD)
+* RAFT核心(配置修改)
+* 运维、监控
+* 杂七杂八
+
+### 健康检查
+
+在启动时会通过参数 `--initial-cluster` 指定当前整个集群的内部通讯接口，默认会启动一堆的 REST API 用于通讯，常见的有：
+
+
+----- 在启动之后会启动一个协程用来探测服务是否正常
+curl http://127.0.0.1:22379/raft/probing
+
+在提交完之后，
+
+linearizableReadLoop
+
+## 杂七杂八
+
+### 启动停止
+
+### goAttach()
+EtcdServer.Start() etcdserver/server.go
+ |-linearizableReadLoop()
+
+以在集群中添加主机为例，需要执行如下操作。
+
+$ curl -L http://127.0.0.1:12380/4 -XPOST -d http://127.0.0.1:42379
+$ raftexample --id 4 --port 42380 --join \
+			--cluster http://127.0.0.1:12379,http://127.0.0.1:22379,http://127.0.0.1:32379,http://127.0.0.1:42379
+
+在 `ServeHTTP()[httpapi.go]` 中会执行配置修改的操作，简单构建配置请求，并发送给 `confChangeC` 管道。
+
+然后在 `serveChannels()[raft.go]` 中处理管道对应的请求。
+
+serveChannels()
+ |-ProposeConfChange() raft/node.go
+
+一台主机宕机之后，会调用 deactivate() rafthttp/peer_status.go 函数。
+## 宕机
+
+health check for peer
+
+AddPeer()
+addPeerToProber()
+monitorProbingStatus()
+
+rafthttp/probing_status.go
+
 -->
 
 ## 其它
 
 ### BugFix
 
+如果直接运行示例会发现日志的格式有所区别。
+
 实际上，在 `etcdserver/raft.go` 文件中，有定义 `init()` 函数用于设置默认的 logger，也就是 `raft.SetLogger()` 的处理。
+
+在 `raftexample/raft.go` 中增加 `init()` 函数，然后添加如下内容即可。
+
+{% highlight go %}
+func init() {
+	raft.SetLogger(capnslog.NewPackageLogger("github.com/coreos/etcd", "raft"))
+}
+{% endhighlight %}
 
 ## 参考
 
