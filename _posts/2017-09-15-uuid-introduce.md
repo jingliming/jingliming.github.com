@@ -44,6 +44,12 @@ UUID 本身也经过了多个版本的演化，每个版本的算法都不同，
 xxxxxxxx-xxxx-Mxxx-Nxxx-xxxxxxxxxxxx
     M: 表示版本号，只会是1 2 3 4 5
     N: 只会8 9 a b
+
+Version 1, based on timestamp and MAC address (RFC 4122)
+Version 2, based on timestamp, MAC address and POSIX UID/GID (DCE 1.1)
+Version 3, based on MD5 hashing (RFC 4122)
+Version 4, based on random numbers (RFC 4122)
+Version 5, based on SHA-1 hashing (RFC 4122)
 {% endhighlight %}
 
 如下，简单介绍各个版本的实现方法。

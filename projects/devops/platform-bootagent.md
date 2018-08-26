@@ -29,6 +29,10 @@ description:
 
 如果任务执行失败，只能等待下次 BootAgent 上报数据时处理。
 
+### 其它
+
+BootAgent 在启动时通过判断是否存在 `MetaFile` 来决定是否为第一次启动。
+
 ## REST-API 接口
 
 ### 启动注册接口
@@ -43,32 +47,38 @@ description:
 ----- 返回信息
 {
 	"status": 0,
-	"agentsn": "dcb886e9-04ed-41bb-9c12-4d2de12cd59b",  # 如果上层判断有冲突，则执行AgentSN
-	"tags": "service=ecs,component"
+	"agentsn": "dcb886e9-04ed-41bb-9c12-4d2de12cd59b",  # 如果上层判断有冲突，则返回合法的AgentSN
+	"tags": ["svc=ecs", "cmpt=DB"],
+	"server": "service=ecs,component"
 }
 {% endhighlight %}
+
+当第一次启动时会向服务端注册，此时服务端可以根据配置返回一些配置信息，Agent 会尝试持久化到配置文件中。
+
+如果 Agent 因为某些原因失败，会尝试下次重试，此时上报的 AgentSN 可能会被修改，因此，只有当上报收到状态信息之后，才会被认为是合法的。
 
 ### 状态上报接口
 
 {% highlight text %}
 ----- POST /agent/status 上报当前Agent状态
 {
-	"hostname": "127.0.0.1",                 # 主机名
-	"version": "bootagent-1.2.4-x86_64",     # BootAgent的版本号
-	"uptime": 1234,                          # 进程已经启动时间，单位秒
-	"timestamp": 1232,                       # 上报时的时间戳
-	"step": 600,                             # 上报的时间间隔，可以做修改，默认10min
-	"agents": [{                             # 当前主机Agent信息
-		"name": "BasicAgent",            # Agent名称，需要保证唯一
-		"version": "1.2.3",              # Agent当前版本号
-		"status": "stoped",              # Agent的状态
-		"uptime": 123,                   # 已经运行时间
+	"hostname": "127.0.0.1",                            # 主机名
+	"agentsn": "33c5b8b4-5a2c-43c5-ab90-96721451b4ec",  # AgentSN
+	"version": "bootagent-1.2.4-x86_64",                # BootAgent的版本号
+	"uptime": 1234,                                     # 进程已经启动时间，单位秒
+	"timestamp": 1232,                                  # 上报时的时间戳
+	"step": 600,                                        # 上报的时间间隔，可以做修改，默认10min
+	"agents": [{                                        # 当前主机Agent信息
+		"name": "BasicAgent",                       # Agent名称，需要保证唯一
+		"version": "1.2.3",                         # Agent当前版本号
+		"status": "stoped",                         # Agent的状态
+		"uptime": 123,                              # 已经运行时间
 	}]
 }
 
 ----- 返回信息，可以包含请求
 {
-	"errcode": 2,                            # 返回状态，0表示正常，目前直接忽略返回值
+	"status": 2,                                           # 返回状态，0表示正常，目前直接忽略返回值
 	"jobs": [{
 		"id": "ddc8a9b9-55bd-4ddd-b53d-47095ee19466",  # 任务ID信息，由服务端指定，客户端上报执行结果时会带上
 		"action": "install",                           # 指定任务操作，也开始是"upgrade" "uninstall" "restart" "stop"等
@@ -116,6 +126,13 @@ description:
 }
 {% endhighlight %}
 
+
+## 编译
+
+{% highlight text %}
+$ cmake .. -DCMAKE_BUILD_TYPE=Debug -DBOOT_SERVER_ADDR="booter.cargo.com:8080,192.168.9.1:9090"
+{% endhighlight %}
+
 ## TODO
 
 {% highlight text %}
@@ -126,10 +143,27 @@ description:
 
 ## FAQ
 
+#### 服务器地址
+
+总共有三种方式指定服务器的地址。
+
+1. 编译时通过 `-DBOOT_SERVER_ADDR` 参数指定，该地址会编译到可执行文件中，一致存在。
+2. 首次启动时通过 `-S` 指定，该参数会持久化到 `metafile` 中，非首次启动会直接使用 `metafile` 中的配置。
+3. 可以通过服务端进行配置，最终同样会持久化到 `metafile` 中。
+
+所以，在实践时，应该尽量保证 `<1>` 中的服务器可用，可以是 HAProxy、LVS 之类的负载均衡地址，如果要替换只能通过升级完成。
+
+**注意**，如果有重复的地址，是不会去重的。
+
 #### Agent 重启策略
 
 每隔 60s 检查一次，如果进程异常退出在 3min 内不会重启，如果在 15min 内异常则标记一次异常事件，当连续异常超过 3 次后则认为程序异常，不再尝试重启。
 
+#### 临时目录
+
+为了保证配置文件的完整性，会先将文件写入到临时目录下的临时文件，然后通过 rename 操作保证原子性。
+
+在编译时，需要保证配置文件的目录与临时目录在同一个挂载点，否则会报 `Invalid cross-device link` 的错误。
 
 <!--
 1. 进程管理

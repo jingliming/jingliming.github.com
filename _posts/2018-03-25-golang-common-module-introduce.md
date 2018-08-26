@@ -277,6 +277,90 @@ func main() {
 }
 {% endhighlight %}
 
+## signal
+
+关于信号处理主要在 `os/signal` 中实现，其中包含了两个主要的方法：
+
+* Notify() 监听收到的信号
+* Stop() 取消监听
+
+{% highlight go %}
+func Notify(c chan<- os.Signal, sig …os.Signal)
+{% endhighlight %}
+
+简单使用用例。
+
+{% highlight go %}
+package main
+
+import (
+        "fmt"
+        "os"
+        "os/signal"
+        "syscall"
+)
+
+func main() {
+        c := make(chan os.Signal)
+        //signal.Notify(c) // default all signal
+        signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGUSR1)
+        fmt.Println("Waiting signal")
+
+        s := <-c
+        fmt.Println("Quit with", s)
+}
+{% endhighlight %}
+
+最经常使用的用例如下，可以通过捕获信号来做一些清理操作。
+
+{% highlight go %}
+package main
+
+import (
+        "fmt"
+        "os"
+        "os/signal"
+        "syscall"
+        "time"
+)
+
+func main() {
+        c := make(chan os.Signal, 128)
+        signal.Notify(c, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2)
+
+        go func() {
+                for s := range c {
+                        switch s {
+                        case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
+                                fmt.Println("Quit with signal", s)
+                                os.Exit(0)
+                        case syscall.SIGUSR1:
+                                fmt.Println("USR1", s)
+                        case syscall.SIGUSR2:
+                                fmt.Println("USR2", s)
+                        default:
+                                fmt.Println("Other", s)
+                        }
+                }
+        }()
+
+        fmt.Println("Starting ...")
+        for {
+                fmt.Println("Waiting ...")
+                time.Sleep(time.Second)
+        }
+}
+{% endhighlight %}
+
+
+<!--
+http://shanks.leanote.com/post/golang%E4%BF%A1%E5%8F%B7%E5%A4%84%E7%90%86
+https://github.com/polaris1119/The-Golang-Standard-Library-by-Example/blob/master/chapter16/16.03.md
+-->
+
+
+
+
 ## 并发控制
 
 控制并发有两种经典的方式：`WaitGroup` 和 `Context` 。

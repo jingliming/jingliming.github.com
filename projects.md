@@ -31,7 +31,11 @@ DevOps 的三大原则：
 
 * [基础平台简介](/projects/devops/introduce.html)，对整体基础平台的介绍。
 
-### Agents
+### 实现
+
+* [通用规范](/projects/devops/platform-common.html)，设置一些通用的规范，包括错误码、命名规则等。
+
+#### Agents
 
 按照功能划分为如下几类 Agent，通过 BootAgent 管理 基本、监控、日志、安全、网络等客户端。
 
