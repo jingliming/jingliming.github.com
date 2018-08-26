@@ -178,6 +178,9 @@ $ cmake .. -DCMAKE_BUILD_TYPE=Debug -DBOOT_SERVER_ADDR="booter.cargo.com:8080,19
 
 ps -eo ppid,pid,user,group,euser,egroup,cmd | grep gearman
 usermod -a -G root monitor 将monitor用户添加到root组中
+
+https://github.com/Jin-Yang/cgfy
+https://github.com/chr15p/cgshares
 -->
 
 

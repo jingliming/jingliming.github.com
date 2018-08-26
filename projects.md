@@ -33,20 +33,26 @@ DevOps 的三大原则：
 
 ### 实现
 
-* [通用规范](/projects/devops/platform-common.html)，设置一些通用的规范，包括错误码、命名规则等。
+
+* [通用规范](/projects/devops/platform-common.html) 设置一些通用的规范，包括错误码、命名规则等。
+* [基础服务](/projects/devops/platform-common-service.html) 一些通用服务的搭建。
 
 #### Agents
 
 按照功能划分为如下几类 Agent，通过 BootAgent 管理 基本、监控、日志、安全、网络等客户端。
 
-* BootAgent 装机时安装，负责安装、升级、监控、重启下述的Agent，通过短链接主动上报如下Agent状态信息
-* BasicAgent 基本命令执行(同步、异步、查询)，安装部署
 * LogAgent 按照固定格式采集日志数据
-* MonitorAgent 采集监控数据
 * SecureAgent 安全相关
 
 如下是实现的细节。
 
-* [BootAgent 实现细节](/projects/devops/platform-bootagent.html)。
-* [搭建基础平台](/projects/devops/platform.html)，实现的具体细节。
+* [BootAgent](/projects/devops/platform-agent-bootagent.html) 装机时安装，负责安装、升级、监控、重启其它 Agent 。
+* [BasicAgent](/projects/devops/platform-agent-basicagent.html) 基本命令执行(同步、异步、查询)，安装部署。
+* [MonitorAgent](/projects/devops/platform-agent-monitoragent.html) 采集监控数据，包括系统类指标、中间组件指标等。
+
+#### Servers
+
+根据不同的功能进行划分。
+
+* [Aspire](/projects/devops/platform-server-aspire.html) BootAgent 的服务端，用于 Agent 的安装部署、升级、状态统计等。
 
