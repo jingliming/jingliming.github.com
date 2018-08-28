@@ -90,6 +90,29 @@ func main() {
 }
 -->
 
+### 其它
+
+{% highlight go %}
+package main
+
+import (
+        "fmt"
+        "time"
+)
+
+func main() {
+        time.AfterFunc(
+                1*time.Second,
+                func() {
+                        fmt.Printf("Expire: %v.\n", time.Now())
+                })
+        time.Sleep(2 * time.Second)
+}
+{% endhighlight %}
+
+可以将定时器字段 C 的大小输出，可以发现并没有缓冲任何值。也就是说，在给定了自定义函数后，默认的处理方法 (向C发送代表绝对到期时间的元素值) 就不会被执行了。
+
+
 ## fmt
 
 其中最常用的是 `%v`，这是一个通用的格式化方式，用来打印 struct 的成员变量名称。
@@ -326,7 +349,8 @@ import (
 
 func main() {
         c := make(chan os.Signal, 128)
-        signal.Notify(c, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2)
+        signal.Notify(c, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM,
+				syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2)
 
         go func() {
                 for s := range c {
@@ -492,8 +516,419 @@ func watch(ctx context.Context, name string) {
 }
 {% endhighlight %}
 
+## exec
+
+exec 用来执行命令，实际上是将 `os.StartProcess()` 进行包装使得它更容易映射到 `stdin` 和 `stdout` 。
+
+其源码在 `os/exec/` 中实现，其中核心的结构体为 `type Cmd struct` ，另外很多的示例可以参考源码目录下的 `example_test.go` 文件。
+
+{% highlight go %}
+type Cmd struct {
+	Path         string　　    　// 运行命令的路径，可以是绝对路径或者相对路径
+	Args         []string　　    // 命令参数
+	Env          []string        // 环境变量，为 nil 时使用当前进程的环境变量
+	Dir          string　　    　// 指定命令运行时的工作目录
+	Stdin        io.Reader　　   // 标准输入，nil 则从os.DevNull读取
+	Stdout       io.Writer       // 标准输出
+	Stderr       io.Writer　　   // 标准错误输出，nil 重定向到os.DevNull设备中
+
+	ExtraFiles   []*os.File 　　
+	SysProcAttr  *syscall.SysProcAttr
+	Process      *os.Process         // 对应os.Process中的实现
+	ProcessState *os.ProcessState　　// 一个进程退出时的信息，当调用Wait()或者Run()时会生成该对象
+}
+{% endhighlight %}
+
+常用接口。
+
+{% highlight go %}
+// 在环境变量中查找可执行的二进制文件，可以在绝对路径、相对路径下查找
+func LookPath(file string) (string, error)
+
+// 仅设置Cmd结构中的Path和Args参数，如果不含路径分隔符则会尝试通过LookPath查找
+func Command(name string, arg ...string) *Cmd
+func CommandContext(ctx context.Context, name string, arg ...string) *Cmd
+{% endhighlight %}
 
 
+{% highlight go %}
+package main
+
+import (
+        "bytes"
+        "log"
+        "os/exec"
+        "strings"
+)
+
+func main() {
+        cmd := exec.Command("tr", "a-z", "A-Z")
+        cmd.Stdin = strings.NewReader("some input")
+
+        var out bytes.Buffer
+        cmd.Stdout = &out
+
+        err := cmd.Run()
+        if err != nil {
+                log.Fatal(err)
+        }
+        log.Printf("Got ===> %q\n", out.String())
+}
+{% endhighlight %}
+
+{% highlight go %}
+// 运行命令并同时返回标准输出和标准错误
+func (c *Cmd) Output() ([]byte, error)
+func (c *Cmd) CombinedOutput() ([]byte, error)
+{% endhighlight %}
+
+如果执行命令出错会同时设置 `error` 错误。
+
+{% highlight go %}
+package main
+
+import (
+        "log"
+        "os/exec"
+)
+
+func main() {
+        cmd := exec.Command("ls", "-alh", "/")
+        out, err := cmd.CombinedOutput()
+        if err != nil {
+                log.Fatal(err)
+        }
+        log.Printf("Got ===>%s", string(out))
+}
+{% endhighlight %}
+
+{% highlight go %}
+// 开始执行命令，如果需要，应该使用Wait()等待命令执行完毕
+func (c *Cmd) Start() error
+// 执行指定的命令并且等待执行结束，实际上是Start()+Wait()的组合
+func (c *Cmd) Run() error
+{% endhighlight %}
+
+{% highlight go %}
+package main
+
+import (
+        "fmt"
+        "os"
+        "os/exec"
+)
+
+func main() {
+        cmd := exec.Command("ls")
+        cmd.Stdout = os.Stdout
+        cmd.Run()
+        fmt.Println(cmd.Start()) //exec: already started
+}
+{% endhighlight %}
+
+注意，一个 Command 只能使用 `Start()` 或者 `Run()` 中的一个启动命令，不能两个同时使用。
+
+{% highlight go %}
+// 等待命令退出，必须和Start一起使用
+func (c *Cmd) Wait() error
+{% endhighlight %}
+
+
+
+{% highlight go %}
+// 将标准输入、输出等重定向，返回一个Pipe，在命令退出时会关闭这些Pipe
+func (c *Cmd) StderrPipe() (io.ReadCloser, error)
+func (c *Cmd) StdoutPipe() (io.ReadCloser, error)
+func (c *Cmd) StdinPipe() (io.WriteCloser, error)
+{% endhighlight %}
+
+{% highlight go %}
+package main
+
+import (
+        "fmt"
+        "os"
+        "os/exec"
+)
+
+func main() {
+        cmd := exec.Command("cat")
+
+        stdin, err := cmd.StdinPipe()
+        if err != nil {
+                fmt.Println(err)
+        }
+        _, err = stdin.Write([]byte("Hi World!!!\n"))
+        if err != nil {
+                fmt.Println(err)
+        }
+        stdin.Close()
+
+        cmd.Stdout = os.Stdout
+        cmd.Start()
+}
+
+
+package main
+
+import (
+        "fmt"
+        "io/ioutil"
+        "os/exec"
+)
+
+func main() {
+        cmd := exec.Command("ls", "-alh")
+        stdout, err := cmd.StdoutPipe()
+        cmd.Start()
+        content, err := ioutil.ReadAll(stdout)
+        if err != nil {
+                fmt.Println(err)
+        }
+        fmt.Println(string(content))
+}
+{% endhighlight %}
+
+<!---
+https://colobu.com/2017/06/19/advanced-command-execution-in-Go-with-os-exec/
+https://blog.kowalczyk.info/article/wOYk/advanced-command-execution-in-go-with-osexec.html
+-->
+
+os 包有一个 `StartProcess()` 可以用来调用或启动外部系统命令和二进制可执行文件，三个入参分别为：A) 运行的进程；B) 传递选项或参数；C) 系统环境基本信息的结构体。
+
+<!--
+StartProcess()  os/exec.go
+ |-startProcess()
+
+http://blog.51cto.com/allragedbody/1747146
+-->
+
+{% highlight go %}
+package main
+
+import (
+        "fmt"
+        "os"
+)
+
+func main() {
+
+        proc, err := os.StartProcess(
+                "/bin/ls",
+                []string{"ls", "-l"},
+                &os.ProcAttr{
+                        Env: os.Environ(),
+                        Files: []*os.File{
+                                os.Stdin,
+                                os.Stdout,
+                                os.Stderr,
+                        },
+                })
+        if err != nil {
+                fmt.Printf("Error %v starting process!", err)
+                os.Exit(1)
+        }
+        fmt.Printf("The process id is %v\n", proc)
+
+        _, err = proc.Wait()
+        if err != nil {
+                fmt.Printf("Error %v wait process!", err)
+                os.Exit(1)
+        }
+
+}
+{% endhighlight %}
+
+### 进程管理
+
+{% highlight go %}
+package main
+
+import (
+        "errors"
+        "fmt"
+        "os"
+        "os/exec"
+        "sync"
+        "syscall"
+        "time"
+)
+
+type procInfo struct {
+        cmdset  []string
+        cmd     *exec.Cmd
+        mu      sync.Mutex
+        waitErr error
+        cond    *sync.Cond
+}
+
+var procs map[string]*procInfo
+var wg sync.WaitGroup
+
+func init() {
+        procs = make(map[string]*procInfo)
+
+        procs["FOOBAR"] = &procInfo{
+                cmdset: []string{"/bin/sh", "-c", "sleep 1000"},
+        }
+
+        for k, v := range procs {
+                procs[k].cond = sync.NewCond(&v.mu)
+        }
+}
+
+// spawn command that specified as proc.
+func spawnProc(proc string) error {
+        p := procs[proc]
+
+        cmd := exec.Command(p.cmdset[0], p.cmdset[1:]...)
+        cmd.Stdin = nil
+        cmd.Stdout = nil // TODO: some log
+        cmd.Stderr = nil
+        cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+        cmd.Env = os.Environ()
+        //cmd.Env = append(os.Environ(), fmt.Sprintf("PORT=%d", 1234))
+
+        fmt.Printf("Starting %s\n", proc)
+
+        err := cmd.Start()
+        if err != nil {
+                fmt.Printf("Failed to start %s: %s\n", proc, err)
+                return err
+        }
+        p.cmd = cmd
+        p.mu.Unlock()
+
+        err = cmd.Wait()
+
+        p.mu.Lock()
+        p.cond.Broadcast()
+        p.waitErr = err
+        p.cmd = nil
+        fmt.Printf("Terminating %s\n", proc)
+        return nil
+}
+
+func terminateProc(proc string, signal os.Signal) error {
+        p := procs[proc].cmd.Process
+        if p == nil {
+                return nil
+        }
+
+        pgid, err := syscall.Getpgid(p.Pid)
+        if err != nil {
+                return err
+        }
+
+        // use pgid, ref: http://unix.stackexchange.com/questions/14815/process-descendants
+        pid := p.Pid
+        if pgid == p.Pid {
+                pid = -1 * pid
+        }
+
+        target, err := os.FindProcess(pid)
+        if err != nil {
+                return err
+        }
+        return target.Signal(signal)
+}
+
+func startProc(proc string) error {
+        p, ok := procs[proc]
+        if !ok || p == nil {
+                return errors.New("unknown proc: " + proc)
+        }
+
+        p.mu.Lock()
+        if procs[proc].cmd != nil { /* already running */
+                p.mu.Unlock()
+                return nil
+        }
+
+        wg.Add(1)
+        go func() {
+                spawnProc(proc)
+                wg.Done()
+                p.mu.Unlock()
+        }()
+        return nil
+}
+
+func stopProc(proc string, signal os.Signal) error {
+        if signal == nil {
+                signal = syscall.SIGTERM
+        }
+        p, ok := procs[proc]
+        if !ok || p == nil {
+                return errors.New("unknown proc: " + proc)
+        }
+
+        p.mu.Lock()
+        defer p.mu.Unlock()
+
+        if p.cmd == nil { /* not start yet */
+                return nil
+        }
+
+        err := terminateProc(proc, signal)
+        if err != nil {
+                return err
+        }
+
+        timeout := time.AfterFunc(10*time.Second, func() {
+                p.mu.Lock()
+                defer p.mu.Unlock()
+                if p, ok := procs[proc]; ok && p.cmd != nil {
+                        err = p.cmd.Process.Kill()
+                }
+        })
+        p.cond.Wait()
+        timeout.Stop()
+
+        return err
+}
+
+func main() {
+        startProc("FOOBAR")
+
+        stopProc("FOOBAR", nil)
+
+        wg.Wait()
+        fmt.Println("OK, All Done")
+}
+{% endhighlight %}
+
+如上实际上是通过单个协程处理一个进程，也可以通过信号量来处理。
+
+{% highlight go %}
+signalC := make(chan os.Signal, 128)
+signal.Notify(signalC, syscall.SIGCHLD)
+defer signal.Stop(signalC)
+
+go func() {
+	for s := range signalC {
+		switch s {
+		case syscall.SIGCHLD:
+			for {
+				var wstatus syscall.WaitStatus
+
+				pid, err := syscall.Wait4(-1, &wstatus, syscall.WNOHANG, nil)
+				if syscall.EINTR == err {
+					continue
+				} else if syscall.ECHILD == err {
+					break
+				}
+
+				fmt.Printf("Reaper cleanup: pid=%d, wstatus=%+v\n",
+					pid, wstatus)
+			}
+
+		default:
+			fmt.Println("Other", s)
+		}
+	}
+}()
+{% endhighlight %}
 
 
 <!--
@@ -504,6 +939,8 @@ func watch(ctx context.Context, name string) {
 也可以参考
 https://www.cnblogs.com/276815076/p/8416652.html
 
+Golang 公共变量包——expvar
+https://www.jianshu.com/p/330512971c86
 -->
 
 

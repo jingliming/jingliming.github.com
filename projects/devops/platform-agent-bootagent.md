@@ -181,6 +181,12 @@ usermod -a -G root monitor 将monitor用户添加到root组中
 
 https://github.com/Jin-Yang/cgfy
 https://github.com/chr15p/cgshares
+
+
+
+
+Reap zombie processes using a SIGCHLD handler
+http://www.microhowto.info/howto/reap_zombie_processes_using_a_sigchld_handler.html
 -->
 
 

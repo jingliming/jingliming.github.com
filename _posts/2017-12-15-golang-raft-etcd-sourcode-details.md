@@ -969,192 +969,6 @@ https://www.compose.com/articles/utilizing-etcd3-with-go/
 
 
 
-## Storage
-
-应用程序需要实现存储 IO 和网络通讯，其中存储在 RAFT 中通过 type Storage interface 定义，包括了读取 log、执行 Snapshot 等接口，其本身实现了一个基于内存的 MemoryStorage 。
-
-对应的实现在 raft/storage.go 文件中，对于 ETCD 是将 MemoryStorage 作为 Cache ，每次事务中会先将日志持久化到存储设备上，然后再更新 MemoryStorage 。
-
-type Storage interface {
-    // 初始化时会返回持久化之后的HardState和ConfState
-    InitialState() (pb.HardState, pb.ConfState, error)
-	// 返回范围[lo,hi)内的日志数据
-    Entries(lo, hi, maxSize uint64) ([]pb.Entry, error)
-	// 获取entry i的term值
-    Term(i uint64) (uint64, error)
-	// 日志中最新一条日志的序号
-    LastIndex() (uint64, error)
-	// 日志中的第一条日志序号，老的日志已经保存到snapshot中
-    FirstIndex() (uint64, error)
-    Snapshot() (pb.Snapshot, error)
-}
-
-type MemoryStorage struct {
-   sync.Mutex
-   hardState pb.HardState
-   snapshot  pb.Snapshot
-   ents []pb.Entry
-}
-
-
-Storage和MemoryStorage是接口和实现的关系
-
-与unstable一样，Storage也被嵌入在raftLog结构中。需要说明的一点是：将日志项追加到Storage的动作是由应用完成的，而不是raft协议核心处理层。目前尚不理解Storage存在的意义是什么，与unstable到底有什么区别？
-
-### ETCD 实现
-
-实际上是在 etcdserver/storage.go 中实现，接口定义名称与上述相同，也是 `type Storage interface`，注意不要将两者混淆。
-
-type Storage interface {
-	Save(st raftpb.HardState, ents []raftpb.Entry) error
-	SaveSnap(snap raftpb.Snapshot) error
-	Close() error
-}
-type storage struct {
-	*wal.WAL
-	*snap.Snapshotter
-}
-
-在上述定义的 `type storage struct` 结构体中，根据 Go 语言的特性，因为没有声明成员变量的名字，可以直接使用 WAL 和 Snapshotter 定义的方法，也就是该结构体是对后两者的封装。
-
-这里的 storage 和 MemoryStorage 的结合使用就是在 etcdserver/raft.go 实现，对应了 `type raftNode struct` 结构体，其中包含的是 `type raftNodeConfig struct` ，也就是真正的封装。
-
-type raftNodeConfig struct {
-    isIDRemoved func(id uint64) bool
-    raft.Node
-    raftStorage *raft.MemoryStorage
-    storage     Storage
-    heartbeat   time.Duration // for logging
-    transport rafthttp.Transporter
-}
-
-如上，raftStorage就是提供给Raft library的，而storage则是etcd实现的持久化存贮。在使用中，etcd以连续调用的方式实现二者一致的逻辑。以etcd server重启为例，我们看看同步是如何实现的，且看restartNode()的实现。
-
-NewServer()
- |-store.New() store/store.go 根据入参创建一个初始化的目录
- | |-newStore() 创建数据存储的目录
- |-snap.New() snap/snapshotter.go 这里只是初始化一个对象，并未做实际操作
- |-openBackend() etcdserver/backend.go
- | |-newBackend() 在新的协程中打开，同时会设置10秒的超时时间
- |
- | <<<haveWAL>>> 存在WAL日志，也就是非第一次部署
- |-Snapshotter.Load() snap/snapshotter.go 开始加载snapshot
- | |-Snapshotter.snapNames() 会遍历snap目录下的文件，并逆序排列返回
- | |-loadSnap() 依次加载上述返回的snap文件
- |   |-Read() 读取文件，如果报错那么会添加一个.broken的后缀
- |     |-ioutil.ReadFile() 调用系统接口读取文件
- |     |-snappb.Unmarshal() 反序列化
- |     |-crc32.Update() 更新并校验CRC的值
- |     |-raftpb.Unmarshal() 再次反序列化获取值
- |-store.Recovery() store/store.go 从磁盘中恢复数据
- | |-json.Unmarshal() snap中保存的应该是json体
- | |-newTtlKeyHeap() 一个TTL的最小栈，用来查看将要过期的数据
- | |-recoverAndclean() ???没有理清楚具体删除的是什么过期数据
- |-recoverSnapshotBackend() etcdserver/backend.go 开始恢复snapshot
- | |-openSnapshotBackend() 这里会将最新的一次的snapshot重命名为DB
- |   |-openBackend()
- |
- |-restartNode() etcdserver/raft.go
- | |-readWAL()
- | |-raft.NewMemoryStorage()
- | |-ApplySnapshot()
- | |-SetHardState()
- | |-Append()
- | |-RestartNode()
- |-SetStore()
- |-SetBackend()
- |-Recover()
-
-
-
-这个函数的主要处理逻辑就是通过读取 Snapshot 和 WAL，然后通过 SetHardState() 和 Append() 恢复当前 memoryStrorage 的状态。
-
-
-## SnapShot
-
-涉及到几个重要的问题：
-
-1. 何时触发。
-2. 效率如何。
-
-保存的是某个时间节点系统当前状态的一个快照，便用户恢复到此时的状态，ECTD 中 snapshot 的目的是为了回收日志占用的存储空间，包括内存和磁盘。
-
-更新首先被转化为更新日志，按照顺序追加到日志文件，并在集群中进行同步，只有在写入多个节点的日志项会应用到状态机，日志会一直增长，因此需要特定的机制来回收那些无用的日志。
-
-ETCD 中的 snapshot 代表了应用的状态数据，而执行 snapshot 的动作也就是将应用状态数据持久化存储，这样，在该 snapshot 之前的所有日志便成为无效数据，可以删除。
-
-### 结构体
-
-SnapShot 的结构体在 raft/raftpb/raft.proto 中定义，`message Snapshot` 定义了序列化后的格式，其中包括了日志条目的序号等信息。
-
-### 持久化
-
-
-EtcdServer.snapshot() etcdserver/server.go 真正处理
- |-store.Clone() store/store.go
- | |-newStore() 会新建一个对象，并复制所需要的成员
- | |-KV().Commit()
- |
- |-storage.SaveSnap()
- | |-walpb.Snapshot{} 实例化对象，这里会设置Index和Term
- | |-WAL.SaveSnapshot()
- | |-Snapshotter.SaveSnap() snap/snapshotter.go
- | | |-Snapshotter.save() 将数据序列化后保存到磁盘上
- | |   |-pioutil.WriteAndSyncFile() 格式化并保存
- | |-WAL.ReleaseLockTo()
-
-raftStorage.CreateSnapshot()
-
-
-
-
-BoltDB的COW技术
-http://www.d-kai.me/boltdb%E4%B9%8Bcow%E6%8A%80%E6%9C%AF/
-
-ETCD 监控
-https://coreos.com/etcd/docs/latest/op-guide/monitoring.html
-
-
-
-
-
-这里没有理清楚，为什么第一发送数据需要写入到 WAL 以及存储中？？？？？？
-
-
-也就是说在 Readyc 中包含了需要发送的数据、已经提交的数据、需要应用的数据，那么如何区分呢？？？？？
-
-
-经过该步之后，日志条目才写入到wal文件和memorty storage。消息也才经Transport发送给其他节点。
-
-
-消息处理。。。。
-
-
-
-
-http://blog.sina.com.cn/s/blog_4b146a9c0102yml3.html
-https://blog.csdn.net/xxb249/article/details/80787501
-http://www.ituring.com.cn/book/tupubarticle/16510
-
-https://my.oschina.net/fileoptions/blog/1825531
-https://blog.csdn.net/xxb249/article/details/80790587
-http://www.opscoder.info/ectd-raft-library.html
-https://yuerblog.cc/2017/12/10/principle-about-etcd-v3/
-
-
-## SnapShot
-
-
-snapshot是wal快照，为了节约磁盘空间，当wal文件达到一定数据，就会对之前的数据进行压缩，形成快照。
-2）snapshot另外一个原因，当新的节点加入到集群中，为了同步数据，就会把snapshot发送到新节点，这样能够节约传输数据(生成的快照文件比wal文件要小很多，5倍左右)，使之尽快加入到集群中。
-
-
-## Storage
-
-也就是静态存储，用来将数据持久化到磁盘上，是对 WAL 和 Snapshot 的封装。
-
-## MemoryStorage
-
 ## Etcd VS. BoltDB
 
 
@@ -1245,6 +1059,8 @@ EtcdServer.run() etcdserver/server.go
 
 
 客户端发起的状态更新请求首先都会被记录在日志中，待主节点将更新日志在集群多数节点之间完成同步以后，便将该日志项内容在状态机中进行应用，进而便完成了一次客户的更新请求。
+
+
 
 ETCD-RAFT 核心库实际上没有实现日志的追加逻辑，WAL 需要应用来实现，重点讨论：
 
@@ -1365,6 +1181,10 @@ streamReader.run() rafthttp/stream.go
    |-streamReader.recvc 否则发送到该管道中
 
 注意，上述的两个管道实际处理流程是相同的，为了防止由于无 Leader 导致处理协程阻塞，所以单独起一个协程处理 MsgPro 类型的消息。
+
+
+
+
 
 最终调用的是 `type Raft interface` 中实现的接口，实际上就是 `etcdserver/server.go` 或者示例 `contrib/raftexample/raft.go` 中的接口实现。
 
