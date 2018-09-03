@@ -339,8 +339,11 @@ func main() {
         if err != nil {
                 panic(err)
         }
+        fmt.Printf("%d bytes per package\n", len(data))
 
-        conn.Write(data)
+        for i := 0; i < 100; i++ {
+                conn.Write(data)
+        }
 }
 {% endhighlight %}
 
@@ -375,6 +378,8 @@ func main() {
 
 func readMessage(conn net.Conn) {
         defer conn.Close()
+
+        count := 0
         buf := make([]byte, 4096, 4096)
         for {
                 cnt, err := conn.Read(buf)
@@ -385,22 +390,32 @@ func readMessage(conn net.Conn) {
                         panic(err)
                 }
 
-                Response := &pb.UserInfo{}
+                offset := 0
+                for {
+                        Response := &pb.UserInfo{}
 
-                err = proto.Unmarshal(buf[:cnt], Response)
-                if err != nil {
-                        panic(err)
-                }
-                fmt.Println("Got data from", conn.RemoteAddr(), Response)
+                        err = proto.Unmarshal(buf[offset:cnt], Response)
+                        if err != nil {
+                                panic(err)
+                        }
+                        bytes := proto.Size(Response)
+                        if bytes == 0 {
+                                break
+                        }
+                        count++
 
-                switch x := Response.Method.(type) {
-                case *pb.UserInfo_Addr:
-                        fmt.Printf("Addr %+v\n", x.Addr)
-                case *pb.UserInfo_Cont:
-                        fmt.Println("Cont")
-                case nil:
-                default:
-                        panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+                        fmt.Printf("[%03d] Got data(%d) from %s, data(%d) %v\n", count, cnt, conn.RemoteAddr(), bytes, Response)
+
+                        switch x := Response.Method.(type) {
+                        case *pb.UserInfo_Addr:
+                                fmt.Printf("Addr %+v\n", x.Addr)
+                        case *pb.UserInfo_Cont:
+                                fmt.Println("Cont")
+                        case nil:
+                        default:
+                                panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+                        }
+                        offset += bytes
                 }
         }
 }
