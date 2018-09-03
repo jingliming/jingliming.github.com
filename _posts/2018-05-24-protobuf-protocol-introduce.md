@@ -404,7 +404,8 @@ func readMessage(conn net.Conn) {
                         }
                         count++
 
-                        fmt.Printf("[%03d] Got data(%d) from %s, data(%d) %v\n", count, cnt, conn.RemoteAddr(), bytes, Response)
+                        fmt.Printf("[%03d] Got data(%d) from %s, data(%d) %v\n",
+					count, cnt, conn.RemoteAddr(), bytes, Response)
 
                         switch x := Response.Method.(type) {
                         case *pb.UserInfo_Addr:
