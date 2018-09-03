@@ -3,7 +3,7 @@ title: Golang 语法简介
 layout: post
 comments: true
 language: chinese
-category: [program,golang]
+category: [program,golang,linux]
 keywords: golang,syntax,import,exception,reflection
 description: 简单介绍常见的语法，例如 import、异常处理、反射等。
 ---

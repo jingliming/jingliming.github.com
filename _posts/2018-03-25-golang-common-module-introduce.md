@@ -3,7 +3,7 @@ title: Golang 常用模块
 layout: post
 comments: true
 language: chinese
-category: [program,golang]
+category: [program,golang,linux]
 keywords: golang,log
 description: 简单介绍常见的三方模块使用，例如 log、unsafe 等。
 ---

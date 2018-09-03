@@ -33,6 +33,23 @@ description:
 
 BootAgent 在启动时通过判断是否存在 `MetaFile` 来决定是否为第一次启动。
 
+## 开发调试
+
+### 编译工程
+
+{% highlight text %}
+$ cmake .. -DCMAKE_BUILD_TYPE=Debug -DBOOT_SERVER_ADDR="booter.cargo.com:8080,192.168.9.1:9090"
+{% endhighlight %}
+
+### 打包
+
+在源码目录下可以直接通过如下命令进行打包，其中入参是版本号。
+
+{% highlight text %}
+$ ./contrib/package.sh 1.2.1-1
+{% endhighlight %}
+
+
 ## REST-API 接口
 
 ### 启动注册接口
@@ -48,8 +65,7 @@ BootAgent 在启动时通过判断是否存在 `MetaFile` 来决定是否为第�
 {
 	"status": 0,
 	"agentsn": "dcb886e9-04ed-41bb-9c12-4d2de12cd59b",  # 如果上层判断有冲突，则返回合法的AgentSN
-	"tags": ["svc=ecs", "cmpt=DB"],
-	"server": "service=ecs,component"
+	"tags": "svc=ecs,cmpt=DB",
 }
 {% endhighlight %}
 
@@ -126,12 +142,6 @@ BootAgent 在启动时通过判断是否存在 `MetaFile` 来决定是否为第�
 }
 {% endhighlight %}
 
-
-## 编译
-
-{% highlight text %}
-$ cmake .. -DCMAKE_BUILD_TYPE=Debug -DBOOT_SERVER_ADDR="booter.cargo.com:8080,192.168.9.1:9090"
-{% endhighlight %}
 
 ## TODO
 

@@ -3,7 +3,7 @@ title: 幽默但不搞笑
 layout: post
 comments: true
 language: chinese
-category: [misc,life]
+category: [misc]
 keywords: humor,funny
 description: 记录一些有意思单看起来又不是那么简单的段子。
 ---

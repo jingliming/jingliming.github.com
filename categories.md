@@ -346,11 +346,15 @@ Golang 从 2007 年末由 Robert Griesemer、Rob Pike、Ken Thompson 主持开�
 
 #### 文章
 
-* [Golang 简介](/post/golang-introduce.html)，主要介绍 Golang 的环境搭建，常用工具等。
-* [Golang 如何编码？](/post/golang-how-to-write-go-code.html)，一篇官方文章的翻译，介绍如何进行编写代码。
-* [Golang 语法简介](/post/golang-basic-syntax-introduce.html)，简单介绍常见的语法，例如 import、异常处理、反射等。
-* [Golang 语法之接口](/post/golang-syntax-interface-introduce.html)，相比来说接口要复杂很多，这里拆出来单独讨论。
-* [Golang 常用模块](/post/golang-common-module-introduce.html)，常见的三方模块使用，例如 log、unsafe 等。
+* [GoLang 简介](/post/golang-introduce.html)，主要介绍 Golang 的环境搭建，常用工具等。
+* [GoLang 如何编码？](/post/golang-how-to-write-go-code.html)，一篇官方文章的翻译，介绍如何进行编写代码。
+* [GoLang 语法简介](/post/golang-basic-syntax-introduce.html)，简单介绍常见的语法，例如 import、异常处理、反射等。
+* [GoLang 语法之接口](/post/golang-syntax-interface-introduce.html)，相比来说接口要复杂很多，这里拆出来单独讨论。
+* [GoLang 常用模块](/post/golang-common-module-introduce.html)，常见的三方模块使用，例如 log、unsafe 等。
+
+##### 模块
+
+* [GoLang JSON 编码解码](/post/golang-json-encode-decode-introduce.html)，简单记录使用 JSON 的常用技巧。
 
 #### InfluxDB
 

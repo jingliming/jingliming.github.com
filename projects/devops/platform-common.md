@@ -8,12 +8,19 @@ keywords:
 description:
 ---
 
+## 规范
 
-## 命名规范
+### 变量名
 
 这里的命名规范包括了 `Tags` 。
 
 可用字符为 ASCII ，包括了 `A-Z` `a-z` `0-9` `_` `@` `#` 。
+
+### 包格式
+
+{% highlight text %}
+BootAgent-1.3.1-1.x86_64
+{% endhighlight %}
 
 
 ## 统一错误码

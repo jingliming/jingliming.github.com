@@ -33,15 +33,16 @@ FTP 服务器登录通常有三种不同的身份，分别是: 1) 实体账号 r
 
 ----- 使用客户端
 $ ftp hostname
-ftp> open 127.1         # 打开链接，需要用户登陆
-ftp> pwd                # 查看当前目录，一般默认是$HOME
-ftp> ls                 # 查看目录以及文件
-ftp> cd /some/dir       # 切换目录
-ftp> lcd /some/dir      # 切换本地目录
-ftp> get /some/file     # 下载文件
-ftp> mget *.txt         # 同时下载多个文件
+ftp> open 127.1            # 打开链接，需要用户登陆
+ftp> user name [password]  # 登陆
+ftp> pwd                   # 查看当前目录，一般默认是$HOME
+ftp> ls                    # 查看目录以及文件
+ftp> cd /some/dir          # 切换目录
+ftp> lcd /some/dir         # 切换本地目录
+ftp> get /some/file        # 下载文件
+ftp> mget *.txt            # 同时下载多个文件
 
-ftp> put file           # 上传文件
+ftp> put file              # 上传文件
 ftp> mput *.txt
 {% endhighlight %}
 
@@ -121,7 +122,6 @@ tick：设置传输时的字节计数器。
 trace：设置包跟踪。
 type[type-name]：设置文件传输类型为type-name，缺省为ascii，如:type binary，设置二进制传输方式。
 umask[newmask]：将远程服务器的缺省umask设置为newmask，如：umask 3
-user user-name[password][account]：向远程主机表明自己的身份，需要口令时，必须输入口令，如：user anonymous my@email。
 verbose：同命令行的-v参数，即设置详尽报告方式，ftp 服务器的所有响 应都将显示给用户，缺省为on.
 ?[cmd]：同help.
 下载cmd  中登入后，用get 文件名即可下载，下载文件放在才C:\Documents and Settings\Administrator

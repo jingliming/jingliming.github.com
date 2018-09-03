@@ -3,7 +3,7 @@ title: gRPC 简介
 layout: post
 comments: true
 language: chinese
-category: [misc]
+category: [program,golang,linux]
 keywords: grpc,golang
 description: gRPC 一开始由 google 开发，是一款开源的远程过程调用 (RPC) 系统。在 gRPC 里客户端应用可以像调用本地对象一样直接调用另一台不同的机器上服务端应用的方法，能够更容易地创建分布式应用和服务。
 

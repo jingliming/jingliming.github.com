@@ -3,7 +3,7 @@ title: gRPC GoLang 源码解析
 layout: post
 comments: true
 language: chinese
-category: [misc]
+category: [program,golang,linux]
 keywords: grpc,golang
 description: gRPC 是一个通用的 RPC 框架，这里简单看下 GoLang 中 gRPC 的实现。
 ---
