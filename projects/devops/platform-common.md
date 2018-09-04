@@ -35,6 +35,38 @@ BootAgent-1.3.1-1.x86_64
 0x1001   AgentSN冲突无法更新
 {% endhighlight %}
 
+## 安装路径
+
+对于 Agent 来说，其安装路径如下。
+
+{% highlight text %}
+----- 配置文件
+/etc/cargo/gearman.conf
+
+----- 二进制程序
+/usr/bin/gearman
+
+----- 动态库
+/usr/lib/cargo/nodus/cpu.so
+/usr/lib/cargo/gearman/userinfo.so
+
+----- 文档以及特定的配置文件等
+/usr/share/cargo
+/usr/share/cargo/nodus/types.db
+/usr/share/doc/cargo/AUTHORS
+/usr/share/doc/cargo/COPYING
+/usr/share/doc/cargo/ChangeLog
+/usr/share/doc/cargo/README
+/usr/share/doc/cargo/TODO
+/usr/share/man/man1/cargo.1.xz
+/usr/share/man/man5/cargo-exec.5.xz
+
+----- 日志以及PID文件
+/var/log/cargo/cargo.log
+/var/run/cargo/cargo.pid
+{% endhighlight %}
+
+
 
 {% highlight text %}
 {% endhighlight %}
