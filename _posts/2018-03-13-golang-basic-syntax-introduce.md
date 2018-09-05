@@ -789,6 +789,52 @@ func main() {
 
 例如在并发处理多个 job 时，如果队列满了，则返回错误让用户重试。
 
+#### Quit Channel
+
+{% highlight go %}
+package main
+
+import (
+        "fmt"
+)
+
+func boring(msg string, quit chan string) chan string {
+        c := make(chan string)
+        i := 0
+
+        go func() {
+                for {
+                        i++
+                        select {
+                        case c <- fmt.Sprintf("%s: %d", msg, i):
+                                fmt.Println("Send data")
+                        case q := <-quit:
+                                // cleanup
+                                fmt.Printf("Got %q\n", q)
+                                quit <- "See you!"
+                                return
+                        }
+                }
+        }()
+
+        return c
+}
+
+func main() {
+        quit := make(chan string)
+
+        c := boring("Foobar", quit)
+
+        for i := 5; i >= 0; i-- {
+                fmt.Println(<-c)
+        }
+
+        quit <- "Bye!"
+
+        fmt.Printf("Foobar says: %q\n", <-quit)
+}
+{% endhighlight %}
+
 <!--
 Quit Channel/Done Channel 还没有搞明白
 https://segmentfault.com/a/1190000006815341

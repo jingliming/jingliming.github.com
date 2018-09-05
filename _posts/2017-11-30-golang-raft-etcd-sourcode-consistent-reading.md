@@ -109,6 +109,23 @@ https://zhuanlan.zhihu.com/p/31050303
 https://zhuanlan.zhihu.com/p/31118381
 http://masutangu.com/2018/07/etcd-raft-note-3/
 http://masutangu.com/2018/07/etcd-raft-note-4/
+
+
+
+上述的示例是注册了一个
+
+linearizableReadLoop()
+ |-reqIDGen.Next() 获取唯一的标示，作为请求的ID
+ |-readwaitc 等待管道信号
+ |-newNotifier() etcdserver/util.go 新建一个notifier对象，每次请求都会新建一个，实际上就一个管道和错误信息
+ |-node.ReadIndex() raft/node.go 这里会发送一个消息
+ | |-node.step() 向recvc发送一个pb.MsgReadIndex消息
+ |-readStateC 等待接收管道信号
+ |-getAppliedIndex() etcdserver/server.go 实际上就是获取最新的appliedIndex
+ |-applyWait.Wait() 等待请求的
+ |-notifier.notify() etcdserver/util.go 通过关闭管道方式
+
+每次请求都会新建一个 readNotifier 对象，
 -->
 
 ## 参考

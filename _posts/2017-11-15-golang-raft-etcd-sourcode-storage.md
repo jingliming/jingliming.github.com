@@ -323,6 +323,128 @@ https://my.oschina.net/fileoptions/blog/1825531
 
 
 
+NewServer()                   etcdserver/server.go
+ |-store.New() store/store.go 根据入参创建一个初始化的目录
+ | |-newStore() 创建数据存储的目录
+ |-snap.New() snap/snapshotter.go 这里只是初始化一个对象，并未做实际操作
+ |-openBackend() etcdserver/backend.go 会等待打开Backend处理完成
+ | |-newBackend() 在新的协程中打开，同时会设置10秒的超时时间
+ |   |-DefaultBackendConfig() mvcc/backend/backend.go 更新检查配置
+ |     |-backend.New()
+ |       |-newBackend() mvcc/backend/backend.go
+ |         |-bolt.Open() 打开bolt中对应的DB
+ |         |-newBatchTxBuffered() 新建批量的缓冲区
+ |         |-backend.run() 启动一个单独协程处理，实际
+ |           |-batchTxBuffered.Commit() mvcc/backend/batch_tx.go
+ |               会通过管道等待处理打开Backend处理完成
+ |
+ | <<<haveWAL>>> 存在WAL日志，也就是非第一次部署
+ |-Snapshotter.Load() snap/snapshotter.go 开始加载snapshot
+ | |-Snapshotter.snapNames() 会遍历snap目录下的文件，并逆序排列返回
+ | |-loadSnap() 依次加载上述返回的snap文件
+ |   |-Read() 读取文件，如果报错那么会添加一个.broken的后缀
+ |     |-ioutil.ReadFile() 调用系统接口读取文件
+ |     |-snappb.Unmarshal() 反序列化
+ |     |-crc32.Update() 更新并校验CRC的值
+ |     |-raftpb.Unmarshal() 再次反序列化获取值
+ |-store.Recovery() store/store.go 如果snapshot不为空，则从磁盘中恢复数据
+ | |-json.Unmarshal() snap中保存的应该是json体
+ | |-newTtlKeyHeap() 一个TTL的最小栈，用来查看将要过期的数据
+ | |-recoverAndclean() ???没有理清楚具体删除的是什么过期数据
+ |-recoverSnapshotBackend() etcdserver/backend.go 开始恢复snapshot
+ | |-openSnapshotBackend() 这里会将最新的一次的snapshot重命名为DB
+ |   |-openBackend()
+ |
+ |-restartNode() etcdserver/raft.go
+ | |-readWAL()
+ | |-raft.NewMemoryStorage()
+ | |-ApplySnapshot()
+ | |-SetHardState()
+ | |-Append()
+ | |-RestartNode()
+ |-SetStore()
+ |-SetBackend()
+ |-Recover()
+
+为什么会有两次 openBackend() ？？？？？
+
+Etcd 定义了一个 `type storage struct` 数据结构，一起负责事务和快照。
+
+type storage struct {
+    *wal.WAL
+    *snap.Snapshotter
+}
+
+在上述的结构体中，没有指定 WAL 和 Snapshotter 的变量名称，对于 GoLang 语言来说，这两个类的方法都可直接通过 storage 来调用。比如 `WAL.Save()` 方法，可以通过 `storage.Save()` 来调用，也可以通过 `storage.WAL.Save()` 来调用，这两者是等价的。
+
+Etcd 中所有的持久化操作都是通过 snap 和 WAL 操作来完成的。
+
+在内存中的数据是保存在 `type store struct` 中。
+
+type store struct {
+	Root           *node            // 根节点 **
+	WatcherHub     *watcherHub      // 关于node的所有key的watcher   应该是保存了该store中保存的所有监听配置信息???
+	CurrentIndex   uint64           // 对应存储内容的index
+	Stats          *Stats           // 保存的监控指标数据 **
+	CurrentVersion int              // 最新数据的版本
+	ttlKeyHeap     *ttlKeyHeap      // 用于数据恢复的（需手动操作）
+	worldLock      sync.RWMutex     // 停止当前存储的world锁
+	clock          clockwork.Clock    //
+	readonlySet    types.Set        // 在internalCreate()中，会判断是否包含在该路径中，如果是则报错，主要是跟节点以namespace
+}
+
+type node struct {
+        Path string
+
+        CreatedIndex  uint64
+        ModifiedIndex uint64
+
+        Parent *node `json:"-"` // should not encode this field! avoid circular dependency.
+
+        ExpireTime time.Time
+        Value      string           // for key-value pair
+        Children   map[string]*node // for directory
+
+        // A reference to the store this node is attached to.
+        store *store
+}
+
+
+其中的节点以类似树的结构保存，其中非叶子节点的分支信息通过 `map` 保存，也就是 `node.Children` 成员；而对于叶子节点，则通过 `node.Value` 进行保存。
+
+New() store/store.go
+ |-newStore()
+   |-newDir() sotre/node.go 会新建一个根节点"/"，也就是store.Root
+   |-node.Add() store/node.go 将所有的namespace添加到根节点/下面
+   |-newStats() store/stats.go 用于保存一些监控数据
+   |-newWatchHub() store/watcher_hub.go
+     |newEventHistory() 保存的历史记录大小
+   |-newTtlKeyHeap() store/ttl_key_hub.go 用来保存所有节点的TTL过期信息
+
+
+store.Get() store/store.go 会根据给定的路径查找到相应的Node节点，然后返回一个Event结构用来响应客户端
+ |-store.internalGet() 会按照给定的路径查找
+ | |-store.walk()
+ |-newEvent() store/event.go 根据入参新建所需的结构体
+ |-NodeExtern.loadInternalNode()
+   |---> 如果是非叶子节点(目录节点)
+   |-node.List() 会遍历所有的Children中的对象
+   |-node.Repr() 如果需要则会递归遍历所有节点
+   |---> 如果是叶子节点(文件节点)
+   |-node.Read() 实际上就是判断是否为叶子节点，然后直接返回node.Value信息
+   |
+   |-node.expirationAndTTL() store/node.go 用来计算TTL、过期时间等信息
+
+store.Create() store/store.go
+ |-store.internalCreate()
+  |-readonlySet.Contains() 判断是否为只读节点，此时会返回报错
+  |-store.walk() 遍历路径上的节点，回调函数是store.checkDir()，如果目录不存在则创建，并返回最后一个node
+  |-newEvent() 应该返回的结果信息
+  |-node.GetChild() 可能是一个已经存在的节点
+  |-node.Remove() 如果需要替换，会先执行删除操作
+
+applyEntryNormal() 会判断是否需要持久化，如何判断V2还是V3接口?????
+WAL中如何判断是否为Apply的日志，还是说在正式提交前不会写入到WAL中？？？
 -->
 
 {% highlight text %}
