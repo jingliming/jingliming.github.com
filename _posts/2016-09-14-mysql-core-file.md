@@ -266,7 +266,7 @@ glibc-debuginfo-2.17-157.el7_3.1.x86_64
 
 ### 包含信息
 
-首先看看 glibc-debuginfo 包中包含有什么内容。
+首先看看 `glibc-debuginfo` 包中包含有什么内容。
 
 {% highlight text %}
 $ rpm -ql glibc-debuginfo
@@ -290,17 +290,17 @@ $ rpm -ql glibc-debuginfo
 ... ...
 {% endhighlight %}
 
-可以看出，glibc-debuginfo 大致有三类文件：
+可以看出 `glibc-debuginfo` 大致有三类文件：
 
-存放在/usr/lib/debug/下的：.build-id/nn/nnn...nnn.debug文件，文件名是hash key。
-存放在/usr/lib/debug/下的其它*.debug文件，其文件名，是库文件名+.debug后缀。
-glibc的源代码
+1. 存放在 `/usr/lib/debug/` 下的 `.build-id/nn/nnn...nnn.debug` 文件，文件名是 hash key 。
+1. 存放在 `/usr/lib/debug/` 下的其它 `*.debug` 文件，其文件名，是库文件名+`.debug` 后缀。
+1. glibc 的源代码。
 
 当使用 gdb 调试时，需要在机器码与源代码之间，建立起映射关系，这就需要三个信息：
 
-* 机器码：可执行文件、动态链接库，例如上面的/lib64/libc-2.18.so；
-* 源代码：显然就是glibc-debuginfo中，包含的*.c和*.h等源文件；
-* 映射关系：也就是保存在*.debug文件中的信息。
+* 机器码：可执行文件、动态链接库，例如上面的 `/lib64/libc-2.18.so`；
+* 源代码：显然就是 `glibc-debuginfo` 中，包含的 `*.c` 和 `*.h` 等源文件；
+* 映射关系：也就是保存在 `*.debug` 文件中的信息。
 
 ### 如何生成
 

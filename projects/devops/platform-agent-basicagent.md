@@ -172,24 +172,22 @@ description:
 
 ## 命令行
 
-可以通过命令行获取数据，将会直接加载动态库然后执行。
+可以通过命令行直接加载动态库获取数据。
 
 {% highlight text %}
-gearctl [options]
+BasicAgentCtl [options]
 参数：
     -c <command>    指定命令，例如getinfo.kernel、getinfo.users等；
     -a <arguments>  上述命令的参数，不同的指标参数略有区别；
 
-
 ===> getinfo.users 获取用户信息，注意执行需要ROOT权限
-./gearctl -c "getinfo.users" -a "-U root" | python -m json.tool  # 指定用户
-./gearctl -c "getinfo.users" -a "-A" | python -m json.tool  # 所有
-./gearctl -c "getinfo.users" -a "-u" | python -m json.tool  # 普通用户
-./gearctl -c "getinfo.users" -a "-S" | python -m json.tool  # 系统用户
+./BasicAgentCtl -c "getinfo.users" -a "-U root" | python -m json.tool  # 指定用户
+./BasicAgentCtl -c "getinfo.users" -a "-A" | python -m json.tool  # 所有
+./BasicAgentCtl -c "getinfo.users" -a "-u" | python -m json.tool  # 普通用户
+./BasicAgentCtl -c "getinfo.users" -a "-S" | python -m json.tool  # 系统用户
 
 ===> getinfo.kernel 获取内核信息
-./gearctl -c "getinfo.kernel" | python -m json.tool
-
+./BasicAgentCtl -c "getinfo.kernel" | python -m json.tool
 {% endhighlight %}
 
 

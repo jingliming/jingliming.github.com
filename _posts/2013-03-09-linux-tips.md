@@ -563,6 +563,20 @@ $ readlink symbol.txt
 $ cp -d symbol.txt copy.txt
 {% endhighlight %}
 
+### 硬链接
+
+通过 `ls -l` 可以查看符号链接所引用的原文件，而对于硬链接则不能通过上述命令查看，可以通过如下方式查看所有的硬链接文件。
+
+{% highlight text %}
+----- 查找文件对应的inode信息，包括其引用计数
+$ ls -il
+
+----- 根据inode信息找到所有的文件
+$ find / -inum 33582147
+{% endhighlight %}
+
+注意：软链接能够跨越文件系统 (分区)，硬链接不可以。
+
 ### 其它
 
 {% highlight text %}

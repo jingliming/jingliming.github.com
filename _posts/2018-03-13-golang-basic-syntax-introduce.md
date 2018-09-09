@@ -1076,5 +1076,129 @@ Strings, bytes, runes and characters in Go
 https://blog.golang.org/strings
 -->
 
+
+<!--
+
+## ServeMux VS. Handler
+
+Handler 负责输出 HTTP 响应的头和正文，任何满足了 `http.Handler` 接口的对象都可作为一个处理器。
+
+type Handler interface {
+	ServeHTTP(ResponseWriter, *Request)
+}
+
+Go 语言的 HTTP 包自带了几个函数用作常用处理器，比如FileServer，NotFoundHandler 和 RedirectHandler。我们从一个简单具体的例子开始：
+
+https://segmentfault.com/a/1190000006812688
+
+rafthttp/transport.go
+
+func (t *Transport) Handler() http.Handler {
+	pipelineHandler := newPipelineHandler(t, t.Raft, t.ClusterID)
+	streamHandler := newStreamHandler(t, t, t.Raft, t.ID, t.ClusterID)
+	snapHandler := newSnapshotHandler(t, t.Raft, t.Snapshotter, t.ClusterID)
+	mux := http.NewServeMux() //http 请求路由
+	mux.Handle(RaftPrefix, pipelineHandler) /* /raft */
+	mux.Handle(RaftStreamPrefix+"/", streamHandler)  /* /raft/stream/ */
+	mux.Handle(RaftSnapshotPrefix, snapHandler)      /* /raft/snapshot */
+	mux.Handle(ProbingPrefix, probing.NewHandler())  /* /raft/probing */
+	return mux
+}
+
+func newPeerHandler(cluster api.Cluster, raftHandler http.Handler, leaseHandler http.Handler) http.Handler {
+        mh := &peerMembersHandler{
+                cluster: cluster,
+        }
+
+        mux := http.NewServeMux()
+        mux.HandleFunc("/", http.NotFound)
+        mux.Handle(rafthttp.RaftPrefix, raftHandler)
+        mux.Handle(rafthttp.RaftPrefix+"/", raftHandler)
+        mux.Handle(peerMembersPrefix, mh)
+        if leaseHandler != nil {
+                mux.Handle(leasehttp.LeasePrefix, leaseHandler)
+                mux.Handle(leasehttp.LeaseInternalPrefix, leaseHandler)
+        }
+        mux.HandleFunc(versionPath, versionHandler(cluster, serveVersion))
+        return mux
+}
+
+### Byte VS. Rune
+
+两种实际上是 `uint8` 和 `uint32` 类型，byte 用来强调数据是 RawData，而不是数字；而 rune 用来表示 Unicode 编码的 CodePoint。
+
+中文字符使用 3 个字节保存(为什么使用的是3个字节保存)。
+
+s := "hello你好"
+fmt.Println(len(s))         // 11
+fmt.Println(len([]rune(s))) // 7，需要先转换为rune的切片在使用内置len函数
+s = "你好"
+fmt.Println(len(s))         // 6
+fmt.Println(len([]rune(s))) // 2
+s = "你"
+fmt.Println([]byte(s)) // 三个字节，也就是中文的表示方法
+fmt.Println(rune('你')) // 输出20320(0x4F60)，'你' 的编码
+
+Strings, bytes, runes and characters in Go
+https://blog.golang.org/strings
+
+
+
+package main
+
+import (
+        "bytes"
+        "encoding/binary"
+        "fmt"
+)
+
+func IntToBytes(n int) []byte {
+        bytesBuffer := bytes.NewBuffer([]byte{})
+        binary.Write(bytesBuffer, binary.BigEndian, int32(n))
+        return bytesBuffer.Bytes()
+}
+
+func main() {
+        var b0 bytes.Buffer
+        b0.Write([]byte("Hello "))
+        fmt.Println(b0.String())
+
+        b1 := new(bytes.Buffer)
+        b1.WriteString("Hi World")
+        b1.WriteByte('!')
+        fmt.Println(b1.String())
+
+        /*
+                // OR
+                b2 := bytes.NewBufferString("swift")
+                b3 := bytes.NewBuffer([]byte("swift"))
+                b4 := bytes.NewBuffer([]byte{'s', 'w', 'i', 'f', 't'})
+
+                // Empty Buffer
+                b5 = bytes.NewBufferString("")
+                b6 = bytes.NewBuffer([]byte{})
+        */
+}
+
+
+The Go Programming Language Specification
+https://golang.org/ref/spec
+
+## New() VS. Make()
+
+两者都是内建函数，都是用来申请内存的，其声明为。
+
+func new(Type) *Type
+func make(Type, size IntegerType) Type
+
+其中前者返回的是指向这个新分配已初始化对象的指针；后者只能分配 slice、map 或者 chan 对象，返回的是初始化后对象的引用而非指针。 
+
+对于 slice、map、chan 对象，声明对象之后实际上变量的值是 nil ，此时没有分配内存。
+
+如果不做特殊声明，函数是按值传参，也就是参数的副本，在函数内部对值修改不影响值的本身。不过通过 `make(T, args)` 返回的值通过函数传递参数之后可以直接修改，也就是 map，slice，channel 。
+
+另外，对于 struct 对象来说，完全可以不使用 new 完成初始化操作。
+-->
+
 {% highlight go %}
 {% endhighlight %}

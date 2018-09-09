@@ -243,5 +243,13 @@ https://github.com/jobbole/awesome-c-cn
 -->
 
 
+## 参考
+
+符号表的详细信息可以查看 [ELF 符号表]({{ site.production_url }}/post/program-c-elf-symbol-section.html) 中的介绍。
+
+关于 DebugInfo 的详细介绍可以查看 [MySQL Core 文件]({{ site.production_url }}/post/mysql-core-file.html) 中的介绍。
+
+
+
 {% highlight text %}
 {% endhighlight %}

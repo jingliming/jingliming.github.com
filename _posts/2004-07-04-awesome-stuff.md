@@ -20,6 +20,7 @@ description: 简单记录一下一些常见的资源。
 
 * [Let's Build a Simple Database](https://cstack.github.io/db_tutorial/) ，详细介绍如何构建一个小型数据库，基本类似于 SQLite 。
 * [Github System Design Primer](https://github.com/donnemartin/system-design-primer)，一个应用系统的整体架构。
+* [The Twelve-Factor App](https://12factor.net/)，称之为应用、服务开发的十二个关注点。
 
 ## 其它
 

@@ -715,6 +715,23 @@ $ curl www.example.com/form.cgi?data=xxx
 $ curl --data-urlencode --data "data=April 1" www.example.com/form.cgi
 {% endhighlight %}
 
+#### 各阶段时间
+
+可以通过如下方式检查 HTTP 请求各个阶段的耗时。
+
+{% highlight text %}
+-w 在执行完成后，按照指定的格式将信息输出到终端，更多参数可以查看man(1) curl
+  time_namelookup DNS解析域名的时间 
+  time_connect 客户端和服务端建立TCP连接的时间
+  time_starttransfer 从客户端发出请求到收到服务端响应第一个字节的时间
+  time_total 从客户端发出请求到收到服务端收到所有字节的时间
+  speed_download 下载速度单位是B/s
+
+$ curl -o /dev/null -s -w "%{time_namelookup}:%{time_connect}:%{time_starttransfer}:%{time_total}\n" \
+	http://www.huawei.com
+{% endhighlight %}
+
+
 
 <!--
 六、文件上传

@@ -468,6 +468,13 @@ https://github.com/adtac/commento
 
 单纯对于一台主机来说
 
+
+Python 的双因子验证
+http://blog.51cto.com/cwtea/2068137
+https://www.secpulse.com/archives/4606.html
+http://www.freebuf.com/articles/network/150071.html
+http://www.freebuf.com/articles/web/165139.html
+
 -->
 
 

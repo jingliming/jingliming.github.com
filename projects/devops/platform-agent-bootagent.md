@@ -46,7 +46,7 @@ $ cmake .. -DCMAKE_BUILD_TYPE=Debug -DBOOT_SERVER_ADDR="booter.cargo.com:8080,19
 在源码目录下可以直接通过如下命令进行打包，其中入参是版本号。
 
 {% highlight text %}
-$ ./contrib/package.sh 1.2.1-1
+$ ./contrib/package.sh BootAgent 1.2.1-1
 {% endhighlight %}
 
 
@@ -78,18 +78,23 @@ $ ./contrib/package.sh 1.2.1-1
 {% highlight text %}
 ----- POST /agent/status 上报当前Agent状态
 {
-	"hostname": "127.0.0.1",                            # 主机名
-	"agentsn": "33c5b8b4-5a2c-43c5-ab90-96721451b4ec",  # AgentSN
-	"version": "bootagent-1.2.4-x86_64",                # BootAgent的版本号
-	"uptime": 1234,                                     # 进程已经启动时间，单位秒
-	"timestamp": 1232,                                  # 上报时的时间戳
-	"step": 600,                                        # 上报的时间间隔，可以做修改，默认10min
-	"agents": [{                                        # 当前主机Agent信息
-		"name": "BasicAgent",                       # Agent名称，需要保证唯一
-		"version": "1.2.3",                         # Agent当前版本号
-		"status": "stoped",                         # Agent的状态
-		"uptime": 123,                              # 已经运行时间
-	}]
+	"hostname": "127.0.0.1",                                # 主机名
+	"agentsn": "33c5b8b4-5a2c-43c5-ab90-96721451b4ec",      # AgentSN
+	"version": "bootagent-1.2.4-x86_64",                    # BootAgent的版本号
+	"uptime": 1234,                                         # 进程已经启动时间，单位秒
+	"timestamp": 1232,                                      # 上报时的时间戳
+	"step": 600,                                            # 上报的时间间隔，可以做修改，默认10min
+	"agents": [{                                            # 当前主机Agent信息
+		"name": "BasicAgent",                           # Agent名称，需要保证唯一
+		"version": "1.2.3",                             # Agent当前版本号
+		"status": "stoped",                             # Agent的状态
+		"uptime": 123,                                  # 已经运行时间
+	}],
+	"jobs": [{                                              # 任务执行状态
+		"id": "ddc8a9b9-55bd-4ddd-b53d-47095ee19466",   # 任务ID
+		"errcode": 0,                                   # 统一错误码信息
+		"message": "success"                            # 返回信息
+	}],
 }
 
 ----- 返回信息，可以包含请求
@@ -99,7 +104,7 @@ $ ./contrib/package.sh 1.2.1-1
 		"id": "ddc8a9b9-55bd-4ddd-b53d-47095ee19466",  # 任务ID信息，由服务端指定，客户端上报执行结果时会带上
 		"action": "install",                           # 指定任务操作，也开始是"upgrade" "uninstall" "restart" "stop"等
 		"name": "BasicAgent",                          # 需要操作的子Agent名称
-		"url": "ftp://server:port/BasicAgent/BasicAgent-1.5.6..rpm",
+		"url": "ftp://server:port/BasicAgent/BasicAgent-0.1.0-0.x86_64.rpm",
 		"checksum": "SHA256:4a34b8d7d3009bb9ef9475fbf33e7bbe4a1e8db003aefc578a241c2f51c2c2f2",
 		"envs": {                                      # 运行时的环境变量，一般在初次安装时配置，可以每次更新
 			"PATH": "/usr/bin;/usr/local/bin"
@@ -123,25 +128,6 @@ $ ./contrib/package.sh 1.2.1-1
       * fatal 多次重试后失败
       * killed 资源超限等原因被强制杀死
 {% endhighlight %}
-
-### 任务执行结果
-
-{% highlight text %}
------ POST /agent/job/result 上报任务执行的状态
-[
-	{
-		"id": "ddc8a9b9-55bd-4ddd-b53d-47095ee19466",
-		"errcode": 0,
-		"message": "success"
-	}
-]
-
------ 返回信息
-{
-	"errcode": 0                                           # 一般都是0，非0会一直尝试上报上述结果
-}
-{% endhighlight %}
-
 
 ## TODO
 

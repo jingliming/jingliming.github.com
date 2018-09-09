@@ -137,36 +137,25 @@ err = setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
 echo 8388608 > /proc/sys/net/core/rmem_default
 
 
+ICMP 报文在 Linux C 中通过 `struct icmp[netinet/ip_icmp.h]` 定义，而报文中的消息体，则根据不同 `TYPE`、`CODE` 会有所区别。
+
+在 C 中，通过 `union` 进行适配，为了方便使用，同时又定义了很多辅助的宏定义。
+
+#### Echo Request(8)/Reply(0)
+
+icmp_id
+icmp_seq
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-称之为应用、服务开发的十二个关注点
-https://12factor.net/
-
-Python 的双因子验证
-http://blog.51cto.com/cwtea/2068137
-https://www.secpulse.com/archives/4606.html
-http://www.freebuf.com/articles/network/150071.html
-http://www.freebuf.com/articles/web/165139.html
 
 
 
 IP 报文头为 20 字节 [IP头部结构详解](http://codingstone.com/content.php?blockTableName=network&blogID=2) 。
 
 ICMP 报文头根据 type 和 code 的不同，其对应的大小也有所区别，详见 [使用Python的Socket模块构建一个UDP扫描工具](http://www.cnnetsec.com/2308.html) 。
+
 关于 ICMP 也可以参考 http://courses.cs.vt.edu/cs4254/fall04/slides/raw_6.pdf
 
 
