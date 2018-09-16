@@ -1176,6 +1176,34 @@ libev and libevent对比
 https://blog.gevent.org/2011/04/28/libev-and-libevent/
 
 https://blog.csdn.net/gqtcgq/article/details/49716601
+
+
+
+
+
+
+在使用 `-O2` 或者 `-O3` 选项后，默认会开启 `-fstrict-aliasing` 选项，可以通过 `-fno-strict-aliasing` 参数将其关闭。
+
+在 GCC 中，其解释如下。
+
+Allows the compiler to assume the strictest aliasing rules applicable to the language
+being compiled. For C (and C++), this activates optimizations based on the type of
+expressions. In particular, an object of one type is assumed never to reside at the same
+address as an object of a different type, unless the types are almost the same.
+For example, an unsigned int can alias an int, but not avoid* or a double. A character
+type may alias any other type.
+
+也就是说，默认是不允许不同类型进行转换的，除非可以做到兼容。
+
+
+https://github.com/metametaclass/libev-aliasing-warning
+
+最新版本为4.24
+http://software.schmorp.de/pkg/libev.html
+还有很多不错的库，例如liblzf
+http://dist.schmorp.de/libev/
+
+https://github.com/mreiferson/libevbuffsock
 -->
 
 
