@@ -125,7 +125,6 @@ int main(void)
 	rc = sqlite3_open("daemon.db", &db);
 	if (rc != SQLITE_OK) {
 		fprintf(stderr, "Cannot open database: %s\n", sqlite3_errmsg(db));
-		sqlite3_close(db);
 		return 1;
 	}
 	printf("Opened SQLite handle successfully.\n");
