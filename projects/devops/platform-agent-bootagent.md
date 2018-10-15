@@ -183,7 +183,7 @@ $ ./contrib/package.sh BootAgent 1.2.1-1
 ps -eo ppid,pid,user,group,euser,egroup,cmd | grep gearman
 usermod -a -G root monitor 将monitor用户添加到root组中
 
-https://github.com/Jin-Yang/cgfy
+https://github.com/jingliming/cgfy
 https://github.com/chr15p/cgshares
 
 

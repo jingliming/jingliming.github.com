@@ -23,7 +23,7 @@ title: About
 
 This is a personal blog, generated with Jekyll and hosted on GitHub Pages. Most componets (such as topbar, sidebar, local search, google search, back to top bottom and so on) were just redesigned from others' templates.
 
-So if you like them just feel free to reuse (except the blog contents ^_^), or fork me on [GitHub](https://github.com/Jin-Yang/jin-yang.github.com).
+So if you like them just feel free to reuse (except the blog contents ^_^), or fork me on [GitHub](https://github.com/jingliming/jingliming.github.com).
 
 As mentioned above, most of the layout materials, including some pictures, java scripts and so on, are copied from the internet, so if there are copyright problems just contact me, I will make some changes.
 
