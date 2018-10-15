@@ -9,8 +9,8 @@ kramdown:
     math_engine: mathjax
 plugins:
     - jekyll-paginate
-production_url: 'https://jin-yang.github.io'
-example_repository: 'https://github.com/Jin-Yang/examples/tree/master'
+production_url: 'https://jingliming.github.io'
+example_repository: 'https://github.com/jingliming/examples/tree/master'
 kernel_docs_url: 'https://www.kernel.org/doc'
 
 description: > # this means to ignore newlines until "baseurl:"
