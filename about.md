@@ -40,7 +40,7 @@ Enjoy the contents.
 
 Just a brief introduce.
 
-My name is Jin Yang, a Chinese guy, you could also call me Andy if you like. Therefore, if my English sounds somewhat wooden, please realize english is not my native language ^_^"".
+My name is Rimond, a Chinese guy, you could also call me Andy if you like. Therefore, if my English sounds somewhat wooden, please realize english is not my native language ^_^"".
 
 Many blogs were created by synthesizing a lot of different information and tutorials available online, maybe also some books, but I’m not a specialist in many fields. I’m just an enthusiast who thinks something is interesting, funny, etc.
 
