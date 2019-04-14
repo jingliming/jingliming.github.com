@@ -1,5 +1,5 @@
 ---
-title: golang包命名规范
+title: Golang包命名规范
 layout: post
 comments: true
 language: chinese
