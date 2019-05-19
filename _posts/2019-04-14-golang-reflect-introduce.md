@@ -40,6 +40,13 @@ db.Find(&users)
 {% endhighlight %}
 示例中Find函数不知道传入的参数是什么类型，但要能处理任意任意参数。如果类型合法返回正确的值，否则返回异常。
 
+Go反射常用的两种数据类型reflect.Type和reflect.Value，这两种都属于结构体类型，reflect.Type用于反射变量类型信息，
+reflect.Value用于反射运行时的数据。反射对性能有一定的影响，使用时要考虑对性能的要求。为便于演示创建一个Go单元测试文件
+reflect_test.go，Go语言的对象是以结构体的形式使用，自定义一个用于测试的结构体user。
+
+
+## reference
+[Golang反射机制的应用](https://yq.aliyun.com/articles/599584)
 
 
 
